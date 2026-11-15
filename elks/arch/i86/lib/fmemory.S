@@ -19,6 +19,7 @@
 	.global fmemsetw
 	.global fmemcmpb
 	.global fmemcmpw
+	.global fmemcpy_text
 
 // void fmemcpyb (void * dst_off, seg_t dst_seg, void * src_off, seg_t src_seg,
 //		size_t count)
@@ -158,4 +159,34 @@ fmemcmpw_exit:
 	mov    %ss,%dx
 	mov    %dx,%ds
 	mov    %bx,%es
+	ret
+
+// size_t fmemcpy_text (void * dst_off, seg_t dst_seg, const char * src, word_t attr,
+//		size_t count)
+// Copy up to count characters from DS:src to dst_seg:dst_off as character/attribute
+// words (attr in the high byte), stopping before the first control character (< 0x20).
+// Returns the number of characters copied. Used by the direct console fast path.
+
+fmemcpy_text:
+	push   %si
+	push   %di
+	mov    %es,%dx
+	mov    %sp,%bx
+	les    4+ARG0(%bx),%di  // far destination pointer
+	mov    4+ARG2(%bx),%si  // near source
+	mov    4+ARG3(%bx),%ax  // attribute in AH
+	mov    4+ARG4(%bx),%cx  // max count
+	mov    %cx,%bx          // remember requested count
+	cld
+	jcxz   2f
+1:	lodsb
+	cmp    $0x20,%al
+	jb     2f
+	stosw
+	loop   1b
+2:	mov    %bx,%ax
+	sub    %cx,%ax          // characters copied
+	mov    %dx,%es
+	pop    %di
+	pop    %si
 	ret

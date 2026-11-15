@@ -24,6 +24,9 @@
 #include <arch/segment.h>
 #include "console.h"
 #include "crtc-6845.h"
+#include <linuxmt/memory.h>
+#include <linuxmt/segment.h>
+#include <arch/irq.h>
 
 /* Enable ram-buffered text pages */
 #define VC_USE_RAM_BUFFER     0
@@ -76,6 +79,9 @@ struct console {
 #ifdef CONFIG_CONSOLE_AMSTRAD_IGA
     unsigned int crtc_home;     /* home CRTC start (chars) of this VC's page */
     unsigned int page_words;    /* words in this VC's scroll ring, 0=stock path */
+#else
+    unsigned int crtc_home;     /* first CRTC char of this VC's video region */
+    unsigned int crtc_limit;    /* end of region for hardware scrolling, 0 = copy scrolling */
 #endif
 #ifdef CONFIG_EMUL_ANSI
     int savex, savey;           /* saved cursor position */
@@ -115,6 +121,7 @@ static void std_char(Console *, int);
 #include "direct-amstrad.c"
 #else
 #include "direct-ibmpc.c"
+#define CONSOLE_FAST_WRITE      /* VideoWrite needs no cursor update */
 #endif
 
 /* shared console routines*/
@@ -260,7 +267,18 @@ void INITPROC console_init(void)
         } else /* fall through #endif */
 #endif
         {
-            C->crtc_offset = i * PageSizeW;
+            /* Give each VC an equal share of video RAM. With room for at least
+             * one line more than a screen, scrolling moves the CRTC start
+             * address through the share instead of copying the whole screen.
+             */
+            unsigned int span = (avail_pages * PageSizeW) / NumConsoles;
+            span -= span % Width;
+            if (span >= (unsigned int)(Width * (Height + 1))) {
+                C->crtc_home = i * span;
+                C->crtc_limit = C->crtc_home + span;
+                C->crtc_offset = C->crtc_home;
+            } else
+                C->crtc_offset = i * PageSizeW;
             C->vseg_offset = C->crtc_offset << 1;
             C->vseg = VideoSeg;
         }

@@ -18,6 +18,7 @@
 #include <linuxmt/fcntl.h>
 #include <linuxmt/errno.h>
 #include <linuxmt/mm.h>
+#include <linuxmt/memory.h>
 #include <linuxmt/string.h>
 #include <linuxmt/termios.h>
 #include <linuxmt/chqueue.h>
@@ -305,8 +306,31 @@ size_t tty_write(struct inode *inode, struct file *file, char *data, size_t len)
                 count = ret;
             break;
         }
-        chq_addch_nowakeup(&tty->outq, get_user_char(data++));
-        count++;
+        {
+            /* Copy as much as fits contiguously in one far copy, instead of
+             * fetching and queueing the caller's data one byte at a time.
+             * Only free space is filled; interrupt-time readers only free more.
+             */
+            register struct ch_queue *q = &tty->outq;
+            size_t n = len - count;
+            size_t room;
+
+            clr_irq();
+            room = q->size - q->len;
+            if (room > (size_t)(q->size - q->head))
+                room = q->size - q->head;
+            set_irq();
+            if (n > room)
+                n = room;
+            fmemcpyb(q->base + q->head, kernel_ds, data, current->t_regs.ds, n);
+            clr_irq();
+            if ((q->head += n) >= q->size)
+                q->head = 0;
+            q->len += n;
+            set_irq();
+            data += n;
+            count += n;
+        }
     }
     tty->ops->write(tty);
     wake_up(&tty->outq.wait);

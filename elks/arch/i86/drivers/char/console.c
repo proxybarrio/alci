@@ -444,6 +444,37 @@ static int Console_write(struct tty *tty)
     int cnt = 0;
 
     while ((tty->outq.len > 0) && !glock) {
+#ifdef CONSOLE_FAST_WRITE
+        /* Fast path for runs of ordinary characters: same result as tty_outproc()
+         * plus std_char()'s default case, copied by an assembly loop up to the
+         * end of the line, the end of the queue buffer, or a control character.
+         */
+        if (!tty->ostate && C->fsm == std_char && !C->XN) {
+            register struct ch_queue *q = &tty->outq;
+            unsigned int n = q->size - q->tail;
+            unsigned int k = C->Width - C->cx;
+
+            if (n > (unsigned int)q->len)
+                n = q->len;
+            if (n > k)
+                n = k;
+            k = fmemcpy_text((void *)(((C->cx + C->cy * C->Width) << 1) + C->vseg_offset),
+                    C->vseg, (char *)q->base + q->tail, C->attr << 8, n);
+            if (k) {
+                clr_irq();
+                if ((q->tail += k) >= q->size)
+                    q->tail = 0;
+                q->len -= k;
+                set_irq();
+                if ((C->cx += k) >= C->Width) {
+                    C->XN = 1;
+                    C->cx = C->Width - 1;
+                }
+                cnt += k;
+                continue;
+            }
+        }
+#endif
         WriteChar(C, tty_outproc(tty));
         cnt++;
     }

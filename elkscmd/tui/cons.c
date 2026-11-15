@@ -38,7 +38,9 @@ static void display(void)
 {
     int r, c, a;
     int b, ch;
-    unsigned short __far *chattr = MK_FP(0xb800, 0);
+    /* start of the displayed page in bytes, kept in the BIOS data area (0x40:0x4E)
+     * by the BIOS and by the ELKS console (page flipping, hardware scrolling) */
+    unsigned short __far *chattr = MK_FP(0xb800, peek(0x40, 0x4E));
     char buf[16];
 
     fputs("\033[H", stdout);

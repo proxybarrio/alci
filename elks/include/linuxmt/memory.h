@@ -22,6 +22,7 @@ void fmemsetb (void * off, seg_t seg, byte_t val, size_t count);
 void fmemsetw (void * off, seg_t seg, word_t val, size_t count);
 
 void fmemcpyb (void * dst_off, seg_t dst_seg, void * src_off, seg_t src_seg, size_t count);
+size_t fmemcpy_text (void * dst_off, seg_t dst_seg, const char * src, word_t attr, size_t count);
 void fmemcpyw (void * dst_off, seg_t dst_seg, void * src_off, seg_t src_seg, size_t count);
 
 word_t fmemcmpb (void * dst_off, seg_t dst_seg, void * src_off, seg_t src_seg, size_t count);

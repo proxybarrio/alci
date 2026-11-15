@@ -6,6 +6,9 @@ static void SetDisplayPage(Console * C)
 {
     outw((C->crtc_offset & 0xff00) | 0x0c, C->crtc_base);
     outw((C->crtc_offset << 8) | 0x0d, C->crtc_base);
+    /* publish the display start (bytes) in the BIOS data area, as the BIOS does,
+     * for programs that read video memory directly */
+    pokew(0x4E, 0x40, C->crtc_offset << 1);
 }
 
 static void PositionCursor(Console * C)
@@ -33,8 +36,9 @@ static void DisplayCursor(Console * C, int onoff)
 
 static void VideoWrite(Console * C, int c)
 {
-    pokew(((C->cx + C->cy * C->Width) << 1) + C->vseg_offset, C->vseg,
-          (C->attr << 8) | (c & 255));
+    /* direct far store: avoids a pokew() call per character */
+    *(unsigned short __far *)_MK_FP(C->vseg,
+        ((C->cx + C->cy * C->Width) << 1) + C->vseg_offset) = (C->attr << 8) | (c & 255);
 }
 
 static void ClearRange(Console * C, int x, int y, int x2, int y2)
@@ -43,12 +47,13 @@ static void ClearRange(Console * C, int x, int y, int x2, int y2)
 
     x2 = x2 - x + 1;
     vp = ((x + y * C->Width) << 1) + C->vseg_offset;
+    if (x2 == C->Width) {       /* whole rows: one fill for the block */
+        fmemsetw((void *)vp, C->vseg, (C->attr << 8) | ' ', x2 * (y2 - y + 1));
+        return;
+    }
     do {
-        for (x = 0; x < x2; x++) {
-            pokew(vp, C->vseg, (C->attr << 8) | ' ');
-            vp += 2;
-        }
-        vp += (C->Width - x2) << 1;
+        fmemsetw((void *)vp, C->vseg, (C->attr << 8) | ' ', x2);
+        vp += C->Width << 1;
     } while (++y <= y2);
 }
 
@@ -58,6 +63,26 @@ static void ScrollUp(Console * C, int y)
     int MaxRow = C->Height - 1;
     int MaxCol = C->Width - 1;
 
+#ifndef CONFIG_CONSOLE_AMSTRAD_IGA
+    /* Hardware scroll: move the display start down one line within this VC's
+     * share of video RAM. At the end of the share, copy the screen back to the
+     * start once ("rebase") instead of copying it on every line.
+     */
+    if (y == 0 && C->crtc_limit) {
+        unsigned int next = C->crtc_offset + C->Width;
+        if (next + C->Width * C->Height > C->crtc_limit) {
+            fmemcpyw((void *)(C->crtc_home << 1), C->vseg,
+                     (void *)(next << 1), C->vseg, MaxRow * C->Width);
+            next = C->crtc_home;
+        }
+        C->crtc_offset = next;
+        C->vseg_offset = next << 1;
+        ClearRange(C, 0, MaxRow, MaxCol, MaxRow);
+        if (C == Visible[C->display])
+            SetDisplayPage(C);
+        return;
+    }
+#endif
     vp = (y * (C->Width << 1)) + C->vseg_offset;
     if ((unsigned int)y < MaxRow)
         fmemcpyw((void *)vp, C->vseg,
