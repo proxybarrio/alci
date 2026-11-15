@@ -285,6 +285,8 @@ void wait_on_buffer(struct buffer_head *bh)
 {
 #ifdef CONFIG_ASYNCIO
     ext_buffer_head *ebh = EBH(bh);
+    if (!ebh->b_locked)         /* common case: nothing to wait for */
+        return;
     ebh->b_count++;
     wait_set((struct wait_queue *)bh);       /* use bh as wait address */
     for (;;) {

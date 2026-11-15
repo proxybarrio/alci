@@ -24,30 +24,6 @@ static int namecompare(size_t len, size_t max, const char *name, register char *
 }
 
 /*
- * ok, we cannot use strncmp, as the name is not in our data space.
- * Thus we'll have to use minix_match. No big problem. Match also makes
- * some sanity tests.
- *
- * NOTE! unlike strncmp, minix_match returns 1 for success, 0 for failure.
- *
- * Note2: bh must already be mapped!
- */
-static int minix_match(size_t len,
-		       const char *name,
-		       register struct minix_dir_entry *de,
-		       size_t minixlen)
-{
-    if (!de->inode) {
-	return 0;
-    }
-    /* "" means "." ---> so paths like "/usr/lib//libc.a" work */
-    if (!len && (de->name[0] == '.') && (de->name[1] == '\0')) {
-	return 1;
-    }
-    return namecompare(len, minixlen, name, de->name);
-}
-
-/*
  *	minix_find_entry()
  *
  * finds an entry in the specified directory with the wanted name. It
@@ -65,8 +41,6 @@ static struct buffer_head *minix_find_entry(register struct inode *dir,
 {
     register struct buffer_head *bh;
     struct minix_sb_info *info;
-    __u32 bo;
-    unsigned short offset;
 
     *res_dir = NULL;
     if (!dir || !dir->i_sb)
@@ -74,27 +48,49 @@ static struct buffer_head *minix_find_entry(register struct inode *dir,
     info = &dir->i_sb->u.minix_sb;
     if (namelen > info->s_namelen)
 	namelen = info->s_namelen;      /* truncate name */
-    bo = 0L;
-    offset = 0;
-    goto minix_find;
-    do {
-	offset = (__u16)bo & (BLOCK_SIZE - 1);
-	if (!offset) {
-	    unmap_brelse(bh);
-      minix_find:
-	    bh = minix_bread(dir, (__u16)(bo >> BLOCK_SIZE_BITS), 0);
-	    if (!bh) {
-		continue;
+
+    /* Fetch the first byte of the wanted name once: comparing it first rejects
+     * almost every directory entry without the per-byte fetches of fs_memcmp(),
+     * which dominated lookup time on 8086 systems.
+     */
+    int first = namelen ? get_user_char(name) : '.';
+
+    /* Scan the directory a block at a time with a near pointer, instead of
+     * recomputing a 32-bit position and offset for every entry.
+     */
+    {
+	__u32 pos = 0;
+	block_t blk = 0;
+	unsigned int dirsize = info->s_dirsize;
+
+	while (pos < dir->i_size) {
+	    __u32 left = dir->i_size - pos;
+	    unsigned int len = (left < BLOCK_SIZE) ? (unsigned int)left : BLOCK_SIZE;
+
+	    bh = minix_bread(dir, blk, 0);
+	    if (bh) {
+		register char *p;
+		char *end;
+
+		map_buffer(bh);
+		p = bh->b_data;
+		end = p + len;
+		for (; p < end; p += dirsize) {
+		    register struct minix_dir_entry *de = (struct minix_dir_entry *)p;
+		    /* same result as the former minix_match(): "" matches "." */
+		    if (de->name[0] == first && de->inode && (namelen
+			    ? namecompare(namelen, info->s_namelen, name, de->name)
+			    : de->name[1] == '\0')) {
+			*res_dir = de;
+			return bh;
+		    }
+		}
+		unmap_brelse(bh);
 	    }
-	    map_buffer(bh);
+	    pos += BLOCK_SIZE;
+	    blk++;
 	}
-	if (minix_match(namelen, name,
-		(struct minix_dir_entry *)(bh->b_data + offset), info->s_namelen)) {
-	    *res_dir = (struct minix_dir_entry *) (bh->b_data + offset);
-	    return bh;
-	}
-    } while ((bo += info->s_dirsize) < dir->i_size);
-    unmap_brelse(bh);
+    }
     return NULL;
 }
 
