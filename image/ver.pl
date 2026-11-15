@@ -8,4 +8,5 @@ while (<>) {
         /^\s*PRE\s*=\s*(.*)/            && ($pre = $1);
 }
 
-print "\nELKS ${ver}.${pat}.${sub}${pre}\n\n";
+print "\nALCI 0.1: Asymmetric Linux Compact Initiative\n";
+print "based on ELKS ${ver}.${pat}.${sub}${pre} by Greg Haerr and the ELKS team\n\n";
