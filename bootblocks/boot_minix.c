@@ -51,6 +51,8 @@ int seg_data ();
 void disk_read_blk (unsigned block, const int count, const byte_t *buf, const int seg);
 
 void run_prog ();
+void zone_load (zone_nr z, unsigned off, unsigned seg);
+extern unsigned r_n;
 
 static int strcmp (const char * s, const char * d);
 static void load_super ();
@@ -77,7 +79,7 @@ void load_prog ()
 	// Avoid reuse of an old copy of /bootopts in memory
 	// if we're rebooting with no /bootopts
 	int __far *optseg = _MK_FP(OPTSEG, 0);
-	*optseg = i_boot = i_now = 0;
+	*optseg = i_boot = i_now = r_n = 0;
 
 	load_super();
 	load_file ();
@@ -169,7 +171,7 @@ static void load_zone (int level, zone_nr * z_start, zone_nr * z_end)
 		if (level == 0) {
 			if (i_now) {
 				long lin_addr = loadaddr + f_pos;
-				disk_read_blk (*z, 2, (byte_t *) (unsigned) lin_addr, (unsigned) (lin_addr >> 4) & 0xf000);
+				zone_load (*z, (unsigned) lin_addr, (unsigned) (lin_addr >> 4) & 0xf000);
 			} else {
 				if (!f_pos) disk_read_blk (*z, 2, d_dir /*+ f_pos*/, seg_data ());
 			}
@@ -198,11 +200,11 @@ static void load_file ()
 
 	// Direct zones
 	load_zone (0, &(i_data->i_zone [ZONE_IND_L0]), &(i_data->i_zone [ZONE_IND_L1]));
-	if (f_pos >= i_data->i_size) return;
 
 	// Indirect zones
-	load_zone (1, &(i_data->i_zone [ZONE_IND_L1]), &(i_data->i_zone [ZONE_IND_L2]));
-	if (f_pos >= i_data->i_size) return;
+	if (f_pos < i_data->i_size)
+		load_zone (1, &(i_data->i_zone [ZONE_IND_L1]), &(i_data->i_zone [ZONE_IND_L2]));
+	zone_load (0, 0, 0);	// read the last pending run
 
 	// Double-indirect zones
 	//load_zone (2, &(i_data->i_zone [ZONE_IND_L2]), &(i_data->i_zone [ZONE_IND_END]));
