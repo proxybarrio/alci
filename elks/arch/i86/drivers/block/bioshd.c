@@ -551,6 +551,7 @@ static int BFPROC do_readwrite(struct drive_infot *drivep, sector_t start, char 
 
 #ifdef CONFIG_TRACK_CACHE               /* use track-sized sector cache*/
 static sector_t cache_startsector;
+static int no_multitrack;           /* BIOS failed a read across heads */
 static sector_t cache_endsector;
 
 /* read from start sector to end of track into TRACKSEG track buffer, no retries*/
@@ -562,6 +563,17 @@ static void BFPROC do_readtrack(struct drive_infot *drivep, sector_t start)
 
     drive = bios_drive_map[drive];
     get_chst(drivep, &start, &cylinder, &head, &sector, &num_sectors, 1);
+
+    /* When reading sequentially (this track follows the last one read) and on
+     * head 0, also read the head 1 track in the same request when it fits: the
+     * controller continues on head 1 (multi-track) without waiting for another
+     * turn of the disk. Random reads keep single tracks, so they don't pay for
+     * a turn of unneeded data. Disabled if the BIOS ever refuses it.
+     */
+    if (head == 0 && drivep->heads == 2 && !no_multitrack &&
+        cache_drive == drivep && cache_endsector + 1 == start &&
+        num_sectors + drivep->sectors <= TRACKSEGSZ / drivep->sector_size)
+        num_sectors += drivep->sectors;
 
     if (num_sectors > (TRACKSEGSZ / drivep->sector_size))
         num_sectors = TRACKSEGSZ / drivep->sector_size;
@@ -579,6 +591,11 @@ static void BFPROC do_readtrack(struct drive_infot *drivep, sector_t start)
             printk("bioshd(%x): track read retry #%d CHS %d/%d/%d count %d\n",
                 drive, errs + 1, cylinder, head, sector, num_sectors);
             bios_disk_reset(drive);
+            if (num_sectors > drivep->sectors - sector + 1) {
+                no_multitrack = 1;  /* BIOS can't cross heads: one track at a time */
+                num_sectors = drivep->sectors - sector + 1;
+                errs--;             /* this attempt doesn't count */
+            }
         }
     } while (error && ++errs < 1); /* no track retries, for testing only*/
     last_drive = drivep;
