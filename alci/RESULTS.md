@@ -27,3 +27,17 @@ floppy calano un poco.
 
 - Lettura del floppy su due facce (`bioshd.c`): +15% sui file grandi,
   +2-3% sui file piccoli; ripiego automatico se il BIOS rifiuta.
+
+## Conferma su 86Box (15/11/2026)
+
+86Box 6.0, IBM PC/XT, 8088 a 4,77 MHz, IBM CGA, floppy 3,5" 720 KB, immagini
+`elks-originale-720.img` e `alci-720.img`. Tempi misurati con `time` dentro ELKS.
+
+| Operazione | Originale | Alci | Guadagno |
+| --- | --- | --- | --- |
+| Avvio del kernel fino al login | 13,53 s | 12,37 s | -9% |
+| `ls -l /bin`, prima volta (floppy) | 17,77 s | 10,00 s | 1,8x |
+| `ls -l /bin`, seconda volta (memoria) | 12,17 s | 4,32 s | 2,8x |
+
+I guadagni confermano MartyPC (1,9x e 2,5x); in 86Box i tempi assoluti sono
+più alti, probabilmente per una simulazione più fedele del floppy e dello schermo.
