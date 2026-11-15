@@ -9,4 +9,4 @@ while (<>) {
 }
 
 print "\nALCI 0.1: Asymmetric Linux Compact Initiative\n";
-print "based on ELKS ${ver}.${pat}.${sub}${pre} by Greg Haerr and the ELKS team\n\n";
+print "based on ELKS ${ver}.${pat}.${sub}${pre} by Alan Cox, Greg Haerr and the ELKS team\n\n";
