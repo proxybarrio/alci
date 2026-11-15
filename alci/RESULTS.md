@@ -38,6 +38,8 @@ floppy calano un poco.
 | Avvio del kernel fino al login | 13,53 s | 12,37 s | -9% |
 | `ls -l /bin`, prima volta (floppy) | 17,77 s | 10,00 s | 1,8x |
 | `ls -l /bin`, seconda volta (memoria) | 12,17 s | 4,32 s | 2,8x |
+| `cat` di `ls -l /bin /dev` (~180 righe), prima volta | 12,32 s | 3,02 s | 4,1x |
+| stesso `cat`, seconda volta (memoria) | 12,29 s | 1,23 s | 10x |
 
 I guadagni confermano MartyPC (1,9x e 2,5x); in 86Box i tempi assoluti sono
 più alti, probabilmente per una simulazione più fedele del floppy e dello schermo.
