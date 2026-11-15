@@ -44,7 +44,7 @@
 #define NR_OPEN         20      /* Max open files per process */
 #define NR_SUPER        6       /* Max mounts */
 
-#define PIPE_BUFSIZ     80      /* doesn't have to be power of two */
+#define PIPE_BUFSIZ     512     /* doesn't have to be power of two */
 
 #define MAXNAMLEN       26      /* Max filename, 14 for MINIX, 26 for FAT (not tunable) */
 
