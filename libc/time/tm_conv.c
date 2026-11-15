@@ -19,7 +19,7 @@ void
 __tm_conv(struct tm *tmbuf, const time_t *t, time_t offset)
 {
   long days, rem;
-  int yday;
+  unsigned int d, mins, secs;
   int leap;
   register int y;
   register const char *ip;
@@ -37,36 +37,62 @@ __tm_conv(struct tm *tmbuf, const time_t *t, time_t offset)
       rem -= SECS_PER_DAY;
       ++days;
     }
-  tmbuf->tm_hour = rem / SECS_PER_HOUR;
-  rem -= tmbuf->tm_hour * SECS_PER_HOUR;
-  tmbuf->tm_min = rem / 60;
-  tmbuf->tm_sec = rem - tmbuf->tm_min * 60;
-  /* January 1, 1970 was a Thursday.  */
-  tmbuf->tm_wday = (4 + days) % 7;
-  if (tmbuf->tm_wday < 0)
-    tmbuf->tm_wday += 7;
+  /* 0 <= rem < 86400: halve it so the rest is 16-bit arithmetic */
+  mins = (unsigned int)(rem >> 1) / 30;
+  secs = (unsigned int)rem - mins * 60;
+  tmbuf->tm_hour = mins / 60;
+  tmbuf->tm_min = mins % 60;
+  tmbuf->tm_sec = secs;
+
   y = 1970;
   leap = 0;
-  while (days >= (rem = leap ? 366 : 365))
+  if (days >= 0)
     {
-      ++y;
-      leap = __isleap(y);
-      days -= rem;
+      d = (unsigned int)days;   /* < 65536 days until 2149 */
+      if (days > 0xFFFFL)
+        goto slow;
+      /* January 1, 1970 was a Thursday.  */
+      tmbuf->tm_wday = (4 + d) % 7;
+      /* whole 4-year cycles (1461 days) up to 2096; 2100 is not a leap year */
+      while (d >= 1461 && y < 2097)
+        {
+          d -= 1461;
+          y += 4;
+        }
+      while (d >= (leap ? 366U : 365U))
+        {
+          d -= leap ? 366 : 365;
+          ++y;
+          leap = __isleap(y);
+        }
     }
-  while (days < 0)
+  else
     {
-      --y;
-      leap = __isleap(y);
-      days += leap ? 366 : 365;
+    slow:
+      tmbuf->tm_wday = (4 + days) % 7;
+      if (tmbuf->tm_wday < 0)
+        tmbuf->tm_wday += 7;
+      while (days >= (rem = leap ? 366 : 365))
+        {
+          ++y;
+          leap = __isleap(y);
+          days -= rem;
+        }
+      while (days < 0)
+        {
+          --y;
+          leap = __isleap(y);
+          days += leap ? 366 : 365;
+        }
+      d = (unsigned int)days;
     }
-  yday = days;
   tmbuf->tm_year = y - 1900;
-  tmbuf->tm_yday = yday;
+  tmbuf->tm_yday = d;
   ip = __mon_lengths[leap];
-  for (y = 0; yday >= ip[y]; ++y)
-    yday -= ip[y];
+  for (y = 0; d >= (unsigned char)ip[y]; ++y)
+    d -= ip[y];
   tmbuf->tm_mon = y;
-  tmbuf->tm_mday = yday + 1;
+  tmbuf->tm_mday = d + 1;
   tmbuf->tm_isdst = -1;
 }
 
