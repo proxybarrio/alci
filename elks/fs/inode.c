@@ -194,6 +194,8 @@ void sync_inodes(kdev_t dev)
     } while ((inode = inode->i_prev) != NULL);
 }
 
+static unsigned int inode_waits;    /* times get_empty_inode() has slept */
+
 static struct inode * FARPROC get_empty_inode(void)
 {
     register struct inode *inode;
@@ -202,6 +204,7 @@ static struct inode * FARPROC get_empty_inode(void)
     while (inode->i_count || inode->i_dirt || inode->i_lock) {
         if ((inode = inode->i_next) == NULL) {
             printk("VFS: No free inodes\n");
+            inode_waits++;
             sleep_on(&inode_wait);
             inode = inode_lru;
         }
@@ -326,16 +329,24 @@ struct inode *iget(struct super_block *sb, ino_t inr)
     debug("iget dev %p ino %lu\n", sb->s_dev, (unsigned long)inr);
 
     n_ino = NULL;
-    goto start;
-    do {
-        debug("iget: getting an empty inode...\n");
-        n_ino = get_empty_inode();      /* This function may sleep and someone else */
-      start:                            /* can create the inode */
+    for (;;) {
+        unsigned int waits;
+
         inode = inode_llru;
         do {
             if (inode->i_ino == inr && inode->i_dev == sb->s_dev) goto found_it;
         } while ((inode = inode->i_prev) != NULL);
-    } while (n_ino == NULL);
+        if (n_ino)
+            break;
+        debug("iget: getting an empty inode...\n");
+        waits = inode_waits;
+        n_ino = get_empty_inode();
+        /* Only if get_empty_inode() slept can someone else have created
+         * the inode meanwhile; otherwise the list scan above still holds.
+         */
+        if (inode_waits == waits)
+            break;
+    }
     inode = n_ino;                      /* Inode not found, use the new structure */
     debug("iget: got one...\n");
 
