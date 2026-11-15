@@ -27,4 +27,6 @@ if [ ! -x $ROOT/martypc/target/release/martypc_headless ]; then
 fi
 if [ ! -d $MPC ]; then cp -r $ROOT/martypc/install $MPC; cp $MPC/martypc-elks.toml $MPC/martypc.toml; fi
 # first ELKS build (tools, kernel, apps)
-cd $ELKS && source ./env.sh >/dev/null && make all > $ROOT/work/build-setup.log 2>&1 && echo "ALCI SETUP OK"
+cd $ELKS && source ./env.sh >/dev/null
+[ -f elks/arch/i86/drivers/char/KeyMaps/keymaps.h ] || (yes '' | make config > $ROOT/work/config-setup.log 2>&1)
+make all > $ROOT/work/build-setup.log 2>&1 && echo "ALCI SETUP OK"
