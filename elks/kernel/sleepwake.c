@@ -61,20 +61,50 @@ void finish_wait(struct wait_queue *p)
 
 /**********************************/
 
+/*
+ * Tasks with a wait pointer set, so _wake_up() only looks at actual sleepers
+ * instead of scanning the whole task table on every call (wake_up is called
+ * on every buffer unlock and tty write). Changed with interrupts off, since
+ * _wake_up() may run at interrupt time.
+ */
+static struct task_struct *waiters[MAX_TASKS];
+static int nr_waiters;
+
 void wait_set(struct wait_queue *p)
 {
+    flag_t flags;
+
 #ifdef CHECK_SCHED
     if (current->waitpt) panic("wait_set");         /* double wait */
 #endif
+    save_flags(flags);
+    clr_irq();
+    if (!current->waitpt)
+        waiters[nr_waiters++] = current;
     current->waitpt = p;
+    restore_flags(flags);
 }
 
 void wait_clear(struct wait_queue *p)
 {
+    flag_t flags;
+    int i;
+
 #ifdef CHECK_SCHED
     if (current->waitpt != p) panic("wait_clear");  /* bad wait_queue */
 #endif
+    save_flags(flags);
+    clr_irq();
+    if (current->waitpt) {
+        for (i = 0; i < nr_waiters; i++) {
+            if (waiters[i] == current) {
+                waiters[i] = waiters[--nr_waiters];
+                break;
+            }
+        }
+    }
     current->waitpt = NULL;
+    restore_flags(flags);
 }
 
 static void __sleep_on(register struct wait_queue *p, int state)
@@ -133,8 +163,10 @@ void wake_up_process(register struct task_struct *p)
 void _wake_up(register struct wait_queue *q, int it)
 {
     register struct task_struct *p;
+    int i;
 
-    for_each_task(p) {
+    for (i = 0; i < nr_waiters; i++) {
+        p = waiters[i];
         if (p->state == TASK_UNUSED)
                 continue;
         if ((p->waitpt == q) || ((p->waitpt == &select_queue) && select_poll (p, q)))
