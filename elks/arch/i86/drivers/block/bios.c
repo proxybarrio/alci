@@ -58,6 +58,39 @@ unsigned char bios_drive_map[MAX_DRIVES] = {
 
 static struct biosparms bdt;
 
+#if !defined(CONFIG_ARCH_PC98) && defined(CONFIG_BLK_DEV_BHD)
+/*
+ * INT 13h Extensions (EDD) support for hard disks beyond cylinder 1023.
+ * Detected per drive at boot; when present, I/O past the 1024-cylinder CHS
+ * limit is issued as an LBA extended read/write (AH=42h/43h) instead of failing.
+ * Regular CHS I/O is still used below cylinder 1024 for maximum compatibility.
+ */
+unsigned char bios_edd_drives;          /* bit n set: drive 0x80+n supports EDD */
+
+struct edd_dap {                        /* disk address packet for AH=42h/43h */
+    unsigned char  size;                /* 0x10 */
+    unsigned char  reserved;
+    unsigned short count;               /* sectors to transfer */
+    unsigned short offset;              /* transfer buffer offset */
+    unsigned short segment;             /* transfer buffer segment */
+    unsigned long  lba_lo;              /* starting LBA, low 32 bits */
+    unsigned long  lba_hi;              /* starting LBA, high 32 bits */
+};
+
+struct edd_params {                     /* result buffer for AH=48h */
+    unsigned short size;
+    unsigned short flags;
+    unsigned long  cylinders;
+    unsigned long  heads;
+    unsigned long  sectors;
+    unsigned long  total_lo;            /* total sectors, low 32 bits */
+    unsigned long  total_hi;
+    unsigned short sector_size;
+};
+
+static struct edd_dap dap;
+#endif
+
 #define SPT             4       /* DDPT offset of sectors per track*/
 static unsigned char DDPT[14];  /* our copy of diskette drive parameter table*/
 static unsigned long __far *vec1E = _MK_FP(0, 0x1E << 2);
@@ -122,9 +155,30 @@ notMFM1024:
     BD_BP = offset;
 #else
 
-    /* return special error on BIOS cylinder overflow */
-    if (cylinder > 1023 && drivep->cylinders > 1024)
-        return -1;
+    /* beyond the 1024 cylinder CHS limit: use INT 13h extensions if available */
+    if (cylinder > 1023 && drivep->cylinders > 1024) {
+#ifdef CONFIG_BLK_DEV_BHD
+        if ((drive & 0x80) && (bios_edd_drives & (1 << (drive & 7)))) {
+            unsigned long lba = ((unsigned long)cylinder * drivep->heads + head)
+                                * drivep->sectors + sector - 1;
+            dap.size = sizeof(struct edd_dap);
+            dap.reserved = 0;
+            dap.count = num_sectors;
+            dap.offset = offset;
+            dap.segment = seg;
+            dap.lba_lo = lba;
+            dap.lba_hi = 0;
+            BD_AX = (cmd == BIOSHD_WRITE)? 0x4300: 0x4200; /* AL=0 no write verify */
+            BD_DX = drive;
+            BD_SI = (unsigned short)&dap;
+            bdt.ds = kernel_ds;
+            debug_bios("BIOSHD(%x): EDD %s LBA %ld count %d\n", drive,
+                cmd==BIOSHD_READ? "read": "write", lba, num_sectors);
+            return call_bios(&bdt);
+        }
+#endif
+        return -1;      /* special error on BIOS cylinder overflow */
+    }
 
 #if RESET_DISK_CHG
     static unsigned last = 0;
@@ -160,6 +214,47 @@ notMFM1024:
 }
 
 #ifdef CONFIG_BLK_DEV_BHD
+#ifndef CONFIG_ARCH_PC98
+/*
+ * Check for INT 13h Extensions on a hard drive and, if present, use the
+ * drive's total sector count to compute the real number of cylinders,
+ * since INT 13h AH=08h cannot report more than 1024.
+ */
+static void INITPROC bios_check_edd(int drive, struct drive_infot *drivep)
+{
+    struct edd_params ep;
+    unsigned long cyls;
+    unsigned int spc;
+
+    BD_AX = 0x4100;
+    BD_BX = 0x55AA;
+    BD_DX = drive + 0x80;
+    if (call_bios(&bdt) || BD_BX != 0xAA55 || !(BD_CX & 1))
+        return;                         /* no EDD or no fixed disk access subset */
+    bios_edd_drives |= 1 << drive;
+
+    ep.size = 0x1A;                     /* EDD 1.x result buffer */
+    ep.total_lo = ep.total_hi = 0;
+    BD_AX = 0x4800;
+    BD_DX = drive + 0x80;
+    BD_SI = (unsigned short)&ep;
+    bdt.ds = kernel_ds;
+    spc = drivep->heads * drivep->sectors;
+    if (call_bios(&bdt) || !spc)
+        goto out;
+    if (ep.total_hi)
+        cyls = 0xFFFF;
+    else {
+        cyls = ep.total_lo / spc;
+        if (cyls > 0xFFFF) cyls = 0xFFFF;
+    }
+    if (cyls > drivep->cylinders)
+        drivep->cylinders = (unsigned int)cyls;
+out:
+    printk("bioshd: hd%c EDD LBA, %u cylinders\n", 'a' + drive, drivep->cylinders);
+}
+#endif
+
 /* This function checks to see which hard drives are active and sets up the
  * drive_info[] table for them.  Ack this is darned confusing...
  */
@@ -250,6 +345,9 @@ int INITPROC bios_gethdinfo(struct drive_infot *drivep) {
             }
         }
 #endif
+#ifndef CONFIG_ARCH_PC98
+        bios_check_edd(drive, drivep);
+#endif
         drivep++;
     }
     return ndrives;
@@ -265,6 +363,7 @@ static BFPROC void bios_disk_park(struct gendisk *hd)
         if (drivep->fdtype != HARDDISK)
             continue;
         cyl = drivep->cylinders - 1;    /* expects zero-based cylinder */
+        if (cyl > 1023) cyl = 1023;     /* CHS seek limit with EDD-sized drives */
         BD_AX = BIOSHD_SEEK;
         BD_CX = ((cyl & 0xFF) << 8) | ((cyl & 0x300) >> 2) | 1; /* 1 = sector */
         BD_DX = bios_drive_map[drivep - hd->drive_info];

@@ -81,6 +81,10 @@ struct biosparms {
 
 int call_bios(struct biosparms *);
 
+#ifndef CONFIG_ARCH_PC98
+extern unsigned char bios_edd_drives;   /* hard drives with INT 13h extensions */
+#endif
+
 void BFPROC bios_disk_reset(int drive);
 struct drive_infot;
 int BFPROC bios_disk_rw(unsigned cmd, unsigned num_sectors, unsigned drive,
