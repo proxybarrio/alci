@@ -20,7 +20,9 @@ on any PC from the 8088 to the 286. Each scheduled run does ONE task from
    depend on the BIOS must have an automatic fallback and stay
    "experimental" until tested on real hardware.
 6. No irreversible decisions alone: prepare them and flag them in the report.
-7. Project files (code, commit messages, documents in `alci/`) are written
+7. Never work on tasks marked `FROZEN` (phase 7), and never pick them as
+   the next task.
+8. Project files (code, commit messages, documents in `alci/`) are written
    in English. The final report to the maintainer is written in Italian.
 
 ## Acceptance rule (when a patch is worth it)

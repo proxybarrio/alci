@@ -80,6 +80,22 @@ The agent takes the first `TODO` from the top.
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 
+## Phase 7: modern PCs (very long term, FROZEN)
+
+Not to be started, by the agent or anyone, until the maintainer declares phases 1-6
+finished and satisfactory on 8088 to 80386 machines. Recorded only so that
+earlier choices (single image, code loaded only where needed) stay
+compatible with it.
+
+- [ ] G1 `FROZEN` Standalone USB stick for modern PCs: MINIX system
+  partition used as a hard disk, FAT data partition shared with the
+  modern OS; same contents as the CF/XT-IDE image for old machines.
+- [ ] G2 `FROZEN` Boot on UEFI-only PCs (no legacy BIOS): a layer that
+  provides BIOS services on top of UEFI.
+- [ ] G3 `FROZEN` LLM connection on machines without a serial port:
+  minimal USB driver to reach the ESP32 modem as a USB serial device,
+  loaded only on machines that need it.
+
 ## Done so far (session of 2026-11-15)
 
 See `alci/RESULTS.md`. Patches are on branch `alci`, one commit each.
