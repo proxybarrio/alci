@@ -88,7 +88,33 @@ struct edd_params {                     /* result buffer for AH=48h */
     unsigned short sector_size;
 };
 
-static struct edd_dap dap;
+
+/* Extended read/write through INT 13h AH=42h/43h. Lives in .fartext.edd,
+ * which is freed at boot when no drive has EDD, so it is only reached
+ * through a check of bios_edd_drives. */
+static int EDDPROC bios_edd_rw(unsigned cmd, unsigned num_sectors, unsigned drive,
+        unsigned cylinder, unsigned head, unsigned sector, unsigned seg, unsigned offset,
+        struct drive_infot *drivep)
+{
+    struct edd_dap dap;                 /* on the kernel stack, SS == DS */
+    unsigned long lba = ((unsigned long)cylinder * drivep->heads + head)
+                        * drivep->sectors + sector - 1;
+
+    dap.size = sizeof(struct edd_dap);
+    dap.reserved = 0;
+    dap.count = num_sectors;
+    dap.offset = offset;
+    dap.segment = seg;
+    dap.lba_lo = lba;
+    dap.lba_hi = 0;
+    BD_AX = (cmd == BIOSHD_WRITE)? 0x4300: 0x4200; /* AL=0 no write verify */
+    BD_DX = drive;
+    BD_SI = (unsigned short)&dap;
+    bdt.ds = kernel_ds;
+    debug_bios("BIOSHD(%x): EDD %s LBA %ld count %d\n", drive,
+        cmd==BIOSHD_READ? "read": "write", lba, num_sectors);
+    return call_bios(&bdt);
+}
 #endif
 
 #define SPT             4       /* DDPT offset of sectors per track*/
@@ -158,24 +184,9 @@ notMFM1024:
     /* beyond the 1024 cylinder CHS limit: use INT 13h extensions if available */
     if (cylinder > 1023 && drivep->cylinders > 1024) {
 #ifdef CONFIG_BLK_DEV_BHD
-        if ((drive & 0x80) && (bios_edd_drives & (1 << (drive & 7)))) {
-            unsigned long lba = ((unsigned long)cylinder * drivep->heads + head)
-                                * drivep->sectors + sector - 1;
-            dap.size = sizeof(struct edd_dap);
-            dap.reserved = 0;
-            dap.count = num_sectors;
-            dap.offset = offset;
-            dap.segment = seg;
-            dap.lba_lo = lba;
-            dap.lba_hi = 0;
-            BD_AX = (cmd == BIOSHD_WRITE)? 0x4300: 0x4200; /* AL=0 no write verify */
-            BD_DX = drive;
-            BD_SI = (unsigned short)&dap;
-            bdt.ds = kernel_ds;
-            debug_bios("BIOSHD(%x): EDD %s LBA %ld count %d\n", drive,
-                cmd==BIOSHD_READ? "read": "write", lba, num_sectors);
-            return call_bios(&bdt);
-        }
+        if ((drive & 0x80) && (bios_edd_drives & (1 << (drive & 7))))
+            return bios_edd_rw(cmd, num_sectors, drive, cylinder, head, sector,
+                seg, offset, drivep);
 #endif
         return -1;      /* special error on BIOS cylinder overflow */
     }

@@ -32,8 +32,13 @@
 /* places some of this driver in the far text section */
 #if defined(CONFIG_FARTEXT_KERNEL) && !defined(__STRICT_ANSI__)
 #define BFPROC __far __attribute__ ((far_section, noinline, section (".fartext.bf")))
+/* INT 13h extensions (EDD) run-time code: placed just before .fartext.init
+ * and released with it at boot when no hard disk uses EDD (ALCI) */
+#define EDDPROC __far __attribute__ ((far_section, noinline, section (".fartext.edd")))
+extern void EDDPROC __start_fartext_edd(void);
 #else
 #define BFPROC
+#define EDDPROC
 #endif
 
 struct biosparms {

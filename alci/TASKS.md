@@ -6,10 +6,15 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 1: baseline speed
 
-- [ ] A0 `TODO` Make EDD support (large disks, +539 bytes in `bios.o`) a
-  config option, off in the XT/floppy config and on for AT builds with a
-  hard disk. Recovers half of the kernel growth. Test both settings with
-  `alci/tests` on QEMU (hd32 and fd1440).
+- [x] A0 `DONE 2026-11-16` EDD code released at boot when unused (the maintainer chose
+  this over a build option: one image for every machine). `bios_edd_rw()`
+  lives in `.fartext.edd`, placed by `elks-small.ld` just before
+  `.fartext.init`; `kernel_init()` frees from there when
+  `bios_edd_drives == 0`. Checked: XT, T1200, PC1512, AT on 86Box (EDD
+  absent, code freed, suite identical to upstream), QEMU (EDD present,
+  code kept), and `alci/tests/bigdisk.sh` (1 GB disk, partition at
+  cylinder 1190, written and read back across two boots). First use of
+  the discardable-code mechanism planned in D3.
 - [x] A1 `DONE 2026-11-16` Program start-up. Profiling the `pwd` loop showed
   37% of the time in `fmemcpyw`: `fork` copied the whole 22 KB data segment
   of the shell, mostly the empty gap between the break and the stack.

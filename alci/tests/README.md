@@ -15,6 +15,12 @@ measured separately on MartyPC (`alci/scripts`).
   command. Needs 86Box 7.0 built with `-DAUTOMATION=ON` (`B86`) and the
   86Box ROM set (`R86`), see `alci/scripts/setup.sh`.
 
+- `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
+  data past cylinder 1024, written and read back across two boots).
+- `t86.py` options: `BOOTLOG=word,word` prints boot lines containing the
+  words; `BOOT_MS` boot timeout. `qtest.py`: `EXTRA_HD` second disk,
+  `NOSNAP=1` keeps writes.
+
 Procedure: build images for the patched tree and for the previous commit (a
 git worktree), run the suite on each machine, diff the outputs. They must be
 identical, except where upstream fails and Alci does not (record it in

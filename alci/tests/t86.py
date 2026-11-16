@@ -65,6 +65,9 @@ for t in os.environ.get('SHOTS', '').split(','):
 out, ms = wait('# ', int(os.environ.get('BOOT_MS', 400000)))
 if out is None:
     q('screenshot /tmp/t86-boot.png'); print(json.dumps(q('info'))[:900]); print(q('log').get('text','')[-1500:]); print('BOOT TIMEOUT, screen in /tmp/t86-boot.png'); q('quit'); sys.exit(1)
+if os.environ.get('BOOTLOG'):
+    for l in out.replace('\r', '').split('\n'):
+        if any(k in l for k in os.environ['BOOTLOG'].split(',')): print('## boot: ' + l)
 if times: print('## boot to prompt %.2f s (emulated, includes BIOS POST)' % (ms / 1000))
 for n, c in enumerate(l for l in open(cmdf).read().split('\n') if l.strip() and not l.startswith('##')):
     mark = '@@E%d@@' % n; typed = '@@E""%d@@' % n

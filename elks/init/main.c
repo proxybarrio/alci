@@ -3,6 +3,7 @@
  */
 #include <linuxmt/config.h>
 #include <linuxmt/init.h>
+#include <linuxmt/biosparm.h>
 #include <linuxmt/mm.h>
 #include <linuxmt/sched.h>
 #include <linuxmt/types.h>
@@ -296,6 +297,11 @@ static void INITPROC kernel_init(void)
 #endif
 
     seg_t s = init_seg + (((word_t)(void *)__start_fartext_init + 15) >> 4);
+#if defined(CONFIG_BLK_DEV_BHD) && !defined(CONFIG_ARCH_PC98)
+    /* no hard disk uses INT 13h extensions: release their code too (ALCI) */
+    if (!bios_edd_drives)
+        s = init_seg + (((word_t)(void *)__start_fartext_edd + 15) >> 4);
+#endif
     seg_t e = init_seg + (((word_t)(void *)  __end_fartext_init + 15) >> 4);
     debug("init: seg %04x to %04x size %04x (%d)\n", s, e, (e - s) << 4, (e - s) << 4);
     seg_add(s, e);

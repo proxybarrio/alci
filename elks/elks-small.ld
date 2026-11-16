@@ -47,6 +47,7 @@ SECTIONS {
 		 * IA-16 segment start markers.
 		 */
 		*(".fartext!*" ".fartext.*!")
+		"__start_fartext_edd!" = .;
 		"__start_fartext_init!" = .;
 		"__end_fartext_init!" = .;
 
@@ -54,7 +55,12 @@ SECTIONS {
 		/* *(.fartext .fartext$* ".fartext.*[^&]") */
 
 		*(.fartext .fartext.
-		".fartext.[^i]*" ".fartext.i[^n]*" ".fartext.in[^i]*" ".fartext.ini[^t]*")
+		".fartext.[^ie]*" ".fartext.i[^n]*" ".fartext.in[^i]*" ".fartext.ini[^t]*"
+		".fartext.e[^d]*" ".fartext.ed[^d]*")
+		/* ALCI: .fartext.edd sits just before .fartext.init, so that it can be
+		 * released together with it when no disk uses INT 13h extensions */
+		__start_fartext_edd = .;
+		*(.fartext.edd)
 		 __start_fartext_init = .;
 		*(.fartext .fartext.init)
 		__end_fartext_init = .;

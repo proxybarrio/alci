@@ -2,11 +2,12 @@
 # usage: qtest.py <image> <fd|hd> <cpu> <mem_kb> <cmdfile>  -- boots ELKS in QEMU on serial console, runs commands, prints output
 import subprocess, sys, time, select, os
 img, kind, cpu, mem, cmdf = sys.argv[1:6]
+extra = ['-drive', 'file=%s,format=raw,if=ide,index=1' % os.environ['EXTRA_HD']] if os.environ.get('EXTRA_HD') else []
 drive = ['-drive', f'file={img},format=raw,if=floppy' if kind=='fd' else f'file={img},format=raw,if=ide']
 boot = 'a' if kind=='fd' else 'c'
 mem_mb = max(1, int(mem)//1024)
 p = subprocess.Popen(['qemu-system-i386','-cpu',cpu,'-m',str(mem_mb),'-display','none','-serial','stdio',
-     '-monitor','none','-boot',boot,'-snapshot','-no-reboot']+drive, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+     '-monitor','none','-boot',boot,]+([] if os.environ.get('NOSNAP') else ['-snapshot'])+['-no-reboot']+drive+extra, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 buf=b''
 def readuntil(tok, tmo):
     global buf
