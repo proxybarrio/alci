@@ -18,7 +18,17 @@ dominates they are slightly smaller.
 
 ## Costs
 
-- Kernel: about +550 bytes of code in total, +34 bytes of data.
+Measured on 2026-11-16 by comparing object sizes with an upstream build of
+the same commit (the earlier estimate of +550 bytes was wrong).
+
+- Kernel: +1706 bytes in total (code + data). Free RAM for programs at
+  boot: 475K against 477K upstream (QEMU, 640K).
+  - `bios.o` +539 (EDD, large disks): useless on a floppy-only XT, see
+    task A0 in `TASKS.md`.
+  - `console-direct.o` +496 (fast console, hardware scrolling).
+  - `malloc.o` + `fork.o` +216 (fork copies only the live data).
+  - `sleepwake.o` +129, `bioshd.o` +99, `main.o` +62 (banner), `ntty.o`
+    +54, `fmemory.o` +40, others +71.
 - Programs using `fputs`: about +150 bytes; programs using time conversion: +80 bytes.
 - Pipes: 432 more bytes of RAM per open pipe.
 - Boot sector: uses the 69 bytes that were still free.

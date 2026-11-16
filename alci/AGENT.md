@@ -33,7 +33,8 @@ Vetoes (any one rejects the patch, whatever the speed gain):
   `alci` build (shell, pipes, background jobs, subshells, scripts).
 - V2 No bench gets slower: MartyPC is deterministic, so any slowdown
   above 1% on any benchmark in `bench.sh` / `bench2.sh` is real.
-- V3 Memory: resident RAM (kernel data + bss + heap at boot, `Kernel
+- V3 Memory: measure the cost by comparing `ia16-elf-size` of the changed
+  objects with the previous build, and report it in bytes. Resident RAM (kernel data + bss + heap at boot, `Kernel
   text ... free` line) must not grow. Code growth must be justified in
   the commit message.
 - V4 Time precision: the system clock must not drift. Check `date`
@@ -47,12 +48,25 @@ Vetoes (any one rejects the patch, whatever the speed gain):
 
 Gain threshold:
 
-    value = gain% on the target workload / (1 + added lines / 50)
+    value = gain% on the target workload / (1 + weighted lines / 50)
+
+Weighted lines: lines added in the core (interrupt and timer code,
+scheduler, `fork`/`exec`, memory management, block drivers) count three
+times; all other lines count once.
 
 Keep the patch if value >= 2. Example: a 6% gain with 50 added lines
 gives 3, kept; a 3% gain with 100 added lines gives 1, rejected.
 "Target workload" is the benchmark the task names; when in doubt, the
 mean of the `bench2.sh` timings.
+
+How to check V1 and the other hardware: build images with
+`alci/tests/mkimg.sh` for the current tree and for the previous commit
+(git worktree), run `alci/tests/qtest.py` with `alci/tests/functional.txt`
+on QEMU, hard disk and 1.44M floppy, and diff the outputs: they must be
+identical. QEMU checks behaviour on an AT-class machine with IDE; MartyPC
+checks speed on the 8088. Add a test line to `functional.txt` for every
+behaviour your patch touches (keep lines under 60 characters: the ELKS
+tty input line is 80). Ask the maintainer for a real-hardware check every 5 patches.
 
 Report the vetoes checked and the value in the final message.
 

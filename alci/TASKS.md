@@ -6,6 +6,10 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 1: baseline speed
 
+- [ ] A0 `TODO` Make EDD support (large disks, +539 bytes in `bios.o`) a
+  config option, off in the XT/floppy config and on for AT builds with a
+  hard disk. Recovers half of the kernel growth. Test both settings with
+  `alci/tests` on QEMU (hd32 and fd1440).
 - [x] A1 `DONE 2026-11-16` Program start-up. Profiling the `pwd` loop showed
   37% of the time in `fmemcpyw`: `fork` copied the whole 22 KB data segment
   of the shell, mostly the empty gap between the break and the stack.
