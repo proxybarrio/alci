@@ -100,6 +100,16 @@ The agent takes the first `TODO` from the top.
   `PICOMEM=<libpmhost> t86.py xt <label>-fd720.img` (not the hd32 image:
   XT-IDE also sits at 300h). Next: HTTPS through a proxy on a modern
   machine, then the real card.
+- [ ] E0c `TODO` Encrypted link from Alci to our own relay (the maintainer's point:
+  a plain proxy leaves the Alci-to-proxy hop in clear). Anthropic's API
+  only accepts TLS and nothing can be installed on its side, so the relay
+  is ours (home Raspberry Pi, the ESP32, or a small server). Design: a key
+  shared once between Alci and the relay, each message sealed with
+  ChaCha20-Poly1305 from Monocypher (BSD-2-Clause or CC0, compatible), no
+  public-key handshake on the 8088. The Claude API key stays on the relay.
+  Steps: build Monocypher's ChaCha20 and Poly1305 with ia16-gcc, measure
+  speed and size on MartyPC, write the message format in
+  `alci/docs/claude-terminal.md`. Do not invent a cipher.
 - [ ] E1 `TODO` Only if E0 is not enough: check whether Zimodem/WiFi232 can
   handle HTTPS to `api.anthropic.com`.
 - [ ] E2 `TODO` Only if E0 is not enough: command-line `claude` client for
