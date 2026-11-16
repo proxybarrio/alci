@@ -33,8 +33,9 @@ cycle-accurate MartyPC emulator and checked for identical behaviour on six
 - [`alci/TASKS.md`](alci/TASKS.md): the roadmap.
 - [`alci/tests/`](alci/tests/): functional and speed tests on QEMU and 86Box.
 
-Changes are developed with the help of Claude (Anthropic). Changes that are
-useful to ELKS in general are offered upstream to ghaerr/elks one at a time.
+Changes are developed with the help of Claude (Anthropic). Changes that
+may be useful to ELKS in general are shared with the ELKS project
+regularly, for its maintainers to consider.
 
 ---
 
