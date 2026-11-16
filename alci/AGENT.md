@@ -23,6 +23,39 @@ on any PC from the 8088 to the 286. Each scheduled run does ONE task from
 7. Project files (code, commit messages, documents in `alci/`) are written
    in English. The final report to the maintainer is written in Italian.
 
+## Acceptance rule (when a patch is worth it)
+
+A patch is kept only if it passes every veto AND clears the gain threshold.
+
+Vetoes (any one rejects the patch, whatever the speed gain):
+
+- V1 Behaviour: functional tests give output identical to the previous
+  `alci` build (shell, pipes, background jobs, subshells, scripts).
+- V2 No bench gets slower: MartyPC is deterministic, so any slowdown
+  above 1% on any benchmark in `bench.sh` / `bench2.sh` is real.
+- V3 Memory: resident RAM (kernel data + bss + heap at boot, `Kernel
+  text ... free` line) must not grow. Code growth must be justified in
+  the commit message.
+- V4 Time precision: the system clock must not drift. Check `date`
+  against emulated time over at least 60 s: error must stay below 0.1%,
+  and timer resolution (jiffies, `sleep`, `select` timeouts) unchanged.
+- V5 Latency: keyboard and serial must not lose characters or respond
+  later. Typed commands echo as before; serial input at 9600 baud must
+  not drop bytes.
+- V6 Hardware: no new BIOS or chipset dependency without a fallback,
+  and such patches stay `EXPERIMENTAL` (see rule 6).
+
+Gain threshold:
+
+    value = gain% on the target workload / (1 + added lines / 50)
+
+Keep the patch if value >= 2. Example: a 6% gain with 50 added lines
+gives 3, kept; a 3% gain with 100 added lines gives 1, rejected.
+"Target workload" is the benchmark the task names; when in doubt, the
+mean of the `bench2.sh` timings.
+
+Report the vetoes checked and the value in the final message.
+
 ## Procedure
 
 1. Prepare the environment:
