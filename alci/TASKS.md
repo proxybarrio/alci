@@ -39,10 +39,17 @@ The agent takes the first `TODO` from the top.
   `bootopts` and the files read at boot close together and in read order.
   Measure boot with `ELKS_FDROT=9`.
 
-- [ ] A4 `TODO` Try os8088's MartyPC debug server (`tools/martypc/` in
-  github.com/jggonz/os8088, MIT): breakpoints and exact cycle counts from
-  outside the guest. If it covers our profiler's needs, adopt it in
-  `proxybarrio/martypc` (branch `elks-bench`) with credit.
+- [ ] A4 `TODO` Adopt os8088's MartyPC patch set (github.com/jggonz/os8088,
+  `tools/martypc/`, MIT): 17 patches plus `debug_server.rs`, pinned to
+  MartyPC `e15cb04f` (2026-06-28). Checked 2026-11-16: all 17 apply in
+  order on that pin and the headless binary builds. They do not apply to
+  our base `05c0d08` (2026-09-07). Gains: a debug server (breakpoints,
+  registers, exact cycle counts, no code in the guest), PicoMEM emulation
+  (lets E0b be tried without buying the card), fixes for V20 flags, the PIT
+  and floppy timing. Work: rebase our four `elks-bench` commits (keyboard
+  FIFO, FDC rotation, 8086 overlay and turbo, ELKS runner) onto pin plus
+  patches, rerun the reference benchmarks and record any change in timing.
+  Keep credit to os8088 in the branch README.
 
 ## Phase 2: memory
 
