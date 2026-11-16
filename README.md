@@ -1,3 +1,45 @@
+# ALCI: Asymmetric Linux Compact Initiative
+
+**Alci** is an experimental branch of [ELKS](https://github.com/ghaerr/elks),
+the Embeddable Linux Kernel Subset by Alan Cox, Greg Haerr and the ELKS team.
+*Alci* is Italian for "elks". "Asymmetric" names the idea behind it: a
+minimal machine on the desk, large services elsewhere (an 8088 at your
+fingertips, a language model in the cloud).
+
+Goals, in order:
+
+1. A faster ELKS that uses as little memory as possible, on every PC from
+   the 8088 to the 80386.
+2. A graphical interface in the spirit of PC/GEOS.
+3. A terminal for talking to Claude or other language models through a
+   Wi-Fi modem on the serial port.
+
+Measured so far, upstream ELKS against Alci, same commit, emulated with the
+real BIOS of each machine (86Box), hard disk:
+
+| Command | IBM XT, 8088 4.77 MHz | Toshiba T1200, 8086 9.54 MHz | IBM AT, 286 8 MHz |
+| --- | --- | --- | --- |
+| `ls -l /bin` | 16.7 s / 9.4 s | 6.3 s / 3.5 s | 2.6 s / 1.5 s |
+| 10 runs of `pwd` | 2.8 s / 1.8 s | 1.0 s / 0.6 s | 0.41 s / 0.29 s |
+| three-stage pipe | 10.2 s / 3.1 s | 3.8 s / 1.1 s | 1.6 s / 0.5 s |
+| `cat` of 200 lines to the screen (MartyPC, 8088) | 17.7 s / 1.5 s | | |
+
+Every change is a separate commit on branch `alci`, measured on the
+cycle-accurate MartyPC emulator and checked for identical behaviour on six
+86Box machines (8088, V20, 8086, 286, 386) and QEMU. Details:
+
+- [`alci/README.md`](alci/README.md): what Alci is and how the work is organised.
+- [`alci/RESULTS.md`](alci/RESULTS.md): measurements and memory cost of every change.
+- [`alci/TASKS.md`](alci/TASKS.md): the roadmap.
+- [`alci/tests/`](alci/tests/): functional and speed tests on QEMU and 86Box.
+
+Changes are developed with the help of Claude (Anthropic). Changes that are
+useful to ELKS in general are offered upstream to ghaerr/elks one at a time.
+
+---
+
+*The original ELKS README follows.*
+
 <p align="left">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./Documentation/img/ELKS-Logo-dark.svg">

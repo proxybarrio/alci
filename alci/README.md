@@ -8,7 +8,7 @@ The name is a pun: *alci* is the Italian plural of *alce*, "elk".
 end, large services elsewhere (an 8088 on the desk, an AI model in the cloud).
 
 Goal: a faster, memory-frugal ELKS that runs on any PC from the 8088 to the
-286, with a graphical interface in the spirit of GEOS and a terminal for
+80386, with a graphical interface in the spirit of GEOS and a terminal for
 talking to Claude or other language models.
 
 - `TASKS.md`: the roadmap, task by task, with status.
@@ -20,4 +20,5 @@ talking to Claude or other language models.
 Every change on branch `alci` is a separate commit, so that each can be
 proposed upstream on its own. Changes are developed with the help of Claude
 (Anthropic) and measured on the cycle-accurate MartyPC emulator, then
-checked on 86Box and real hardware.
+checked on 86Box (six machines with their real BIOS), QEMU and real hardware.
+- `tests/`: functional and speed tests on QEMU and 86Box (see `tests/README.md`).
