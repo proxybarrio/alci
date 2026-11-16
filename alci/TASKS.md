@@ -39,6 +39,16 @@ The agent takes the first `TODO` from the top.
   `bootopts` and the files read at boot close together and in read order.
   Measure boot with `ELKS_FDROT=9`.
 
+- [ ] A5 `TODO` Release network card drivers that find no card, as done for
+  EDD (the maintainer's request: the same rule for every optional device). Resident
+  cost today with no card present (2026-11-16, Alci acdd752): NE2000 2135
+  bytes (`ne2k.o` + `ne2k-asm.o`), WD8003 2303, 3C509 2116, about 6.5 KB in
+  all. Put each driver's run-time code in its own paragraph-aligned
+  `.fartext.<drv>` section, mark the driver absent at boot when the probe
+  fails, guard every entry point (open returns ENODEV without calling into
+  freed code), and give the region back to the memory manager. Check on
+  86Box with and without the PicoMEM card, with the functional suite and
+  with `ktcp` plus `urlget`.
 - [ ] A4 `TODO` Adopt os8088's MartyPC patch set (github.com/jggonz/os8088,
   `tools/martypc/`, MIT): 17 patches plus `debug_server.rs`, pinned to
   MartyPC `e15cb04f` (2026-06-28). Checked 2026-11-16: all 17 apply in
