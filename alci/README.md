@@ -14,6 +14,7 @@ talking to Claude or other language models.
 - `TASKS.md`: the roadmap, task by task, with status.
 - `RESULTS.md`: measurements and costs of every change.
 - `LOG.md`: work log.
+- `RELATED.md`: other projects that cover parts of the same ground.
 - `AGENT.md`: instructions for the automated agent that works on this branch.
 - `scripts/`: environment setup, benchmarks on MartyPC, profile reader.
 
