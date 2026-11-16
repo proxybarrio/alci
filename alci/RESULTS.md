@@ -10,7 +10,7 @@ unless stated otherwise. Scripts: `alci/scripts/bench.sh` and `bench2.sh`.
 | `ls -l /bin`, from floppy | 14.7 s | 7.9 s | as above |
 | Three-stage pipe, 20 KB | 3.86 s | 1.13 s | 512-byte pipe buffer |
 | `grep` on 20 KB, cached | 3.59 s | 2.89 s | block copy in fputs |
-| 10 runs of `pwd` | 2.26 s | 2.03 s | various |
+| 10 runs of `pwd` | 2.26 s | 1.58 s | various, fork copies only the live parts of the data segment |
 | Boot to prompt, with floppy rotation model (`ELKS_FDROT=9`) | 21.0 s | 18.4 s | block reads in boot loader, two-head floppy reads |
 
 On an 8086 at 4.77 MHz the relative gains are the same; where the floppy

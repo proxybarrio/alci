@@ -68,6 +68,9 @@ struct task_struct *find_empty_process(void)
  *  Clone a process.
  */
 
+/* bytes below user SP still copied on fork, as a safety margin */
+#define FORK_STACK_SLACK 32
+
 static pid_t do_fork(int virtual, struct task_struct **ptask)
 {
     register struct task_struct *t;
@@ -91,7 +94,15 @@ static pid_t do_fork(int virtual, struct task_struct **ptask)
                 if (virtual) {
                     seg_get(s);     /* share data for vfork */
                 } else {
-                    t->mm[j] = seg_dup(s);
+                    /* main data segment: skip the unused gap between
+                     * the break and the user stack (ALCI) */
+                    if (s == current->mm[SEG_DATA] &&
+                        (s->flags & SEG_FLAG_TYPE) == SEG_FLAG_DSEG &&
+                        current->t_regs.sp >= current->t_endbrk + FORK_STACK_SLACK)
+                        t->mm[j] = seg_dup_data(s, current->t_endbrk,
+                            (current->t_regs.sp - FORK_STACK_SLACK) & ~1);
+                    else
+                        t->mm[j] = seg_dup(s);
                     if (t->mm[j] == 0) {
                         for (k = 0; k < j; k++) {
                             if (t->mm[k])

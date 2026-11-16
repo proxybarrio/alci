@@ -6,9 +6,17 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 1: baseline speed
 
-- [ ] A1 `TODO` Program start-up. Today 10 runs of `pwd` take ~2.0 s on an
-  8088 (bench2). Profile `exec`/`fork`/a.out loading and reduce the cost
-  without increasing resident RAM.
+- [x] A1 `DONE 2026-11-16` Program start-up. Profiling the `pwd` loop showed
+  37% of the time in `fmemcpyw`: `fork` copied the whole 22 KB data segment
+  of the shell, mostly the empty gap between the break and the stack.
+  `seg_dup_data()` now copies only [0, brk) and [sp - 32, end). 10 runs of
+  `pwd`: 2.00 s -> 1.58 s cold, 1.68 s -> 1.30 s warm. Three-stage pipe
+  4.75 s -> 4.33 s. No extra RAM. Shell behaviour checked identical
+  (background jobs, pipes, subshells, command substitution, `sh -c`).
+- [ ] A1b `TODO` The remaining fork cost (~17% of the `pwd` loop) is the
+  shell's real data and bss, 8.3 KB per fork. Option: `vfork` in ash for
+  simple commands. Risky: the child must not touch shared data before
+  `exec`. Study how dash does it before trying. Needs the maintainer's go-ahead.
 - [ ] A2 `TODO` Timer: the kernel spends ~7.6% of CPU even when idle
   (100 Hz tick). Reduce per-tick work or skip idle ticks. Also measure the
   effect on command times.

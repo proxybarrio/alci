@@ -19,3 +19,10 @@
   Wi-Fi modem and later an ESP32 with microSD.
 - Issue #2851 (fsck) filed on ghaerr/elks.
 - Results confirmed independently on 86Box (see `RESULTS.md`).
+
+## 2026-11-16, session
+
+- Merged 3 upstream commits (80C188EB support, cleanup); timings unchanged.
+- A1 done: `fork` skips the unused gap in the data segment. 10 runs of
+  `pwd` 21% faster, pipes 9% faster, no memory cost. MartyPC harness can
+  now type `( ) $ " ' <` and print the final screen (`ELKS_SCREEN`).

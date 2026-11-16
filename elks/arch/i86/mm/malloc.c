@@ -317,6 +317,34 @@ segment_s * seg_dup (segment_s * src)
 }
 
 
+// Allocate segment and copy only the live parts of a data segment:
+// [0, lo_end) holds data, bss and heap up to the break, [hi_beg, end)
+// holds the stack. The gap between them is unused, so it is not copied.
+// Falls back to a full copy when the layout is not the expected one.
+
+segment_s * seg_dup_data (segment_s * src, segoff_t lo_end, segoff_t hi_beg)
+{
+    segment_s * dst;
+    unsigned int words = src->size << 3;    /* segment size in words */
+    unsigned int lo_w = (lo_end + 1) >> 1;
+    unsigned int hi_w = hi_beg >> 1;
+
+    if (lo_w > hi_w || hi_w > words || src->size > 0x1000)
+        return seg_dup(src);
+    dst = seg_free_get (src->size, src->flags);
+    if (dst) {
+        if (!seg_pm_attach(dst, src->flags)) {
+            seg_free(dst);
+            return 0;
+        }
+        fmemcpyw(0, dst->base, 0, src->base, lo_w);
+        fmemcpyw((void *)(hi_w << 1), dst->base, (void *)(hi_w << 1), src->base,
+            words - hi_w);
+    }
+    return dst;
+}
+
+
 // Get memory information (free and used) in KB
 
 void mm_get_usage (struct mem_usage *mu)

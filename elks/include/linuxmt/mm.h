@@ -77,6 +77,7 @@ void seg_free (segment_s *);
 segment_s * seg_get (segment_s *);
 void seg_put (segment_s *);
 segment_s * seg_dup (segment_s *);
+segment_s * seg_dup_data (segment_s *, segoff_t, segoff_t);
 void seg_free_pid(pid_t pid);
 
 extern list_s _seg_all;
