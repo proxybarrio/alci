@@ -23,6 +23,12 @@ measured separately on MartyPC (`alci/scripts`).
   completion is read from the text screen, so console speed is measured on
   each machine's own display (`KEYDELAY` ms between keys, 20 on the AT).
   Images get `/b.txt`, 200 lines of text.
+- Network: `PICOMEM=<path to libpmhost-v2.so>` (and `PICOMEM_SD`) adds an
+  emulated PicoMEM card to the 86Box machine, its NE2000 bridged to 86Box's
+  network (slirp; the host is 10.0.2.2). Needs os8088's 86Box patch, see
+  `alci/scripts/setup.sh`. Build the image with
+  `BOOTOPTS_EXTRA='ne0=3,0x300,,0x80'`; use a floppy image, since XT-IDE
+  also uses port 300h.
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `t86.py` options: `BOOTLOG=word,word` prints boot lines containing the

@@ -91,11 +91,15 @@ The agent takes the first `TODO` from the top.
   their documentation and licenses; record the result in
   `alci/docs/claude-terminal.md`. If it works, E1 and E2 shrink to small
   improvements.
-- [ ] E0b `TODO` Network route without the serial port: PicoMEM (ISA card,
-  NE2000 emulated over Wi-Fi) with ELKS's NE2000 driver and ktcp, talking
-  plain HTTP to an HTTP-to-HTTPS proxy on a modern machine (the approach of
-  doschgpt and its `http-to-https-proxy`). Check in 86Box with an emulated
-  NE2000 first.
+- [x] E0b `DONE in emulation 2026-11-16` Network without the serial port.
+  86Box IBM XT (8088 4.77 MHz) with an emulated PicoMEM 2 (os8088's 86Box
+  patch `07-picomem.patch` and `libpmhost`, both MIT): ELKS found the card's
+  NE2000 at 300h/IRQ 3 with its existing driver, `ktcp` came up, `ping` to
+  the host answered and `urlget` fetched a file over HTTP. No new kernel
+  code. Images: `BOOTOPTS_EXTRA='ne0=3,0x300,,0x80' mkimg.sh`; run with
+  `PICOMEM=<libpmhost> t86.py xt <label>-fd720.img` (not the hd32 image:
+  XT-IDE also sits at 300h). Next: HTTPS through a proxy on a modern
+  machine, then the real card.
 - [ ] E1 `TODO` Only if E0 is not enough: check whether Zimodem/WiFi232 can
   handle HTTPS to `api.anthropic.com`.
 - [ ] E2 `TODO` Only if E0 is not enough: command-line `claude` client for

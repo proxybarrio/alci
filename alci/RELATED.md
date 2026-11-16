@@ -26,7 +26,7 @@ learn from them and avoid duplicating them.
 | Project | Licence | Reuse |
 | --- | --- | --- |
 | AiBridgeMCP Nano, Zimodem | to be checked | Used as they are, on the ESP32: they run outside ELKS. Together with ELKS's `miniterm` they may give a Claude terminal with no new code (task E0). |
-| PicoMEM | to be checked | Hardware used as it is; ELKS already has the NE2000 driver it emulates (task E0b). |
+| PicoMEM | to be checked (firmware); os8088's 86Box patch and libpmhost build are MIT | Hardware used as it is; ELKS already has the NE2000 driver it emulates. Tested in 86Box on 2026-11-16: Alci reached the network on an emulated 8088 XT with no new code (task E0b). |
 | doschgpt, http-to-https-proxy | to be checked | The proxy runs on a modern machine and can be used as it is. The client's request and reply code may be adapted only if its licence allows. |
 | Nano-X | already in ELKS | Measure first (D2); the cheapest base for the interface. |
 | [os8088](https://github.com/jggonz/os8088) | MIT (checked 2026-11-16) | Compatible: code may be adapted if the copyright notice and licence text are kept. Not covered: `reference/` (third-party material such as Microsoft's Gorillas and Nintendo's Dr. Mario data) and possibly the fonts (derived from an outline font whose licence must be checked). About 180,000 lines of NASM for its own kernel and calling conventions, so pieces are lifted and rewritten, not dropped in: CGA drawing, clipping and redraw (`REDRAW-SPEC.md`), the `.F88` font format, mouse driver, memory layout. Its MartyPC debug server (`tools/martypc/`: breakpoints, registers, cycle counts with no code in the guest) could replace part of our profiler. |

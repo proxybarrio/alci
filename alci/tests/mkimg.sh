@@ -10,7 +10,8 @@ cp $B /tmp/bootopts.save
 if [ "$CONSOLE" = screen ]; then
   { echo '## alci screen test'; echo 'init=/bin/sh'; grep -v '^#' /tmp/bootopts.save; } > $B
 else
-  { echo '## alci qemu test'; echo 'console=ttyS0,19200'; echo 'init=/bin/sh'; grep -v '^#' /tmp/bootopts.save; } > $B
+  { echo '## alci qemu test'; echo 'console=ttyS0,19200'; echo 'init=/bin/sh';
+    [ -n "$BOOTOPTS_EXTRA" ] && printf '%b\n' "$BOOTOPTS_EXTRA"; grep -v '^#' /tmp/bootopts.save; } > $B
 fi
 make all > ${ALCI_QT:-/home/claude/qt}/build-$L.log 2>&1
 make -C image fd720-minix fd1440-minix hd32-minix >> ${ALCI_QT:-/home/claude/qt}/build-$L.log 2>&1

@@ -39,6 +39,16 @@ if [ ! -x $ROOT/86box/86box/build/src/86Box ]; then
      -DRTMIDI=OFF -DFLUIDSYNTH=OFF -DMUNT=OFF -DSOUNDCANVAS=OFF -DDISCORD=OFF > $ROOT/work/cmake86.log 2>&1 && \
    ninja -C build > $ROOT/work/ninja86.log 2>&1) || echo "86Box build failed, see $ROOT/work/ninja86.log"
 fi
+# PicoMEM for 86Box: os8088's 86Box patch and libpmhost (MIT; see alci/RELATED.md)
+if [ ! -f $ROOT/os8088/build/picomem/v2/libpmhost-v2.so ]; then
+  [ -d $ROOT/os8088 ] || { GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 --filter=blob:none --sparse \
+      https://github.com/jggonz/os8088 $ROOT/os8088 && git -C $ROOT/os8088 sparse-checkout set tools/86box tools/picomem; }
+  (cd $ROOT/os8088 && OS88_NO_PREFLIGHT=1 bash tools/picomem/build.sh > $ROOT/work/picomem.log 2>&1) || echo "libpmhost build failed, see $ROOT/work/picomem.log"
+  if ! grep -q picomem $ROOT/86box/86box/src/device/CMakeLists.txt; then
+    (cd $ROOT/86box/86box && git apply $ROOT/os8088/tools/86box/patches/07-picomem.patch && ninja -C build > $ROOT/work/ninja86.log 2>&1) || echo "86Box PicoMEM patch failed"
+  fi
+fi
+export PICOMEM_LIB=$ROOT/os8088/build/picomem/v2/libpmhost-v2.so PICOMEM_SD=$ROOT/os8088/build/picomem/sd.img
 export B86=$ROOT/86box/86box/build/src/86Box R86=$ROOT/86box/roms
 # first ELKS build (tools, kernel, apps)
 cd $ELKS && source ./env.sh >/dev/null

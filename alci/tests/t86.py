@@ -38,6 +38,12 @@ if hd and hdfile == vm + '/disk.img':
 else:
     cfg += '[Floppy and CD-ROM drives]\nfdd_01_type = %s\nfdd_01_fn = %s/disk.img\n' % (fdt, vm)
 cfg += 'fdd_02_type = none\n'
+if os.environ.get('PICOMEM'):
+    # PicoMEM card (os8088's 86Box patch and libpmhost): NE2000 over the
+    # emulator's network (slirp: the host is 10.0.2.2), card IRQ 7, NE2000 300h/IRQ 3
+    cfg += '\n[Other peripherals]\nisamem0_type = picomem\n\n[PicoMEM #1]\nirq = 7\nirq7 = 1\ndma = 1\nlib = %s\nsd_image = %s\n' % (
+        os.environ['PICOMEM'], os.environ.get('PICOMEM_SD', ''))
+    cfg += '\n[Network]\nnet_01_card = picomem_ne2k\nnet_01_net_type = slirp\nnet_01_link = 0\n'
 open(vm + '/86box.cfg', 'w').write(cfg)
 sock = vm + '/a.sock'
 env = dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')
@@ -115,6 +121,7 @@ if os.environ.get('SCREEN'):
         if not r.get('matched'): q('screenshot /tmp/t86-timeout.png')
         print('=== ' + c + (' [%.2f s]' % ((r['ms'] - t0) / 1000) if times else '') + ('' if r.get('matched') else ' TIMEOUT'))
         q('step 500')
+    if os.environ.get('DEBUGLOG'): print(q('log').get('text','')[-3000:])
     q('quit'); shutil.rmtree(vm, ignore_errors=True); sys.exit(0)
 out, ms = wait('# ', int(os.environ.get('BOOT_MS', 400000)))
 if out is None:
@@ -138,5 +145,6 @@ for n, c in enumerate(l for l in open(cmdf).read().split('\n') if l.strip() and 
     print('=== ' + c + (' [%.2f s]' % ((ms - t0) / 1000) if times else ''))
     if body.strip('\n'): print(body.strip('\n'))
     wait('# ', 20000)
+if os.environ.get('DEBUGLOG'): print('## 86box log:'); print('\n'.join(l for l in q('log').get('text','').split('\n') if any(k in l.lower() for k in os.environ['DEBUGLOG'].split(',')))[-3000:])
 q('quit')
 shutil.rmtree(vm, ignore_errors=True)
