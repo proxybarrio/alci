@@ -18,6 +18,11 @@ measured separately on MartyPC (`alci/scripts`).
 
 - Toshiba T1200 with its internal hard disk: `t86.py t1200 <label>-hd20t.img`
   with `HDGEOM=17,8,306,mfm,internal` (the BIOS presents it as 611/4/17).
+- Screen mode: build images with `CONSOLE=screen mkimg.sh ...` and run
+  `t86.py` with `SCREEN=1`: commands are typed on the emulated keyboard and
+  completion is read from the text screen, so console speed is measured on
+  each machine's own display (`KEYDELAY` ms between keys, 20 on the AT).
+  Images get `/b.txt`, 200 lines of text.
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `t86.py` options: `BOOTLOG=word,word` prints boot lines containing the

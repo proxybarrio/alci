@@ -23,17 +23,20 @@ master of 2026-11-15) against **Alci 0.1 at commit
 image reports its commit. Times are emulated seconds, ELKS / Alci; later
 versions of either may give different results.
 
-| Command | IBM XT, 8088 4.77 MHz | Toshiba T1200, 8086 9.54 MHz, internal disk | IBM AT, 286 8 MHz |
+| Command | IBM XT, 8088 4.77 MHz, CGA | Toshiba T1200, 8086 9.54 MHz, LCD, internal disk | IBM AT, 286 8 MHz, EGA |
 | --- | --- | --- | --- |
-| `ls -l /bin` (cached) | 16.68 / 9.45 | 6.28 / 3.53 | 2.64 / 1.53 |
+| `cat` of 200 lines to the screen (cached) | 20.57 / 1.89 | 7.46 / 0.68 | 4.46 / 0.34 |
+| `ls -l /bin` to the screen (cached) | 30.71 / 10.69 | 11.38 / 4.00 | 5.78 / 1.77 |
+| `ls -l /bin > /dev/null` (cached) | 16.68 / 9.45 | 6.28 / 3.53 | 2.64 / 1.53 |
 | 10 runs of `pwd` | 2.79 / 1.75 | 0.98 / 0.62 | 0.41 / 0.29 |
 | three-stage pipe, 48 KB | 10.22 / 3.07 | 3.80 / 1.11 | 1.60 / 0.47 |
 | `grep` on 60 KB | 7.69 / 7.16 | 3.04 / 2.85 | 1.44 / 1.36 |
 
-86Box 7.0 with each machine's real BIOS, hard disk, serial console. Screen
-output is measured separately on MartyPC (8088 4.77 MHz, CGA, 720K floppy):
-`cat` of 200 lines takes 17.71 s on ELKS and 1.51 s on Alci; boot to the
-prompt with the floppy rotation model, 21.02 s and 18.36 s. Full tables in
+86Box 7.0 with each machine's real BIOS and its own display, hard disk.
+Screen rows: commands typed on the emulated keyboard, time until the output
+is complete on the screen. Other rows: serial console, output discarded.
+On MartyPC (8088 4.77 MHz, CGA, 720K floppy) boot to the prompt with the
+floppy rotation model takes 21.02 s on ELKS and 18.36 s on Alci. Full tables in
 [`alci/RESULTS.md`](alci/RESULTS.md).
 
 Every change is a separate commit on branch `alci`, measured on the

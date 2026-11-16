@@ -82,6 +82,40 @@ if mach == 't1200':
 if os.environ.get('MEMR'): print(q('memr %s 16' % os.environ['MEMR']))
 for t in os.environ.get('SHOTS', '').split(','):
     if t: q('step %s' % t); q('screenshot /tmp/t86-%s.png' % q('status')['ms'])
+SCAN = {**{c: k for c, k in zip('1234567890-=', range(2, 14))},
+        **{c: k for c, k in zip('qwertyuiop', range(0x10, 0x1a))},
+        **{c: k for c, k in zip('asdfghjkl;', range(0x1e, 0x28))},
+        **{c: k for c, k in zip('zxcvbnm,./', range(0x2c, 0x36))},
+        ' ': 0x39, "'": 0x28, '\\': 0x2b, '\n': 0x1c}
+SHIFTED = {'!': '1', '@': '2', '#': '3', '$': '4', '%': '5', '&': '7', '*': '8', '(': '9', ')': '0',
+           '_': '-', '+': '=', ':': ';', '"': "'", '<': ',', '>': '.', '?': '/', '|': '\\'}
+# the AT keyboard controller loses keys sent 2 ms apart: give it time
+keydelay = int(os.environ.get('KEYDELAY', 20 if mach in ('at', '386') else 0))
+def typeline(text):
+    for ch in text:
+        sh = ch in SHIFTED or ch.isupper()
+        base = SHIFTED.get(ch, ch.lower())
+        if sh: q('key down 0x2a')
+        q('key down 0x%x' % SCAN[base]); q('key up 0x%x' % SCAN[base])
+        if sh: q('key up 0x2a')
+        if keydelay: q('step %d' % keydelay)
+if os.environ.get('SCREEN'):
+    # console on the machine's own screen: type on the keyboard, read the text screen
+    r = q('wait text %d # ' % int(os.environ.get('BOOT_MS', 400000)))
+    if not r.get('matched'):
+        q('screenshot /tmp/t86-boot.png'); print('BOOT TIMEOUT, screen in /tmp/t86-boot.png'); q('quit'); sys.exit(1)
+    if times: print('## boot to prompt %.2f s (emulated, includes BIOS POST)' % (r['ms'] / 1000))
+    q('step 1000')
+    for n, c in enumerate(l for l in open(cmdf).read().split('\n') if l.strip() and not l.startswith('##')):
+        typeline(c + '; echo @@S""%d@@' % n)
+        q('step 200')
+        t0 = q('status')['ms']
+        typeline('\n')
+        r = q('wait text %d @@S%d@@' % (int(os.environ.get('CMD_MS', 600000)), n))
+        if not r.get('matched'): q('screenshot /tmp/t86-timeout.png')
+        print('=== ' + c + (' [%.2f s]' % ((r['ms'] - t0) / 1000) if times else '') + ('' if r.get('matched') else ' TIMEOUT'))
+        q('step 500')
+    q('quit'); shutil.rmtree(vm, ignore_errors=True); sys.exit(0)
 out, ms = wait('# ', int(os.environ.get('BOOT_MS', 400000)))
 if out is None:
     q('screenshot /tmp/t86-boot.png'); print(json.dumps(q('info'))[:900]); print(q('log').get('text','')[-1500:]); print('BOOT TIMEOUT, screen in /tmp/t86-boot.png'); q('quit'); sys.exit(1)

@@ -39,6 +39,17 @@ emulated seconds, ELKS 22a4c5d / Alci acdd752:
 | `grep` on 60 KB | 7.69 / 7.16 | 3.04 / 2.85 | 1.44 / 1.36 |
 | `sort` small file | 0.90 / 0.68 | 0.32 / 0.25 | 0.16 / 0.14 |
 
+86Box 7.0, console on each machine's own display (`SCREEN=1`, commands
+typed on the emulated keyboard, time from Enter until the output is complete
+on screen), hard disk, emulated seconds, ELKS 22a4c5d / Alci acdd752:
+
+| Command | IBM XT 8088 4.77, CGA | Toshiba T1200 8086 9.54, LCD, internal disk | IBM AT 286 8, EGA |
+| --- | --- | --- | --- |
+| `cat` of 200 lines, first run | 21.06 / 2.30 (9.2x) | 7.61 / 0.82 (9.3x) | 4.57 / 0.42 (10.9x) |
+| `cat` of 200 lines, cached | 20.57 / 1.89 (10.9x) | 7.46 / 0.68 (11.0x) | 4.46 / 0.34 (13.1x) |
+| `ls -l /bin`, first run | 31.19 / 11.10 (2.8x) | 11.55 / 4.16 (2.8x) | 5.89 / 1.86 (3.2x) |
+| `ls -l /bin`, cached | 30.71 / 10.69 (2.9x) | 11.38 / 4.00 (2.8x) | 5.78 / 1.77 (3.3x) |
+
 ## Earlier measurements
 
 The sections below are kept as a record. Unless they say otherwise, they
