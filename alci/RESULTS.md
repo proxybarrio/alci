@@ -1,5 +1,52 @@
 # Alci: measured results
 
+## Reference measurement (2026-11-16)
+
+Every comparison must name both versions. This one compares:
+
+- **ELKS**: 0.9.2, ghaerr/elks commit `22a4c5d` (master of 2026-11-15).
+- **Alci**: 0.1, proxybarrio/elks branch `alci`, commit `acdd752`.
+
+Same configuration (`alci/elks.config`) and toolchain (branch `toolchain`).
+Each image reports its commit with `uname -a`. Results for later commits of
+either branch must be measured again and added as a new dated section.
+
+MartyPC (8088 4.77 MHz, CGA, 720K floppy, `alci/scripts/bench.sh` and
+`bench2.sh`), emulated seconds:
+
+| Operation | ELKS 22a4c5d | Alci acdd752 |
+| --- | --- | --- |
+| `cat` of 200 lines to screen | 17.71 | 1.51 |
+| `ls -l /bin`, from floppy | 14.95 | 7.93 |
+| `ls -l /bin`, cached | 11.08 | 4.06 |
+| 10 runs of `pwd` | 2.26 | 1.58 |
+| three-stage pipe, 20 KB | 7.09 | 4.34 |
+| `grep` on 20 KB | 4.61 | 3.65 |
+| `sort` on 20 KB | 5.55 | 5.45 |
+| boot to prompt | 14.48 | 14.18 |
+| boot to prompt, floppy rotation model (`ELKS_FDROT=9`) | 21.02 | 18.36 |
+
+86Box 7.0, real BIOS, hard disk, serial console (`alci/tests/speed.txt`),
+emulated seconds, ELKS 22a4c5d / Alci acdd752:
+
+| Command | IBM XT 8088 4.77 | Toshiba T1200 8086 9.54, internal disk | IBM AT 286 8 |
+| --- | --- | --- | --- |
+| boot to prompt (with BIOS POST) | 38.17 / 37.74 | 11.89 / 11.74 | 20.98 / 20.92 |
+| `ls -l /bin`, first run | 17.17 / 9.86 | 6.45 / 3.69 | 2.77 / 1.65 |
+| `ls -l /bin`, cached | 16.68 / 9.45 | 6.28 / 3.53 | 2.64 / 1.53 |
+| 10 runs of `pwd` | 2.79 / 1.75 | 0.98 / 0.62 | 0.41 / 0.29 |
+| three-stage pipe, 48 KB | 10.22 / 3.07 | 3.80 / 1.11 | 1.60 / 0.47 |
+| `grep` on 60 KB | 7.69 / 7.16 | 3.04 / 2.85 | 1.44 / 1.36 |
+| `sort` small file | 0.90 / 0.68 | 0.32 / 0.25 | 0.16 / 0.14 |
+
+## Earlier measurements
+
+The sections below are kept as a record. Unless they say otherwise, they
+compare ELKS at the upstream commit of the day (`3e6b940` on 2026-11-15,
+`22a4c5d` on 2026-11-16) with the Alci patches as they were on that day;
+use the reference section above for current figures.
+
+
 MartyPC (cycle-accurate), IBM 5160 with GLaBIOS, CGA, 640 KB, 8088 at 4.77 MHz
 unless stated otherwise. Scripts: `alci/scripts/bench.sh` and `bench2.sh`.
 

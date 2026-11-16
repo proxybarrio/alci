@@ -14,15 +14,27 @@ Goals, in order:
 3. A terminal for talking to Claude or other language models through a
    Wi-Fi modem on the serial port.
 
-Measured so far, upstream ELKS against Alci, same commit, emulated with the
-real BIOS of each machine (86Box), hard disk:
+Measured on 2026-11-16, **ELKS 0.9.2 at commit
+[`22a4c5d`](https://github.com/ghaerr/elks/commit/22a4c5d)** (ghaerr/elks
+master of 2026-11-15) against **Alci 0.1 at commit
+[`acdd752`](https://github.com/proxybarrio/elks/commit/acdd752)** (branch
+`alci`). Both were built with the same configuration
+([`alci/elks.config`](alci/elks.config)) and toolchain; `uname -a` in each
+image reports its commit. Times are emulated seconds, ELKS / Alci; later
+versions of either may give different results.
 
-| Command | IBM XT, 8088 4.77 MHz | Toshiba T1200, 8086 9.54 MHz | IBM AT, 286 8 MHz |
+| Command | IBM XT, 8088 4.77 MHz | Toshiba T1200, 8086 9.54 MHz, internal disk | IBM AT, 286 8 MHz |
 | --- | --- | --- | --- |
-| `ls -l /bin` | 16.7 s / 9.4 s | 6.3 s / 3.5 s | 2.6 s / 1.5 s |
-| 10 runs of `pwd` | 2.8 s / 1.8 s | 1.0 s / 0.6 s | 0.41 s / 0.29 s |
-| three-stage pipe | 10.2 s / 3.1 s | 3.8 s / 1.1 s | 1.6 s / 0.5 s |
-| `cat` of 200 lines to the screen (MartyPC, 8088) | 17.7 s / 1.5 s | | |
+| `ls -l /bin` (cached) | 16.68 / 9.45 | 6.28 / 3.53 | 2.64 / 1.53 |
+| 10 runs of `pwd` | 2.79 / 1.75 | 0.98 / 0.62 | 0.41 / 0.29 |
+| three-stage pipe, 48 KB | 10.22 / 3.07 | 3.80 / 1.11 | 1.60 / 0.47 |
+| `grep` on 60 KB | 7.69 / 7.16 | 3.04 / 2.85 | 1.44 / 1.36 |
+
+86Box 7.0 with each machine's real BIOS, hard disk, serial console. Screen
+output is measured separately on MartyPC (8088 4.77 MHz, CGA, 720K floppy):
+`cat` of 200 lines takes 17.71 s on ELKS and 1.51 s on Alci; boot to the
+prompt with the floppy rotation model, 21.02 s and 18.36 s. Full tables in
+[`alci/RESULTS.md`](alci/RESULTS.md).
 
 Every change is a separate commit on branch `alci`, measured on the
 cycle-accurate MartyPC emulator and checked for identical behaviour on six

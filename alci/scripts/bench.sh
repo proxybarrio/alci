@@ -3,7 +3,7 @@
 set -e
 L=$1
 ROOT=${ALCI_ROOT:-/home/claude}
-cd $ROOT/elks && source ./env.sh >/dev/null
+cd ${ELKS_TREE:-$ROOT/elks} && source ./env.sh >/dev/null
 sed -i 's/^#init=\/bin\/sh/init=\/bin\/sh/' elkscmd/rootfs_template/bootopts
 make all > $ROOT/work/build-$L.log 2>&1 || { git checkout -- elkscmd/rootfs_template/bootopts; echo BUILD FAILED; grep -n "error" $ROOT/work/build-$L.log | head; exit 1; }
 make -C image fd720-minix > $ROOT/work/img-$L.log 2>&1

@@ -74,6 +74,11 @@ behaviour your patch touches (keep lines under 60 characters: the ELKS
 tty input line is 80). Real hardware (a real T1200) is needed only for patches that touch the
 BIOS, the floppy controller or the boot sector, and before a release.
 
+Every timing you record (`RESULTS.md`, reports, commit messages) names
+both versions: the upstream ELKS commit and the Alci commit, measured with
+the same configuration and toolchain. Add new results as a new dated
+section; never overwrite older figures.
+
 Report the vetoes checked and the value in the final message.
 
 ## Procedure
