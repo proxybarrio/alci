@@ -1,0 +1,8 @@
+## Speed suite for t86.py --times. Output to /dev/null: the console here is
+## serial, so screen speed (Alci's biggest gain) is not measured.
+ls -l /bin > /dev/null
+ls -l /bin > /dev/null
+for i in 1 2 3 4 5 6 7 8 9 10; do pwd > /dev/null; done
+cat /bin/sh | cat | cat > /dev/null
+grep root /bin/vi > /dev/null
+sort /etc/passwd > /dev/null
