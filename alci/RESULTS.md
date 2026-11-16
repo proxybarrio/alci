@@ -103,3 +103,21 @@ released at boot. Functional suite identical to upstream.
 | three-stage pipe, 48 KB | 3.81 s | 1.11 s (-71%) |
 | `grep` on 60 KB | 3.04 s | 2.85 s (-6%) |
 | `sort` small file | 0.32 s | 0.25 s (-22%) |
+
+## EDD release across CPUs (86Box and QEMU, 2026-11-16)
+
+The EDD check runs for every hard disk the BIOS reports, with no CPU or
+machine-class condition; the code is freed when no disk has EDD. Checked:
+
+| Machine | CPU | Disk | EDD | Suite vs upstream |
+| --- | --- | --- | --- | --- |
+| IBM XT 1986 | 8088 4.77 | XT-IDE / floppy | no, freed | identical |
+| IBM XT 1986 | NEC V20 4.77 (186 instruction set) | XT-IDE | no, freed | upstream drops one serial input character (`/etc/passwd` read as `/tc/passwd`), every run; Alci does not |
+| Toshiba T1200 | 8086 9.54 | internal RLL 20 MB | no, freed | identical |
+| Amstrad PC1512 | 8086 8 | XT-IDE | no, freed | identical |
+| IBM AT | 286 8 | XT-IDE (AT) | no, freed | Alci better (see above) |
+| ECS 386 (AMI BIOS) | 386DX 16 | XT-IDE (AT) | no, freed | identical |
+| QEMU | 486 | IDE 32 MB + 1 GB | yes, kept | identical; data past cylinder 1024 written and read back |
+
+A true 80186 PC was not available (86Box has no PC-compatible 80186
+machine); the V20 runs the same instruction set.

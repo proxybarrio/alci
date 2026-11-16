@@ -10,6 +10,8 @@ MACHINES = {
   'xt':    ('machine = ibmxt86\ncpu_family = 8088\ncpu_speed = 4772728\nmem_size = 640\n', 'cga', '35_2dd'),
   't1200': ('machine = t1200\ncpu_family = 8086\ncpu_speed = 9545456\nmem_size = 1024\n', 'internal', '35_2dd'),
   'pc1512':('machine = pc1512\ncpu_family = 8086\ncpu_speed = 8000000\nmem_size = 640\n', 'internal', '35_2dd'),
+  'xtv20': ('machine = ibmxt86\ncpu_family = necv20\ncpu_speed = 4772728\nmem_size = 640\n', 'cga', '35_2dd'),
+  '386':   ('machine = ecs386\ncpu_family = i386dx\ncpu_speed = 16000000\nmem_size = 1024\n', 'ega', '35_2dd'),
   'at':    ('machine = ibmat\ncpu_family = 286\ncpu_speed = 8000000\nmem_size = 512\n', 'ega', '35_2dd'),
 }
 mach, img, cmdf = sys.argv[1:4]; times = '--times' in sys.argv
@@ -27,7 +29,7 @@ hdfile = vm + '/disk.img'
 if os.environ.get('EXTRA_HD'):
     shutil.copy(os.environ['EXTRA_HD'], vm + '/hd.img'); hdfile = vm + '/hd.img'
 if hd:
-    spt, hpc, cyl, bus, ctl = (hdgeom or '63,16,63,ide,' + ('xtide_at' if mach == 'at' else 'xtide')).split(',')
+    spt, hpc, cyl, bus, ctl = (hdgeom or '63,16,63,ide,' + ('xtide_at' if mach in ('at', '386') else 'xtide')).split(',')
     cfg += '[Storage controllers]\nhdc_1 = %s\n\n' % ctl
     cfg += '[Hard disks]\nhdd_01_parameters = %s, %s, %s, 0, %s\nhdd_01_fn = %s\n' % (spt, hpc, cyl, bus, hdfile)
     cfg += ('hdd_01_ide_channel = 0:0\n\n' if bus == 'ide' else 'hdd_01_mfm_channel = 0\n\n')
@@ -57,15 +59,22 @@ def wait(text, tmo):
     return out.decode('latin1'), r['ms']
 def key(code):
     q('key down 0x%x' % code); q('key up 0x%x' % code)
-if mach == 'at':
+if mach in ('at', '386'):
     # IBM AT keeps drive types in CMOS and has no setup in ROM: write them
-    cm = {0x0e: 0, 0x0f: 0, 0x10: 0x30, 0x12: 0, 0x14: 0x01, 0x15: 0x00, 0x16: 0x02, 0x17: 0, 0x18: 0}
+    cm = {0x0e: 0, 0x0f: 0, 0x10: 0x30, 0x12: 0, 0x14: 0x01, 0x15: 0x00, 0x16: 0x02, 0x17: 0, 0x18: 0} if mach == 'at' else \
+         {0x0e: 0, 0x0f: 0, 0x10: 0x30, 0x12: 0, 0x14: 0x01, 0x15: 0x80, 0x16: 0x02, 0x17: 0x80, 0x18: 0x01}
     for r in range(0x10, 0x2e): cm.setdefault(r, 0)
     cs = sum(cm[r] for r in range(0x10, 0x2e))
     cm[0x2e] = cs >> 8; cm[0x2f] = cs & 0xff
     for r, v in sorted(cm.items()):
         q('iow 0x70 1 0x%x' % r); q('iow 0x71 1 0x%x' % v)
     q('reset hard')
+    if mach == '386':
+        # AMI BIOS: extended CMOS left unset, continue with F1 as a user would
+        if q('wait text 30000 to RESUME').get('matched'):
+            q('step 300'); key(0x3b)
+            if q('wait text 10000 EXIT FOR BOOT').get('matched'):
+                q('step 300'); key(0x1c)
 if mach == 't1200':
     # empty configuration RAM: accept the default type at the prompt
     if q('wait text 30000 SYSTEM CONFIGURATION').get('matched'):

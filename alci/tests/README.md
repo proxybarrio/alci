@@ -10,7 +10,8 @@ measured separately on MartyPC (`alci/scripts`).
 - `qtest.py <img> <fd|hd> <cpu> <mem_kb> <suite>`: runs the suite on QEMU.
 - `t86.py <machine> <img> <suite> [--times]`: runs it on 86Box with the real
   BIOS of an IBM XT (8088 4.77 MHz, CGA), Toshiba T1200 (8086 9.54 MHz),
-  Amstrad PC1512 (8086 8 MHz) or IBM AT (286 8 MHz, EGA, 512K). Hard disk
+  Amstrad PC1512 (8086 8 MHz), IBM AT (286 8 MHz, EGA, 512K), `xtv20`
+  (IBM XT with a NEC V20) or `386` (ECS 386, AMI BIOS, 386DX 16 MHz). Hard disk
   images go on an XT-IDE controller. `--times` prints emulated seconds per
   command. Needs 86Box 7.0 built with `-DAUTOMATION=ON` (`B86`) and the
   86Box ROM set (`R86`), see `alci/scripts/setup.sh`.
