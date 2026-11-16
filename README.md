@@ -14,6 +14,23 @@ Goals, in order:
 3. A terminal for talking to Claude or other language models through a
    Wi-Fi modem on the serial port.
 
+Alci keeps the processor support of ELKS: 8088, 8086, 80188, 80186, NEC
+V20 and V30, 80286, and 80386 or later in real mode (486, Pentium and
+newer PCs that boot from a legacy BIOS). What has actually been run so far:
+
+| Processor | Where |
+| --- | --- |
+| 8088 | IBM XT (86Box), MartyPC |
+| NEC V20 (80186 instruction set) | IBM XT (86Box) |
+| 8086 | Toshiba T1200, Amstrad PC1512 (86Box) |
+| 80286 | IBM AT (86Box) |
+| 80386 | ECS 386 with AMI BIOS (86Box) |
+| 80486 | QEMU |
+| 80C188EB | builds; not yet run (no emulator for the board) |
+
+No PC-compatible 80186 machine was available to emulate; the V20 runs the
+same instruction set.
+
 Measured on 2026-11-16, **ELKS 0.9.2 at commit
 [`22a4c5d`](https://github.com/ghaerr/elks/commit/22a4c5d)** (ghaerr/elks
 master of 2026-11-15) against **Alci 0.1 at commit
