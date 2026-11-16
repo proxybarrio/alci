@@ -29,7 +29,7 @@ learn from them and avoid duplicating them.
 | PicoMEM | to be checked | Hardware used as it is; ELKS already has the NE2000 driver it emulates (task E0b). |
 | doschgpt, http-to-https-proxy | to be checked | The proxy runs on a modern machine and can be used as it is. The client's request and reply code may be adapted only if its licence allows. |
 | Nano-X | already in ELKS | Measure first (D2); the cheapest base for the interface. |
-| os8088 | not stated on the pages read | Ideas only until the licence is known: CGA drawing, clipping, multitasking on an 8088 in 256K. |
+| [os8088](https://github.com/jggonz/os8088) | MIT (checked 2026-11-16) | Compatible: code may be adapted if the copyright notice and licence text are kept. Not covered: `reference/` (third-party material such as Microsoft's Gorillas and Nintendo's Dr. Mario data) and possibly the fonts (derived from an outline font whose licence must be checked). About 180,000 lines of NASM for its own kernel and calling conventions, so pieces are lifted and rewritten, not dropped in: CGA drawing, clipping and redraw (`REDRAW-SPEC.md`), the `.F88` font format, mouse driver, memory layout. Its MartyPC debug server (`tools/martypc/`: breakpoints, registers, cycle counts with no code in the guest) could replace part of our profiler. |
 | PC/GEOS (FreeGEOS) | Apache 2.0 | Not compatible with the GPLv2 kernel. Ideas, or separate user programs under their own licence. |
 | SymbOS | freeware | Ideas only (redraw windows on demand instead of storing hidden areas). |
 | UnoDOS | MPL 2.0 | Phase 7 only (frozen): how one image boots on legacy BIOS and UEFI. |

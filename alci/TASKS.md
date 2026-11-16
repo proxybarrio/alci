@@ -39,6 +39,11 @@ The agent takes the first `TODO` from the top.
   `bootopts` and the files read at boot close together and in read order.
   Measure boot with `ELKS_FDROT=9`.
 
+- [ ] A4 `TODO` Try os8088's MartyPC debug server (`tools/martypc/` in
+  github.com/jggonz/os8088, MIT): breakpoints and exact cycle counts from
+  outside the guest. If it covers our profiler's needs, adopt it in
+  `proxybarrio/martypc` (branch `elks-bench`) with credit.
+
 ## Phase 2: memory
 
 - [ ] B1 `TODO` Measure and document where kernel memory goes (code, data,
@@ -62,7 +67,8 @@ The agent takes the first `TODO` from the top.
   SymbOS for ideas only: memory management, discardable segments, fonts,
   window clipping and redraw on demand, CGA drawing routines. PC/GEOS is
   Apache 2.0 (not compatible with the GPLv2 kernel; separate user programs
-  only); os8088's license is still to be checked. Output:
+  only); os8088 is MIT, so its code may be adapted with its notice kept,
+  except `reference/` and fonts of unclear origin. Output:
   `alci/docs/gui-study.md`, with what can be reused and under which terms.
 - [ ] D2 `TODO` Measure Nano-X on an 8088 with CGA in MartyPC as a drawing
   engine (memory, time per window and per text line).
