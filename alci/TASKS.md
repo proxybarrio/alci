@@ -1,62 +1,62 @@
-# Alci: compiti in ordine
+# Alci: tasks in order
 
-Stati: `TODO`, `DOING`, `DONE`, `DROPPED` (provato, non conviene),
-`HUMAN` (serve il maintainer), `BLOCKED` (aspetta qualcosa).
-L'agente prende il primo `TODO` dall'alto.
+Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
+`HUMAN` (needs the maintainer), `BLOCKED` (waiting on something).
+The agent takes the first `TODO` from the top.
 
-## Fase 1: velocità di base
+## Phase 1: baseline speed
 
-- [ ] A1 `TODO` Avvio dei programmi. Oggi 10 avvii di `pwd` costano ~2,0 s su
-  8088 (bench2). Profilare `exec`/`fork`/caricamento a.out, ridurre il costo
-  senza aumentare la RAM occupata.
-- [ ] A2 `TODO` Timer: il kernel spende ~7,6% della CPU anche a riposo
-  (tick a 100 Hz). Ridurre il lavoro per tick o saltare i tick a vuoto.
-  Misurare anche l'effetto sul tempo dei comandi.
-- [ ] A3 `TODO` Ordine dei file sull'immagine floppy: mettere kernel, shell,
-  `bootopts` e file letti all'avvio vicini e nell'ordine di lettura.
-  Misurare l'avvio con `ELKS_FDROT=9`.
+- [ ] A1 `TODO` Program start-up. Today 10 runs of `pwd` take ~2.0 s on an
+  8088 (bench2). Profile `exec`/`fork`/a.out loading and reduce the cost
+  without increasing resident RAM.
+- [ ] A2 `TODO` Timer: the kernel spends ~7.6% of CPU even when idle
+  (100 Hz tick). Reduce per-tick work or skip idle ticks. Also measure the
+  effect on command times.
+- [ ] A3 `TODO` File order on the floppy image: place the kernel, shell,
+  `bootopts` and the files read at boot close together and in read order.
+  Measure boot with `ELKS_FDROT=9`.
 
-## Fase 2: memoria
+## Phase 2: memory
 
-- [ ] B1 `TODO` Misurare e documentare dove va la memoria del kernel
-  (codice, dati, heap, buffer, cache) in `alci/docs/memoria.md`.
-- [ ] B2 `TODO` Cache del disco elastica: solo letture, scritture subito su
-  disco, svuotata a mount/umount e cambio disco, in memoria convenzionale al
-  massimo 64 KB ceduti ai programmi su richiesta; in EMS o memoria estesa
-  quando presenti. Prima un documento di progetto in `alci/docs/`, poi
-  l'implementazione a passi.
+- [ ] B1 `TODO` Measure and document where kernel memory goes (code, data,
+  heap, buffers, cache) in `alci/docs/memory.md`.
+- [ ] B2 `TODO` Elastic disk cache: reads only, writes go to disk at once,
+  flushed on mount/umount and media change, at most 64 KB of conventional
+  memory and given back to programs on demand; in EMS or extended memory
+  when present. First a design document in `alci/docs/`, then the
+  implementation in steps.
 
-## Fase 3: prove su hardware vario
+## Phase 3: tests on varied hardware
 
-- [ ] C1 `TODO` Kit di prova: immagini 360 KB, 720 KB e 1,44 MB con tutte le
-  patch e uno script di misura che giri su ELKS e stampi i tempi.
-- [ ] C2 `HUMAN` Provare il kit su macchine vere (T1200, un XT, un AT) e
-  riportare i numeri. Verificare la lettura su due facce del floppy.
+- [ ] C1 `TODO` Test kit: 360 KB, 720 KB and 1.44 MB images with all patches,
+  plus a benchmark script that runs on ELKS and prints the times.
+- [ ] C2 `HUMAN` Run the kit on real machines (Toshiba T1200, an XT, an AT)
+  and report the numbers. Verify two-head floppy reads.
 
-## Fase 4: grafica
+## Phase 4: graphics
 
-- [ ] D1 `TODO` Studiare PC/GEOS (fork `proxybarrio/pcgeos`): gestione della
-  memoria, segmenti scartabili, caratteri, finestre. Verificarne la licenza.
-  Risultato: `alci/docs/geos-studio.md`.
-- [ ] D2 `TODO` Misurare Nano-X su 8088 con CGA in MartyPC come motore di
-  disegno (memoria, tempo per finestra e testo).
-- [ ] D3 `TODO` Progetto del caricatore di segmenti di codice scartabili nel
-  kernel: documento, poi prototipo.
+- [ ] D1 `TODO` Study PC/GEOS (fork `proxybarrio/pcgeos`): memory
+  management, discardable segments, fonts, windows. Check its license.
+  Output: `alci/docs/geos-study.md`.
+- [ ] D2 `TODO` Measure Nano-X on an 8088 with CGA in MartyPC as a drawing
+  engine (memory, time per window and per text line).
+- [ ] D3 `TODO` Design the kernel loader for discardable code segments:
+  document first, then a prototype.
 
-## Fase 5: terminale Claude
+## Phase 5: Claude terminal
 
-- [ ] E1 `TODO` Verificare se Zimodem/WiFi232 gestisce HTTPS verso
-  `api.anthropic.com` (documentazione e sorgenti del firmware). Risultato in
-  `alci/docs/claude-terminale.md`.
-- [ ] E2 `TODO` Client `claude` per ELKS a riga di comando sulla seriale
-  (comandi AT, richiesta HTTP, JSON minimo), con un finto modem per i test.
-- [ ] E3 `HUMAN` Comprare o montare il modem Wi-Fi e provarlo.
+- [ ] E1 `TODO` Check whether Zimodem/WiFi232 can handle HTTPS to
+  `api.anthropic.com` (firmware documentation and sources). Output in
+  `alci/docs/claude-terminal.md`.
+- [ ] E2 `TODO` Command-line `claude` client for ELKS over the serial port
+  (AT commands, HTTP request, minimal JSON), with a fake modem for tests.
+- [ ] E3 `HUMAN` Buy or build the Wi-Fi modem and try it.
 
-## Fase 6: immagine universale
+## Phase 6: universal image
 
-- [ ] F1 `TODO` Rilevamento del processore all'avvio e scelta delle routine
-  (8088, 186, 286); memoria estesa del 286 per la cache.
+- [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
+  286); 286 extended memory for the disk cache.
 
-## Fatti finora (sessione del 15/11/2026)
+## Done so far (session of 2026-11-15)
 
-Vedi `alci/RESULTS.md`. Patch sul ramo `alci`, un commit ciascuna.
+See `alci/RESULTS.md`. Patches are on branch `alci`, one commit each.

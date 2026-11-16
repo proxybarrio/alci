@@ -1,14 +1,23 @@
 # Alci
 
-Ramo sperimentale di ELKS (da "alci", plurale di alce: elk).
-Obiettivo: un ELKS veloce e parco di memoria che su qualunque PC dall'8088
-al 286 faccia girare una GUI sul modello di GEOS e un terminale per Claude.
+**ALCI: Asymmetric Linux Compact Initiative**, an experimental branch of
+[ELKS](https://github.com/ghaerr/elks) by Alan Cox, Greg Haerr and the ELKS team.
 
-- `TASKS.md`: compiti in ordine, con stato.
-- `RESULTS.md`: misure e costi.
-- `LOG.md`: diario delle sessioni.
-- `AGENT.md`: istruzioni per l'agente che lavora in automatico.
-- `scripts/`: preparazione dell'ambiente, misure su MartyPC, lettura dei profili.
+The name is a pun: *alci* is the Italian plural of *alce*, "elk".
+"Asymmetric" describes the idea behind it: a minimal machine at the user's
+end, large services elsewhere (an 8088 on the desk, an AI model in the cloud).
 
-Le patch sono sul ramo `alci`, un commit per modifica, pronte da proporre
-upstream una alla volta.
+Goal: a faster, memory-frugal ELKS that runs on any PC from the 8088 to the
+286, with a graphical interface in the spirit of GEOS and a terminal for
+talking to Claude or other language models.
+
+- `TASKS.md`: the roadmap, task by task, with status.
+- `RESULTS.md`: measurements and costs of every change.
+- `LOG.md`: work log.
+- `AGENT.md`: instructions for the automated agent that works on this branch.
+- `scripts/`: environment setup, benchmarks on MartyPC, profile reader.
+
+Every change on branch `alci` is a separate commit, so that each can be
+proposed upstream on its own. Changes are developed with the help of Claude
+(Anthropic) and measured on the cycle-accurate MartyPC emulator, then
+checked on 86Box and real hardware.

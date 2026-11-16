@@ -1,15 +1,21 @@
-# Alci: diario
+# Alci: work log
 
-## 2026-11-15, sessione
+## 2026-11-16
 
-- Patch: EDD per dischi grandi, fsck, console veloce e scroll hardware,
-  ricerca nomi in directory, _wake_up, iget, pipe a 512 byte, fputs e date
-  nella libc, caricatore d'avvio a blocchi, lettura floppy su due facce
-  (sperimentale).
-- MartyPC (ramo `elks-bench`): coda della tastiera corretta (prima perdeva
-  tasti), 8086 come opzione, modello di rotazione del floppy, runner ELKS
-  con profilo.
-- Strategia scritta in un documento condiviso: grafica sul modello
-  di PC/GEOS, codice scartabile come base della memoria, terminale Claude via
-  modem Wi-Fi e poi ESP32 con microSD.
-- Issue #2851 (fsck) inviata a ghaerr/elks.
+- Project documents translated to English.
+- Boot banner: "ALCI 0.1: Asymmetric Linux Compact Initiative", crediting
+  ELKS, Alan Cox, Greg Haerr and the ELKS team.
+
+## 2026-11-15, session
+
+- Patches: EDD support for large disks, fsck inode seek fix, fast console
+  and hardware scrolling, directory name lookup, _wake_up, iget, 512-byte
+  pipes, fputs and time conversion in libc, block reads in the boot loader,
+  two-head floppy reads (experimental).
+- MartyPC (branch `elks-bench`): keyboard queue fixed (it used to drop
+  keys), 8086 option, floppy rotation model, ELKS runner with profiler.
+- Strategy agreed: GUI modeled on PC/GEOS, discardable code
+  segments as the basis of memory management, Claude terminal through a
+  Wi-Fi modem and later an ESP32 with microSD.
+- Issue #2851 (fsck) filed on ghaerr/elks.
+- Results confirmed independently on 86Box (see `RESULTS.md`).
