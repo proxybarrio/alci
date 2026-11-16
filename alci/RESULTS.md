@@ -88,3 +88,18 @@ measured.
 | three-stage pipe, 48 KB | 10.22 / 3.07 (-70%) | 3.82 / 1.12 (-71%) | 4.40 / 1.29 (-71%) | 1.60 / 0.47 (-71%) |
 | `grep` on 60 KB | 7.68 / 7.15 (-7%) | 3.08 / 2.88 (-6%) | 3.53 / 3.31 (-6%) | 1.44 / 1.36 (-6%) |
 | `sort` small file | 0.90 / 0.68 (-24%) | 0.35 / 0.27 (-23%) | 0.40 / 0.31 (-23%) | 0.16 / 0.14 (-12%) |
+
+## Toshiba T1200 with its own hard disk (86Box, 2026-11-16)
+
+T1200 BIOS 019e, internal RLL adapter, 20 MB disk seen by the BIOS as
+611 cylinders, 4 heads, 17 sectors (`hd20t` image from `mkimg.sh`, run with
+`HDGEOM=17,8,306,mfm,internal`). No EDD in this BIOS: the EDD code is
+released at boot. Functional suite identical to upstream.
+
+| Command | Upstream | Alci |
+| --- | --- | --- |
+| `ls -l /bin` (cached) | 6.28 s | 3.53 s (-44%) |
+| 10 runs of `pwd` | 0.98 s | 0.62 s (-37%) |
+| three-stage pipe, 48 KB | 3.81 s | 1.11 s (-71%) |
+| `grep` on 60 KB | 3.04 s | 2.85 s (-6%) |
+| `sort` small file | 0.32 s | 0.25 s (-22%) |

@@ -63,7 +63,9 @@ How to check V1 and the other hardware: see `alci/tests/README.md`.
 Build images with `alci/tests/mkimg.sh` for the current tree and for the
 previous commit (git worktree), run `alci/tests/functional.txt` with
 `alci/tests/t86.py` on all four 86Box machines (xt, t1200, pc1512, at;
-hd32 image) and once on the xt with the fd720 image, plus `qtest.py` on
+hd32 image), on the t1200 with its own disk (hd20t image, see
+`alci/tests/README.md`; a real machine has this disk) and once on
+the xt with the fd720 image, plus `qtest.py` on
 QEMU, and diff the outputs: they must be identical. 86Box uses the real
 BIOS of each machine; MartyPC stays the reference for speed on the 8088. Add a test line to `functional.txt` for every
 behaviour your patch touches (keep lines under 60 characters: the ELKS

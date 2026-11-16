@@ -17,10 +17,21 @@ B86 = os.environ.get('B86', '/home/claude/86box/86box/build/src/86Box')
 R86 = os.environ.get('R86', '/home/claude/86box/roms')
 vm = tempfile.mkdtemp(prefix='alci86-'); m, vid, fdt = MACHINES[mach]
 shutil.copy(img, vm + '/disk.img')
-hd = img.endswith('hd32.img')
+hd = img.endswith('hd32.img') or os.environ.get('HDGEOM') is not None
+# HDGEOM='spt,heads,cyls,bus,controller' overrides the hard disk: e.g. the
+# T1200's own RLL adapter is '17,8,306,mfm,internal'. EXTRA_HD adds it as a
+# second, empty-or-given disk while booting from the floppy image.
+hdgeom = os.environ.get('HDGEOM')
 cfg = '[Machine]\n' + m + 'cpu_use_dynarec = 0\n\n[Video]\ngfxcard = %s\n\n[Ports (COM & LPT)]\nserial1_device = automation\n\n' % vid
+hdfile = vm + '/disk.img'
+if os.environ.get('EXTRA_HD'):
+    shutil.copy(os.environ['EXTRA_HD'], vm + '/hd.img'); hdfile = vm + '/hd.img'
 if hd:
-    cfg += '[Storage controllers]\nhdc_1 = %s\n\n' % ('xtide_at' if mach == 'at' else 'xtide') + '[Hard disks]\nhdd_01_parameters = 63, 16, 63, 0, ide\nhdd_01_fn = %s/disk.img\nhdd_01_ide_channel = 0:0\n\n' % vm
+    spt, hpc, cyl, bus, ctl = (hdgeom or '63,16,63,ide,' + ('xtide_at' if mach == 'at' else 'xtide')).split(',')
+    cfg += '[Storage controllers]\nhdc_1 = %s\n\n' % ctl
+    cfg += '[Hard disks]\nhdd_01_parameters = %s, %s, %s, 0, %s\nhdd_01_fn = %s\n' % (spt, hpc, cyl, bus, hdfile)
+    cfg += ('hdd_01_ide_channel = 0:0\n\n' if bus == 'ide' else 'hdd_01_mfm_channel = 0\n\n')
+if hd and hdfile == vm + '/disk.img':
     cfg += '[Floppy and CD-ROM drives]\nfdd_01_type = %s\n' % fdt
 else:
     cfg += '[Floppy and CD-ROM drives]\nfdd_01_type = %s\nfdd_01_fn = %s/disk.img\n' % (fdt, vm)

@@ -15,6 +15,8 @@ measured separately on MartyPC (`alci/scripts`).
   command. Needs 86Box 7.0 built with `-DAUTOMATION=ON` (`B86`) and the
   86Box ROM set (`R86`), see `alci/scripts/setup.sh`.
 
+- Toshiba T1200 with its internal hard disk: `t86.py t1200 <label>-hd20t.img`
+  with `HDGEOM=17,8,306,mfm,internal` (the BIOS presents it as 611/4/17).
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `t86.py` options: `BOOTLOG=word,word` prints boot lines containing the
