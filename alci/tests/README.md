@@ -1,0 +1,21 @@
+# Alci tests
+
+Functional tests check that Alci behaves exactly like upstream ELKS. Speed is
+measured separately on MartyPC (`alci/scripts`).
+
+- `mkimg.sh <tree> <label>`: builds `<label>-fd720.img`, `-fd1440.img` and
+  `-hd32.img` with the console on the serial port and `/bin/sh` as init.
+- `functional.txt`: the suite, one command per line, under 60 characters
+  (the ELKS tty input line is 80 and the drivers add a marker).
+- `qtest.py <img> <fd|hd> <cpu> <mem_kb> <suite>`: runs the suite on QEMU.
+- `t86.py <machine> <img> <suite> [--times]`: runs it on 86Box with the real
+  BIOS of an IBM XT (8088 4.77 MHz, CGA), Toshiba T1200 (8086 9.54 MHz),
+  Amstrad PC1512 (8086 8 MHz) or IBM AT (286 8 MHz, EGA, 512K). Hard disk
+  images go on an XT-IDE controller. `--times` prints emulated seconds per
+  command. Needs 86Box 7.0 built with `-DAUTOMATION=ON` (`B86`) and the
+  86Box ROM set (`R86`), see `alci/scripts/setup.sh`.
+
+Procedure: build images for the patched tree and for the previous commit (a
+git worktree), run the suite on each machine, diff the outputs. They must be
+identical, except where upstream fails and Alci does not (record it in
+`RESULTS.md`).

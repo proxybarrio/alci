@@ -27,7 +27,7 @@ compress -dc /tmp/c.Z | md5sum; md5sum /bin/sort
 sort -r /etc/passwd | head -2
 ls /bin | sort | uniq | tail -3
 yes abc | head -500 | sort | uniq -c
-rm -rf /tmp/p /tmp/a /tmp/b /tmp/x /tmp/t.tar /tmp/c.Z; ls /tmp
+cd /tmp; rm -rf p a b x t.tar c.Z; ls; cd /
 mkdir /tmp/d; touch /tmp/d/f1 /tmp/d/f2; ls /tmp/d
 rm -r /tmp/d; ls /tmp; sync; echo sync-ok
 ## --- libc

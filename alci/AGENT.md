@@ -59,14 +59,16 @@ gives 3, kept; a 3% gain with 100 added lines gives 1, rejected.
 "Target workload" is the benchmark the task names; when in doubt, the
 mean of the `bench2.sh` timings.
 
-How to check V1 and the other hardware: build images with
-`alci/tests/mkimg.sh` for the current tree and for the previous commit
-(git worktree), run `alci/tests/qtest.py` with `alci/tests/functional.txt`
-on QEMU, hard disk and 1.44M floppy, and diff the outputs: they must be
-identical. QEMU checks behaviour on an AT-class machine with IDE; MartyPC
-checks speed on the 8088. Add a test line to `functional.txt` for every
+How to check V1 and the other hardware: see `alci/tests/README.md`.
+Build images with `alci/tests/mkimg.sh` for the current tree and for the
+previous commit (git worktree), run `alci/tests/functional.txt` with
+`alci/tests/t86.py` on all four 86Box machines (xt, t1200, pc1512, at;
+hd32 image) and once on the xt with the fd720 image, plus `qtest.py` on
+QEMU, and diff the outputs: they must be identical. 86Box uses the real
+BIOS of each machine; MartyPC stays the reference for speed on the 8088. Add a test line to `functional.txt` for every
 behaviour your patch touches (keep lines under 60 characters: the ELKS
-tty input line is 80). Ask the maintainer for a real-hardware check every 5 patches.
+tty input line is 80). Real hardware (a real T1200) is needed only for patches that touch the
+BIOS, the floppy controller or the boot sector, and before a release.
 
 Report the vetoes checked and the value in the final message.
 

@@ -26,6 +26,20 @@ if [ ! -x $ROOT/martypc/target/release/martypc_headless ]; then
   (cd $ROOT/martypc && RUSTUP_TOOLCHAIN=stable cargo build --release -p martypc_headless)
 fi
 if [ ! -d $MPC ]; then cp -r $ROOT/martypc/install $MPC; cp $MPC/martypc-elks.toml $MPC/martypc.toml; fi
+# 86Box with the automation socket, and its ROM set (functional tests on real BIOSes)
+if [ ! -x $ROOT/86box/86box/build/src/86Box ]; then
+  apt-get install -y -q cmake ninja-build libsdl2-dev libslirp-dev libsndfile1-dev libserialport-dev \
+    libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1 || \
+    { apt-get update -q > /dev/null 2>&1; apt-get install -y -q cmake ninja-build libsdl2-dev libslirp-dev libsndfile1-dev \
+      libserialport-dev libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1; }
+  mkdir -p $ROOT/86box
+  [ -d $ROOT/86box/86box ] || GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/86Box/86box $ROOT/86box/86box
+  [ -d $ROOT/86box/roms ] || GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/86Box/roms $ROOT/86box/roms
+  (cd $ROOT/86box/86box && cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DQT=OFF -DSDL2=ON -DAUTOMATION=ON \
+     -DRTMIDI=OFF -DFLUIDSYNTH=OFF -DMUNT=OFF -DSOUNDCANVAS=OFF -DDISCORD=OFF > $ROOT/work/cmake86.log 2>&1 && \
+   ninja -C build > $ROOT/work/ninja86.log 2>&1) || echo "86Box build failed, see $ROOT/work/ninja86.log"
+fi
+export B86=$ROOT/86box/86box/build/src/86Box R86=$ROOT/86box/roms
 # first ELKS build (tools, kernel, apps)
 cd $ELKS && source ./env.sh >/dev/null
 [ -f elks/arch/i86/drivers/char/KeyMaps/keymaps.h ] || (yes '' | make config > $ROOT/work/config-setup.log 2>&1)

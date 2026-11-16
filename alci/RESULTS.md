@@ -55,3 +55,17 @@ the same commit (the earlier estimate of +550 bytes was wrong).
 
 The gains match MartyPC (1.9x and 2.5x). Absolute times are higher in 86Box,
 probably because it models the floppy and the display more closely.
+
+## Functional tests on 86Box (2026-11-16)
+
+Suite `alci/tests/functional.txt`, Alci against upstream at the same
+commit, hard disk image on XT-IDE, real machine BIOSes:
+
+| Machine | Result |
+| --- | --- |
+| IBM XT 1986, 8088 4.77 MHz, CGA, 640K | identical |
+| Toshiba T1200, 8086 9.54 MHz | identical |
+| Amstrad PC1512, 8086 8 MHz | identical |
+| IBM AT, 286 8 MHz, EGA, 512K | upstream fails 2 of 8 parallel `sh -c` with "not enough memory"; Alci runs all 8 (processes end sooner, so fewer are alive at once) |
+
+All four machines also boot the 720K floppy image.
