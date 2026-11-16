@@ -58,9 +58,12 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 4: graphics
 
-- [ ] D1 `TODO` Study PC/GEOS (fork `proxybarrio/pcgeos`): memory
-  management, discardable segments, fonts, windows. Check its license.
-  Output: `alci/docs/geos-study.md`.
+- [ ] D1 `TODO` Study PC/GEOS (fork `proxybarrio/pcgeos`), os8088 and
+  SymbOS for ideas only: memory management, discardable segments, fonts,
+  window clipping and redraw on demand, CGA drawing routines. PC/GEOS is
+  Apache 2.0 (not compatible with the GPLv2 kernel; separate user programs
+  only); os8088's license is still to be checked. Output:
+  `alci/docs/gui-study.md`, with what can be reused and under which terms.
 - [ ] D2 `TODO` Measure Nano-X on an 8088 with CGA in MartyPC as a drawing
   engine (memory, time per window and per text line).
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
@@ -68,11 +71,24 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 5: Claude terminal
 
-- [ ] E1 `TODO` Check whether Zimodem/WiFi232 can handle HTTPS to
-  `api.anthropic.com` (firmware documentation and sources). Output in
-  `alci/docs/claude-terminal.md`.
-- [ ] E2 `TODO` Command-line `claude` client for ELKS over the serial port
-  (AT commands, HTTP request, minimal JSON), with a fake modem for tests.
+- [ ] E0 `TODO` Reuse before writing: ELKS already ships `miniterm`. Check
+  whether an existing ESP32 firmware that already talks to Claude
+  (AiBridgeMCP Nano) or a Wi-Fi modem firmware (Zimodem) plus `miniterm`
+  gives a working Claude terminal with no new code on the ELKS side. Read
+  their documentation and licenses; record the result in
+  `alci/docs/claude-terminal.md`. If it works, E1 and E2 shrink to small
+  improvements.
+- [ ] E0b `TODO` Network route without the serial port: PicoMEM (ISA card,
+  NE2000 emulated over Wi-Fi) with ELKS's NE2000 driver and ktcp, talking
+  plain HTTP to an HTTP-to-HTTPS proxy on a modern machine (the approach of
+  doschgpt and its `http-to-https-proxy`). Check in 86Box with an emulated
+  NE2000 first.
+- [ ] E1 `TODO` Only if E0 is not enough: check whether Zimodem/WiFi232 can
+  handle HTTPS to `api.anthropic.com`.
+- [ ] E2 `TODO` Only if E0 is not enough: command-line `claude` client for
+  ELKS (AT commands, HTTP request, minimal JSON), with a fake modem for
+  tests. Look at doschgpt's request and reply handling first (license to be
+  checked).
 - [ ] E3 `HUMAN` Buy or build the Wi-Fi modem and try it.
 
 ## Phase 6: universal image

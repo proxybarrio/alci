@@ -81,6 +81,16 @@ section; never overwrite older figures.
 
 Report the vetoes checked and the value in the final message.
 
+## Reusing other projects
+
+Before writing something new, check `alci/RELATED.md` for a project that
+already does it. Code copied into the kernel or into ELKS programs must have
+a licence compatible with GPLv2 (MIT, BSD, GPLv2 or later; MPL 2.0 only with
+care; Apache 2.0 is not compatible with GPLv2). Code with an incompatible
+or unknown licence may be studied for ideas but not copied. Programs that
+run outside ELKS (modem firmware, a proxy on another machine) can be used
+as they are. Record every reuse and its licence in `alci/RELATED.md`.
+
 ## Procedure
 
 1. Prepare the environment:

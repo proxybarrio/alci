@@ -21,6 +21,19 @@ learn from them and avoid duplicating them.
 | [FUZIX](https://github.com/EtchedPixels/FUZIX) | Small Unix-like system for 8-bit and other CPUs; the 8086 port is only sketches | A peer, not a rival on PCs today. |
 | RetroCampus BBS | ChatGPT for the Commodore 64 through a Wi-Fi modem and a BBS that relays requests | Another example of the "modem plus relay" pattern. |
 
+## What can be reused, and how
+
+| Project | Licence | Reuse |
+| --- | --- | --- |
+| AiBridgeMCP Nano, Zimodem | to be checked | Used as they are, on the ESP32: they run outside ELKS. Together with ELKS's `miniterm` they may give a Claude terminal with no new code (task E0). |
+| PicoMEM | to be checked | Hardware used as it is; ELKS already has the NE2000 driver it emulates (task E0b). |
+| doschgpt, http-to-https-proxy | to be checked | The proxy runs on a modern machine and can be used as it is. The client's request and reply code may be adapted only if its licence allows. |
+| Nano-X | already in ELKS | Measure first (D2); the cheapest base for the interface. |
+| os8088 | not stated on the pages read | Ideas only until the licence is known: CGA drawing, clipping, multitasking on an 8088 in 256K. |
+| PC/GEOS (FreeGEOS) | Apache 2.0 | Not compatible with the GPLv2 kernel. Ideas, or separate user programs under their own licence. |
+| SymbOS | freeware | Ideas only (redraw windows on demand instead of storing hidden areas). |
+| UnoDOS | MPL 2.0 | Phase 7 only (frozen): how one image boots on legacy BIOS and UEFI. |
+
 Sources: the project pages linked above; Ars Technica, March 2023, on
 doschgpt; ghaerr/elks issue #2630; a video demonstration of ELKS with
 Nano-X. This note was first written outside this repository and checked on
