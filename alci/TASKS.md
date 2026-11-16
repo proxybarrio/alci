@@ -24,6 +24,12 @@ The agent takes the first `TODO` from the top.
 - [ ] A2 `TODO` Timer: the kernel spends ~7.6% of CPU even when idle
   (100 Hz tick). Reduce per-tick work or skip idle ticks. Also measure the
   effect on command times.
+- [ ] A2b `TODO` Line reading in user programs. `grep` (minix1) spends 83%
+  of its time in user space, about half of it in `get_line()`, a
+  `getc()` loop one character at a time. Read lines by scanning the
+  stdio buffer with `memchr` and copying with `memcpy`, ideally in libc
+  (`fgets`, plus a `getline`-style helper) so `sort`, `sed`, `awk` and
+  others gain too. Measure `grep`, `sort` and `sed` before and after.
 - [ ] A3 `TODO` File order on the floppy image: place the kernel, shell,
   `bootopts` and the files read at boot close together and in read order.
   Measure boot with `ELKS_FDROT=9`.
