@@ -36,12 +36,30 @@ The agent takes the first `TODO` from the top.
   time. Details in `RESULTS.md`. Could be reconsidered as part of a wider
   power-saving task. Also measured on 86Box (IBM XT, hard disk, screen
   console): mean gain 1.1%, value 0.67, still below the threshold.
-- [ ] A2b `TODO` Line reading in user programs. `grep` (minix1) spends 83%
-  of its time in user space, about half of it in `get_line()`, a
-  `getc()` loop one character at a time. Read lines by scanning the
-  stdio buffer with `memchr` and copying with `memcpy`, ideally in libc
-  (`fgets`, plus a `getline`-style helper) so `sort`, `sed`, `awk` and
-  others gain too. Measure `grep`, `sort` and `sed` before and after.
+- [x] A2b `DONE 2026-11-17` Line reading. libc: `memchr` in assembly
+  (`repne scasb`), `fgets` copies whole runs from the stdio buffer with
+  `memchr` and `memcpy` instead of one `getc()` per character. `grep`
+  (minix1): `get_line()` does the same, keeping its exact behaviour (long
+  lines, NUL bytes, truncation when memory runs out). `grep` on 20 KB
+  3.685 s -> 2.482 s (-33%), no benchmark slower, kernel unchanged. `sort`
+  (minix3) reads with `read()` and gains nothing; `sed` (minix3) reads one
+  `getchar()` at a time through a look-ahead variable shared by the whole
+  program, left for A2d.
+- [ ] S1 `TODO` Hang when writing to a full floppy. On 86Box (IBM XT,
+  `fd720` image, serial console) the functional suite stops at
+  `cat /bin/sh | cat | cat > /tmp/p` once the disk is full: no "No space
+  left on device", no prompt for 600 s. It happens with the image built on
+  2026-11-17 for A2b (25 free blocks), not with the one before (26 free);
+  the same image with the old `grep` still hangs and `grep` has not run yet
+  at that point, so the layout of the disk triggers it, not the A2b code.
+  MartyPC with the same commands does not hang. Reproduce, find where the
+  writer or the pipe waits, check upstream ELKS on the same image. Data
+  safety: see the 1.0 criteria in `STRATEGY.md`.
+- [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
+  the A2b scan) instead of one `getchar()`/`getc()` per character. In
+  `sed` the current character is a global look-ahead used by the parser
+  too: change only the input of `ourgetline()`. Measure with a `sed`
+  substitution on 20 KB and `uniq` on sorted input.
 - [ ] A1c `TODO` Study for A1b, no code changes: how dash uses `vfork`
   for simple commands and what the child may touch before `exec`; whether
   the ELKS kernel has `vfork` or what it would need; the expected gain on

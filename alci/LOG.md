@@ -41,3 +41,10 @@
 - A2 trial also measured on 86Box (XT, hard disk): mean gain 1.1%, value
   0.67, still rejected. New tasks: A1c (study for `vfork` in ash, no code)
   and A2c (idle loop without the wake-up race, measured on latency).
+- A2b done: `memchr` in assembly, `fgets` and `grep` read whole runs from
+  the stdio buffer. `grep` 33% faster, no benchmark slower, kernel
+  unchanged, `grep` +96 bytes. Five `grep` lines added to the functional
+  suite.
+- New task S1: on 86Box XT with the 720K image the suite hangs once the
+  floppy is full; it depends on the image layout, not on the A2b code.
+  New task A2d for `sed` and `uniq`.

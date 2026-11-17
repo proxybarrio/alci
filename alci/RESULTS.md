@@ -239,6 +239,51 @@ drive, so the tick is a larger share), value 0.67: still below the
 threshold. The whole tick costs 3.2% of the CPU, so no change to the
 per-tick path alone can reach the threshold on these benchmarks.
 
+## Line reading, task A2b (2026-11-17)
+
+ELKS ghaerr/elks `9b3c134` (fully merged in Alci), Alci `64182af` before and
+with the A2b patch, same configuration and toolchain. MartyPC, 8088
+4.77 MHz, 720K floppy, emulated seconds:
+
+| Benchmark | Alci 64182af | with A2b |
+| --- | --- | --- |
+| `grep` on 20 KB | 3.685 | 2.482 (-32.6%) |
+| `sort` on 20 KB | 5.479 | 5.454 (-0.5%) |
+| `cat` of 200 lines to screen | 1.509 | 1.509 |
+| `ls -l /bin`, from floppy | 7.961 | 7.865 (-1.2%) |
+| `ls -l /bin`, cached | 4.055 | 3.984 (-1.8%) |
+| `cat /bin/sh` | 1.706 | 1.672 (-2.0%) |
+| `cat /bin/vi` | 4.724 | 4.699 (-0.5%) |
+| 10 runs of `pwd` | 1.618 | 1.581 (-2.3%) |
+| three-stage pipe, 20 KB | 4.632 | 4.338 (-6.3%) |
+| boot to prompt | 14.184 | 14.184 |
+
+Only `grep` changes in code among the benchmarked programs; `ls` uses the
+new `memchr`. The other small gains come from the files sitting in
+different places on the floppy image, since `grep` grew.
+
+Cost: kernel 0 bytes, resident RAM 0. libc: `fgets` 96 -> 188 bytes,
+`memchr` 33 -> 40 bytes; only programs that use them pay. `grep` text
+8992 -> 9088 bytes (+96), data and bss unchanged. On the 720K image the
+root filesystem has one free block less (25 instead of 26).
+
+Value: 32.6 / (1 + 127 / 50) = 9.2, above the threshold.
+
+Behaviour: `grep` with `-n`, `-c`, `-v`, `-i`, `-l`, exit status, lines of
+0 to 3000 characters (including heap exhaustion and the "line too long"
+path), a last line without newline, binary files, and stdin from a pipe:
+output identical to the previous build (MartyPC, md5 of each output).
+`test_libc`: 38 tests, 5805 assertions, none failed. Functional suite with
+five new `grep` lines: identical on QEMU, T1200 (XT-IDE and its own disk),
+PC1512 and AT. Two differences, both not caused by the patch:
+
+- IBM XT, hard disk: the previous build prints `1 9 59` for
+  `ls -l /tmp/c.Z | wc -l`, the new one `1`. The previous build loses
+  `-l` on the serial input at that point, every run: a serial input loss
+  that moves with timing (V5), already seen on the V20.
+- IBM XT, `fd720` image: the new image hangs once the floppy is full
+  (task S1). The same image with the old `grep` hangs too.
+
 ## Merges to review
 
 Commits whose merge into `alci` changed one of our measurements (see

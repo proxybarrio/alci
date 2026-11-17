@@ -33,3 +33,10 @@ rm -r /tmp/d; ls /tmp; sync; echo sync-ok
 ## --- libc
 test_libc 2>&1 | tail -3
 test_float 2>&1 | tail -2
+## --- line reading (grep, fgets)
+grep -n root /etc/passwd
+grep -i -c ROOT /etc/passwd; grep -v root /etc/passwd | wc -l
+yes abcdef | head -300 | grep -n e | tail -1
+echo $(yes abcdefghij | head -80) | grep -c j
+echo $(yes abcdefghij | head -80) | wc -c
+grep -c zzz /etc/passwd || echo grep-none
