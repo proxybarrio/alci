@@ -11,13 +11,21 @@ work; this file says what the work must respect. Last updated 2026-11-17.
 2. A graphical interface in the spirit of PC/GEOS.
 3. A terminal for talking to Claude or other language models.
 
-What these goals add up to: a single-purpose machine for writing and
-thinking, with an editor and a Claude terminal and nothing else running.
-No browser, notifications or background apps to pull attention away. This
-can help people with ADHD or other attention difficulties, and it gives
-old PCs a useful second life instead of the landfill. Claude should stay
-quiet while the user writes and answer only when called (to reread,
-summarise or check), so that it does not become the distraction itself.
+What these goals are for. Alci has several uses, none of them secondary:
+
+- Writing and thinking without distraction: an editor and a Claude
+  terminal, with no browser, notifications or background apps to pull
+  attention away. This can help people with ADHD or other attention
+  difficulties. Claude should stay quiet while the user writes and answer
+  only when called (to reread, summarise or check), so that it does not
+  become the distraction itself.
+- Reuse: old PCs get a useful second life instead of becoming e-waste.
+- Education: a whole system small enough to be read and understood, from
+  the boot sector to the shell, on hardware students can open and probe.
+- Resilience: simple, repairable, low-power machines that do useful local
+  work (writing, reading, archives, simple networking) without depending
+  on recent hardware or on online services, and keep working where those
+  are scarce, expensive or unavailable.
 
 The reference machine is a generic 8088 at 4.77 MHz with CGA. A
 real Toshiba T1200 (8086 at 9.54 MHz, 720K floppy, 20 MB hard disk) is the first
