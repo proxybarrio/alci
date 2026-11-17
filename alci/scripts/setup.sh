@@ -7,7 +7,7 @@ ROOT=${ALCI_ROOT:-/home/claude}
 ELKS=$ROOT/elks; MPC=$ROOT/mpc
 mkdir -p $ROOT/work
 # host packages
-command -v xxd >/dev/null || sudo apt-get install -y xxd || apt-get install -y xxd
+command -v xxd >/dev/null || apt-get install -y xxd || { apt-get update -q >/dev/null 2>&1; apt-get install -y xxd; }
 dpkg -s libudev-dev >/dev/null 2>&1 || sudo apt-get install -y libudev-dev pkg-config || apt-get install -y libudev-dev pkg-config
 # toolchain (prebuilt, branch 'toolchain' of the fork)
 if [ ! -x $ELKS/cross/bin/ia16-elf-gcc ]; then
@@ -20,6 +20,8 @@ fi
 # MartyPC
 if [ ! -d $ROOT/martypc ]; then
   git clone -q --depth 1 -b elks-bench https://github.com/proxybarrio/martypc $ROOT/martypc
+elif [ "$(git -C $ROOT/martypc rev-parse --abbrev-ref HEAD)" != elks-bench ]; then
+  git -C $ROOT/martypc fetch -q origin elks-bench:elks-bench && git -C $ROOT/martypc checkout -q elks-bench
 fi
 if [ ! -x $ROOT/martypc/target/release/martypc_headless ]; then
   command -v cargo >/dev/null || { curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal; . $HOME/.cargo/env; }
@@ -29,9 +31,9 @@ if [ ! -d $MPC ]; then cp -r $ROOT/martypc/install $MPC; cp $MPC/martypc-elks.to
 # 86Box with the automation socket, and its ROM set (functional tests on real BIOSes)
 if [ ! -x $ROOT/86box/86box/build/src/86Box ]; then
   apt-get install -y -q cmake ninja-build libsdl2-dev libslirp-dev libsndfile1-dev libserialport-dev \
-    libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1 || \
+    libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev libzstd-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1 || \
     { apt-get update -q > /dev/null 2>&1; apt-get install -y -q cmake ninja-build libsdl2-dev libslirp-dev libsndfile1-dev \
-      libserialport-dev libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1; }
+      libserialport-dev libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev libzstd-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1; }
   mkdir -p $ROOT/86box
   [ -d $ROOT/86box/86box ] || GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/86Box/86box $ROOT/86box/86box
   [ -d $ROOT/86box/roms ] || GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 https://github.com/86Box/roms $ROOT/86box/roms
