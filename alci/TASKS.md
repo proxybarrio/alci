@@ -156,6 +156,19 @@ The agent takes the first `TODO` from the top.
   relay (E0c); packages may then come over plain HTTP and are checked
   against the index before use. Hosted on the proxybarrio fork (releases or
   a branch).
+- [ ] F3 `TODO` Multi-disk set (the maintainer's idea, 2026-11-17, after GEOS on the
+  C64): disk 1 boots and holds the base system, disks 2, 3... hold the rest.
+  A catalogue on disk 1 maps each program to its disk (the same catalogue
+  can point to the package repository, F2). In this order:
+  1. Installer that copies the whole set to a hard disk, asking for each
+     disk in turn.
+  2. Two floppy drives: further disks are mounted from B: on request.
+  3. One drive, no hard disk, last: the root filesystem lives on disk 1,
+     so a swap needs kernel work (flush and invalidate the cache for the
+     drive, keep the root read-only while it is out, load the program into
+     memory before asking for disk 1 back) and XT drives give no
+     disk-change signal. Test on 86Box and on a real T1200 before use.
+  Rule: every program fits on one disk (RAM is the stricter limit anyway).
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 
