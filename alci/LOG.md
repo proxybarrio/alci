@@ -38,3 +38,6 @@
 - `setup.sh`: refresh the package lists when `xxd` is missing, install
   `libzstd-dev` for 86Box, and switch an existing MartyPC clone to
   `elks-bench`.
+- A2 trial also measured on 86Box (XT, hard disk): mean gain 1.1%, value
+  0.67, still rejected. New tasks: A1c (study for `vfork` in ash, no code)
+  and A2c (idle loop without the wake-up race, measured on latency).

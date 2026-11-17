@@ -25,9 +25,8 @@ The agent takes the first `TODO` from the top.
 - [ ] A1b `HUMAN` The remaining fork cost (~17% of the `pwd` loop) is the
   shell's real data and bss, 8.3 KB per fork. Option: `vfork` in ash for
   simple commands. Risky: the child must not touch shared data before
-  `exec`. Study how dash does it before trying. Waiting for the
-  maintainer's go-ahead (status changed from `TODO` on 2026-11-17 so the
-  agent does not stop on it).
+  `exec`. Study how dash does it before trying. Code changes wait for the
+  maintainer's go-ahead after the study in A1c.
 - [x] A2 `DROPPED 2026-11-17` Timer. Measured: the 100 Hz tick costs 1523
   cycles, 3.2% of an 8088 at 4.77 MHz (not 7.6%). Trial patch (skip
   `serial_bh` with no port open, CPU usage far call every 2 s instead of
@@ -35,13 +34,29 @@ The agent takes the first `TODO` from the top.
   idle tick -21%, benchmarks -0.2% to -1.0%, mean 0.46%, value 0.28.
   Rejected by the gain threshold. Tickless idle would save power only, not
   time. Details in `RESULTS.md`. Could be reconsidered as part of a wider
-  power-saving task.
+  power-saving task. Also measured on 86Box (IBM XT, hard disk, screen
+  console): mean gain 1.1%, value 0.67, still below the threshold.
 - [ ] A2b `TODO` Line reading in user programs. `grep` (minix1) spends 83%
   of its time in user space, about half of it in `get_line()`, a
   `getc()` loop one character at a time. Read lines by scanning the
   stdio buffer with `memchr` and copying with `memcpy`, ideally in libc
   (`fgets`, plus a `getline`-style helper) so `sort`, `sed`, `awk` and
   others gain too. Measure `grep`, `sort` and `sed` before and after.
+- [ ] A1c `TODO` Study for A1b, no code changes: how dash uses `vfork`
+  for simple commands and what the child may touch before `exec`; whether
+  the ELKS kernel has `vfork` or what it would need; the expected gain on
+  the 10 runs of `pwd` and on pipes, estimated from the A1 profile (8.3 KB
+  copied per fork). Write the findings in `RESULTS.md` and a plan for ash
+  in this file; the maintainer decides whether to go on.
+- [ ] A2c `TODO` Idle loop without the wake-up race. Today a task woken
+  between `schedule()` and `hlt` waits for the next interrupt (up to 10 ms
+  with no other activity). Do `cli`, check the run queue, call
+  `schedule()` only when a task is runnable, then `sti; hlt` (atomic on
+  x86). Measure latency, not throughput: time from a key press or a byte
+  on the serial port to the process running, and power at idle (share of
+  time in `hlt`). Also measure on its own the CPU usage change from the A2
+  trial (far call every 2 s, -2 bytes) and keep it if it is free.
+
 - [ ] A3 `TODO` File order on the floppy image: place the kernel, shell,
   `bootopts` and the files read at boot close together and in read order.
   Measure boot with `ELKS_FDROT=9`.

@@ -218,7 +218,25 @@ byte of bss.
 | boot to prompt | 14.184 | 14.180 |
 
 Mean `bench2.sh` gain 0.46%: value 0.46 / (1 + 33 / 50) = 0.28, below the
-threshold of 2. The whole tick costs 3.2% of the CPU, so no change to the
+threshold of 2.
+
+Same trial on 86Box 7.0, IBM XT (8088 4.77 MHz, CGA), hard disk image on
+XT-IDE, console on screen (`SCREEN=1`, so no serial port open),
+`alci/tests/speed.txt`, emulated seconds (resolution 0.01 s):
+
+| Command | Alci cf9e7b7 | with trial patch |
+| --- | --- | --- |
+| boot to prompt (with BIOS POST) | 37.94 | 37.94 |
+| `ls -l /bin`, first run | 9.65 | 9.55 (-1.0%) |
+| `ls -l /bin`, cached | 9.24 | 9.14 (-1.1%) |
+| 10 runs of `pwd` | 1.46 | 1.43 (-2.1%) |
+| three-stage pipe | 2.88 | 2.84 (-1.4%) |
+| `grep` | 6.93 | 6.86 (-1.0%) |
+| `sort` small file | 0.50 | 0.50 |
+
+Mean gain 1.1%, about twice the floppy figure (less time waiting on the
+drive, so the tick is a larger share), value 0.67: still below the
+threshold. The whole tick costs 3.2% of the CPU, so no change to the
 per-tick path alone can reach the threshold on these benchmarks.
 
 ## Merges to review
