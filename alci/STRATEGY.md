@@ -118,6 +118,19 @@ new kernel code, E0b), SLIP over the serial port, or the modem.
   the fsck fix for inodes above 1024, was merged as ghaerr/elks #2853 on
   2026-11-16.
 
+## Criteria for 1.0
+
+Alci reaches 1.0 when all of these hold:
+
+1. The three goals are done: faster than ELKS with less memory, a
+   graphical interface, a terminal for Claude.
+2. Tested on real machines, not only in emulation: at least an XT, a
+   Toshiba T1200 and an AT.
+3. Installation on a hard disk with an installer, plus the floppy set for
+   machines without one.
+4. A way to update the system and add programs (`alci-get`).
+5. User documentation, besides the developer notes.
+
 ## Not now
 
 Modern PCs (USB stick, UEFI, USB networking) wait until everything above is
