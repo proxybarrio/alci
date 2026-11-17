@@ -128,8 +128,34 @@ The agent takes the first `TODO` from the top.
   checked).
 - [ ] E3 `HUMAN` Buy or build the Wi-Fi modem and try it.
 
+- [ ] E5 `TODO` Native HTTPS as an option (the maintainer's decision, 2026-11-17): a
+  TLS client in ELKS itself, for machines with a network path (PicoMEM or
+  another NE2000, or SLIP over the serial port) and no modem doing TLS.
+  BearSSL (MIT; has an "i15" big-number code for 16-bit multiplies) is the
+  first candidate. Rough estimate, to be measured: handshake 2-5 minutes on
+  an 8088 at 4.77 MHz, about half on a T1200, 20-60 s on a 286; then a few
+  KB/s; 50-100 KB on disk, 60-100 KB of RAM while running, nothing when not
+  running. Every program using it shows a notice before connecting, with
+  the expected wait scaled to the detected CPU. First step: build BearSSL's
+  X25519 and RSA/ECDSA verify for ia16 and time them on MartyPC.
+- [ ] E6 `TODO` Text web browser on top of E5. Current Lynx needs a 386 (DJGPP
+  port); Bobcat, a Lynx derivative, ran on the 8088 under DOS. Check
+  Bobcat's sources and licence, and the effort to port it, against writing
+  a small browser for ELKS.
+
 ## Phase 6: universal image
 
+- [ ] F0 `TODO` Floppy budget. The 720K image (Alci acdd752) has 669 of 710
+  data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
+  List every file with its size and the task it serves, and propose a base
+  set (kernel, shell, core tools, networking, the package fetcher) that
+  leaves room, with the rest moved to packages.
+- [ ] F2 `TODO` Package repository ("alci-get"): software fetched once ELKS is
+  running and online, installed on a hard disk or a second floppy. An index
+  with a SHA-256 hash per package, fetched over HTTPS (E5) or through the
+  relay (E0c); packages may then come over plain HTTP and are checked
+  against the index before use. Hosted on the proxybarrio fork (releases or
+  a branch).
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 
