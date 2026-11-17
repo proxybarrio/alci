@@ -34,7 +34,7 @@ same instruction set.
 Measured on 2026-11-16, **ELKS 0.9.2 at commit
 [`22a4c5d`](https://github.com/ghaerr/elks/commit/22a4c5d)** (ghaerr/elks
 master of 2026-11-15) against **Alci 0.1 at commit
-[`acdd752`](https://github.com/proxybarrio/elks/commit/acdd752)** (branch
+[`3ecae5b`](https://github.com/proxybarrio/elks/commit/3ecae5b)** (branch
 `alci`). Both were built with the same configuration
 ([`alci/elks.config`](alci/elks.config)) and toolchain; `uname -a` in each
 image reports its commit. Times are emulated seconds, ELKS / Alci; later

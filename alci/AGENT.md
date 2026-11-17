@@ -71,7 +71,7 @@ the xt with the fd720 image, plus `qtest.py` on
 QEMU, and diff the outputs: they must be identical. 86Box uses the real
 BIOS of each machine; MartyPC stays the reference for speed on the 8088. Add a test line to `functional.txt` for every
 behaviour your patch touches (keep lines under 60 characters: the ELKS
-tty input line is 80). Real hardware (a real T1200) is needed only for patches that touch the
+tty input line is 80). Real hardware (a T1200) is needed only for patches that touch the
 BIOS, the floppy controller or the boot sector, and before a release.
 
 Every timing you record (`RESULTS.md`, reports, commit messages) names
@@ -112,8 +112,21 @@ as they are. Record every reuse and its licence in `alci/RELATED.md`.
        upstream's version (`git checkout --theirs <file>`).
      - Any other conflict: `git merge --abort`, write it in `LOG.md` and in
        the report, and go on with the task on the unsynced branch.
-     After a merge, rebuild and run the functional suite; if it fails, do not
-     push the merge (`git reset --hard ORIG_HEAD`) and report it.
+     After a merge, rebuild and run the same checks as for our own patches
+     (V1 to V5 below), so we know how Alci behaves with the new code. If
+     every check passes, push. If one does not:
+     - Do not push the merge (`git reset --hard ORIG_HEAD`).
+     - Find which of the new commits is involved (`git bisect` or
+       one merge per commit when there are few).
+     - Merge only the commits before it, if they pass, and push
+       that.
+     - Note it in the "Merges to review" table in `RESULTS.md` (sha, title,
+       which check, numbers) and in the report.
+       On later nights, merge only up to the commit before it.
+     - Do not revert, rewrite or skip it on your own: the maintainer decides whether
+       to take it anyway (for example a needed fix that costs some bytes),
+       to take the rest and `git revert` it on `alci`, to find another
+       way to adapt Alci, or to talk it over with the ELKS maintainers.
    - `bash /home/claude/elks/alci/scripts/setup.sh` (prebuilt toolchain,
      MartyPC with the ELKS runner, first build). It must print
      `ALCI SETUP OK`.

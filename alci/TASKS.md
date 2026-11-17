@@ -6,8 +6,8 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 1: baseline speed
 
-- [x] A0 `DONE 2026-11-16` EDD code released at boot when unused (the maintainer chose
-  this over a build option: one image for every machine). `bios_edd_rw()`
+- [x] A0 `DONE 2026-11-16` EDD code released at boot when unused (chosen over a build
+  option: one image for every machine). `bios_edd_rw()`
   lives in `.fartext.edd`, placed by `elks-small.ld` just before
   `.fartext.init`; `kernel_init()` frees from there when
   `bios_edd_drives == 0`. Checked: XT, T1200, PC1512, AT on 86Box (EDD
@@ -40,8 +40,8 @@ The agent takes the first `TODO` from the top.
   Measure boot with `ELKS_FDROT=9`.
 
 - [ ] A5 `TODO` Release network card drivers that find no card, as done for
-  EDD (the maintainer's request: the same rule for every optional device). Resident
-  cost today with no card present (2026-11-16, Alci acdd752): NE2000 2135
+  EDD (the same rule for every optional device). Resident
+  cost today with no card present (2026-11-16, Alci 3ecae5b): NE2000 2135
   bytes (`ne2k.o` + `ne2k-asm.o`), WD8003 2303, 3C509 2116, about 6.5 KB in
   all. Put each driver's run-time code in its own paragraph-aligned
   `.fartext.<drv>` section, mark the driver absent at boot when the probe
@@ -126,7 +126,7 @@ The agent takes the first `TODO` from the top.
   `PICOMEM=<libpmhost> t86.py xt <label>-fd720.img` (not the hd32 image:
   XT-IDE also sits at 300h). Next: HTTPS through a proxy on a modern
   machine, then the real card.
-- [ ] E0c `TODO` Encrypted link from Alci to our own relay (the maintainer's point:
+- [ ] E0c `TODO` Encrypted link from Alci to our own relay (why:
   a plain proxy leaves the Alci-to-proxy hop in clear). Anthropic's API
   only accepts TLS and nothing can be installed on its side, so the relay
   is ours (home Raspberry Pi, the ESP32, or a small server). Design: a key
@@ -144,7 +144,7 @@ The agent takes the first `TODO` from the top.
   checked).
 - [ ] E3 `HUMAN` Buy or build the Wi-Fi modem and try it.
 
-- [ ] E5 `TODO` Native HTTPS as an option (the maintainer's decision, 2026-11-17): a
+- [ ] E5 `TODO` Native HTTPS as an option (decided 2026-11-17): a
   TLS client in ELKS itself, for machines with a network path (PicoMEM or
   another NE2000, or SLIP over the serial port) and no modem doing TLS.
   BearSSL (MIT; has an "i15" big-number code for 16-bit multiplies) is the
@@ -165,7 +165,7 @@ Principle (`STRATEGY.md`): wherever a hard disk is present, Alci is
 installed on it in full; the disk set and the repository exist for
 installation and for floppy-only machines.
 
-- [ ] F0 `TODO` Floppy budget. The 720K image (Alci acdd752) has 669 of 710
+- [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) has 669 of 710
   data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
   List every file with its size and the task it serves, and propose a base
   set (kernel, shell, core tools, networking, the package fetcher) that
@@ -176,7 +176,7 @@ installation and for floppy-only machines.
   relay (E0c); packages may then come over plain HTTP and are checked
   against the index before use. Hosted on the proxybarrio fork (releases or
   a branch).
-- [ ] F3 `TODO` Multi-disk set (the maintainer's idea, 2026-11-17, after GEOS on the
+- [ ] F3 `TODO` Multi-disk set (2026-11-17, after GEOS on the
   C64): disk 1 boots and holds the base system, disks 2, 3... hold the rest.
   A catalogue on disk 1 maps each program to its disk (the same catalogue
   can point to the package repository, F2). In this order:

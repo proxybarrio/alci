@@ -5,7 +5,7 @@
 Every comparison must name both versions. This one compares:
 
 - **ELKS**: 0.9.2, ghaerr/elks commit `22a4c5d` (master of 2026-11-15).
-- **Alci**: 0.1, proxybarrio/elks branch `alci`, commit `acdd752`.
+- **Alci**: 0.1, proxybarrio/elks branch `alci`, commit `3ecae5b`.
 
 Same configuration (`alci/elks.config`) and toolchain (branch `toolchain`).
 Each image reports its commit with `uname -a`. Results for later commits of
@@ -14,7 +14,7 @@ either branch must be measured again and added as a new dated section.
 MartyPC (8088 4.77 MHz, CGA, 720K floppy, `alci/scripts/bench.sh` and
 `bench2.sh`), emulated seconds:
 
-| Operation | ELKS 22a4c5d | Alci acdd752 |
+| Operation | ELKS 22a4c5d | Alci 3ecae5b |
 | --- | --- | --- |
 | `cat` of 200 lines to screen | 17.71 | 1.51 |
 | `ls -l /bin`, from floppy | 14.95 | 7.93 |
@@ -27,7 +27,7 @@ MartyPC (8088 4.77 MHz, CGA, 720K floppy, `alci/scripts/bench.sh` and
 | boot to prompt, floppy rotation model (`ELKS_FDROT=9`) | 21.02 | 18.36 |
 
 86Box 7.0, real BIOS, hard disk, serial console (`alci/tests/speed.txt`),
-emulated seconds, ELKS 22a4c5d / Alci acdd752:
+emulated seconds, ELKS 22a4c5d / Alci 3ecae5b:
 
 | Command | IBM XT 8088 4.77 | Toshiba T1200 8086 9.54, internal disk | IBM AT 286 8 |
 | --- | --- | --- | --- |
@@ -41,7 +41,7 @@ emulated seconds, ELKS 22a4c5d / Alci acdd752:
 
 86Box 7.0, console on each machine's own display (`SCREEN=1`, commands
 typed on the emulated keyboard, time from Enter until the output is complete
-on screen), hard disk, emulated seconds, ELKS 22a4c5d / Alci acdd752:
+on screen), hard disk, emulated seconds, ELKS 22a4c5d / Alci 3ecae5b:
 
 | Command | IBM XT 8088 4.77, CGA | Toshiba T1200 8086 9.54, LCD, internal disk | IBM AT 286 8, EGA |
 | --- | --- | --- | --- |
@@ -179,3 +179,12 @@ machine-class condition; the code is freed when no disk has EDD. Checked:
 
 A true 80186 PC was not available (86Box has no PC-compatible 80186
 machine); the V20 runs the same instruction set.
+
+## Merges to review
+
+Commits whose merge into `alci` changed one of our measurements (see
+AGENT.md). Usually this means Alci needs adapting; the maintainer decides how.
+
+| sha | title | check | numbers | decision |
+| --- | --- | --- | --- | --- |
+| | none so far | | | |

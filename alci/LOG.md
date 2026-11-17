@@ -6,7 +6,7 @@
 - Boot banner: "ALCI 0.1: Asymmetric Linux Compact Initiative", crediting
   ELKS, Alan Cox, Greg Haerr and the ELKS team.
 
-## 2026-11-15, session
+## 2026-11-15
 
 - Patches: EDD support for large disks, fsck inode seek fix, fast console
   and hardware scrolling, directory name lookup, _wake_up, iget, 512-byte
@@ -20,7 +20,7 @@
 - Issue #2851 (fsck) filed on ghaerr/elks.
 - Results confirmed independently on 86Box (see `RESULTS.md`).
 
-## 2026-11-16, session
+## 2026-11-16
 
 - Merged 3 upstream commits (80C188EB support, cleanup); timings unchanged.
 - A1 done: `fork` skips the unused gap in the data segment. 10 runs of
