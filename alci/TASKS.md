@@ -117,7 +117,9 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 5: Claude terminal
 
-- [ ] E0 `TODO` Reuse before writing: ELKS already ships `miniterm`. Check
+- [ ] E0 `TODO` Reuse before writing: ELKS already ships `miniterm` (raw
+  keyboard to serial link, no terminal emulation) and, under Nano-X, `nxterm`
+  (terminal emulator with ANSI sequences, for the desktop phase). Check
   whether an existing ESP32 firmware that already talks to Claude
   (AiBridgeMCP Nano) or a Wi-Fi modem firmware (Zimodem) plus `miniterm`
   gives a working Claude terminal with no new code on the ELKS side. Read
