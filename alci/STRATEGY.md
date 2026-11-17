@@ -14,8 +14,10 @@ work; this file says what the work must respect. Last updated 2026-11-17.
 What these goals are for. Alci has several uses, none of them secondary:
 
 - Writing and thinking without distraction: an editor and a Claude
-  terminal, with no browser, notifications or background apps to pull
-  attention away. This can help people with ADHD or other attention
+  terminal, with no graphical browser, notifications or background apps to
+  pull attention away. The text browser (task E6, Lynx or Bobcat style) is
+  there for reading and research, and can be left out of a writing
+  session. This can help people with ADHD or other attention
   difficulties. Claude should stay quiet while the user writes and answer
   only when called (to reread, summarise or check), so that it does not
   become the distraction itself.
@@ -23,7 +25,8 @@ What these goals are for. Alci has several uses, none of them secondary:
 - Education: a whole system small enough to be read and understood, from
   the boot sector to the shell, on hardware students can open and probe.
 - Resilience: simple, repairable, low-power machines that do useful local
-  work (writing, reading, archives, simple networking) without depending
+  work (writing, reading, archives, text web browsing, simple networking)
+  without depending
   on recent hardware or on online services, and keep working where those
   are scarce, expensive or unavailable.
 
