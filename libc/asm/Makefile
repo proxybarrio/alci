@@ -6,6 +6,7 @@ LIB ?= out.a
 include $(TOPDIR)/libc/$(COMPILER).inc
 
 SRCS = \
+    memchr-s.S \
     memcpy-s.S \
     memset-s.S \
     strcpy-s.S \

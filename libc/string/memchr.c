@@ -1,4 +1,7 @@
 #include <string.h>
+#include <asm/config.h>
+
+#ifndef LIBC_ASM_MEMCHR
 
 #ifdef BCC_ASM
 #asm
@@ -37,3 +40,5 @@ memchr(const void * str, int c, size_t l)
    }
    return 0;
 }
+
+#endif

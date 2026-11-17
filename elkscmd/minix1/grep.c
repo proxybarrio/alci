@@ -227,9 +227,10 @@ static size_t buf_size = 0;		/* input buffer size */
 static char *get_line(input)
 FILE *input;
 {
-  int n;
+  size_t room, k;
   register char *bp;
   register int c = 0;
+  char *nl;
   char *new_buf;
   size_t new_size;
 
@@ -240,14 +241,37 @@ FILE *input;
   }
 
   bp = buf;
-  n = buf_size;
+  room = buf_size - 1;
   while (1) {
-	while (--n > 0 && (c = getc(input)) != EOF) {
-		if (c == '\n') {
-			*bp = '\0';
+	while (room > 0) {
+		/* stdio buffer empty: one getc() refills it */
+		if (input->bufpos >= input->bufread) {
+			if ((c = getc(input)) == EOF)
+				break;
+			if (c == '\n') {
+				*bp = '\0';
+				return buf;
+			}
+			*bp++ = c;
+			room--;
+			continue;
+		}
+		/* copy up to the newline straight from the stdio buffer */
+		k = input->bufread - input->bufpos;
+		if (k > room)
+			k = room;
+		nl = memchr(input->bufpos, '\n', k);
+		if (nl) {
+			k = nl - (char *)input->bufpos;
+			memcpy(bp, input->bufpos, k);
+			bp[k] = '\0';
+			input->bufpos += k + 1;
 			return buf;
 		}
-		*bp++ = c;
+		memcpy(bp, input->bufpos, k);
+		input->bufpos += k;
+		bp += k;
+		room -= k;
 	}
 	if (c == EOF)
 		return (ferror(input) || bp == buf) ? NULL : buf;
@@ -259,7 +283,7 @@ FILE *input;
 		return buf;
 	} else {
 		bp = new_buf + (buf_size - 1);
-		n = buf_size + 1;
+		room = buf_size;
 		buf = new_buf;
 		buf_size = new_size;
 	}

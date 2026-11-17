@@ -3,6 +3,7 @@
 #pragma once
 
 #ifdef __ia16__
+#define LIBC_ASM_MEMCHR
 #define LIBC_ASM_MEMCPY
 #define LIBC_ASM_MEMSET
 #define LIBC_ASM_STRCPY
