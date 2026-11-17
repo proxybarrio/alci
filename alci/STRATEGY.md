@@ -130,6 +130,8 @@ Alci reaches 1.0 when all of these hold:
    machines without one.
 4. A way to update the system and add programs (`alci-get`).
 5. User documentation, besides the developer notes.
+6. The automated test suite passes on every emulated machine, and no known
+   bug can lose or corrupt data.
 
 ## Not now
 
