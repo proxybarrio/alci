@@ -76,9 +76,19 @@ new kernel code, E0b), SLIP over the serial port, or the modem.
 
 ## Working with others
 
-- Code from other projects enters Alci only under a licence compatible with
-  GPLv2. Programs that run outside ELKS (modem firmware, relays) are used as
-  they are. See `RELATED.md`.
+- Code copied into the kernel, or into a program together with GPL code,
+  must have a licence compatible with GPLv2. Separate programs that only use
+  the kernel through system calls may keep their own licence: the ELKS
+  `LICENSE` file says software beside the kernel may be under different free
+  licences, and GPLv2 does not extend to works merely aggregated on the same
+  medium (the same model as Android's Apache 2.0 userland on Linux). A port
+  of PC/GEOS (Apache 2.0) can therefore ship with Alci as a separate program
+  under Apache 2.0, provided it does not link GPL code (ELKS's libc mixes
+  LGPL, GPL and unmarked files: audit before linking, avoid GPL parts such as
+  termcap, and allow relinking for LGPL parts), its LICENSE and NOTICE files
+  travel with it, and no GEOS code goes into the kernel. Programs that run
+  outside ELKS (modem firmware, relays) are used as they are. See
+  `RELATED.md`.
 - Changes useful to ELKS in general are offered to the ELKS project
   regularly, with measurements, for its maintainers to consider. The first,
   the fsck fix for inodes above 1024, was merged as ghaerr/elks #2853 on

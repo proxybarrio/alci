@@ -83,8 +83,8 @@ The agent takes the first `TODO` from the top.
 - [ ] D1 `TODO` Study PC/GEOS (fork `proxybarrio/pcgeos`), os8088 and
   SymbOS for ideas only: memory management, discardable segments, fonts,
   window clipping and redraw on demand, CGA drawing routines. PC/GEOS is
-  Apache 2.0 (not compatible with the GPLv2 kernel; separate user programs
-  only); os8088 is MIT, so its code may be adapted with its notice kept,
+  Apache 2.0: it can ship as a separate program under its own licence, not
+  inside the kernel or linked with GPL code (see `STRATEGY.md`); os8088 is MIT, so its code may be adapted with its notice kept,
   except `reference/` and fonts of unclear origin. Output:
   `alci/docs/gui-study.md`, with what can be reused and under which terms.
 - [ ] D2 `TODO` Measure Nano-X on an 8088 with CGA in MartyPC as a drawing
