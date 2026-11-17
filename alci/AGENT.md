@@ -81,6 +81,13 @@ section; never overwrite older figures.
 
 Report the vetoes checked and the value in the final message.
 
+## Strategy
+
+Read `alci/STRATEGY.md` before choosing or starting a task. A task that
+would contradict it (for example, code kept resident for absent hardware,
+or a change that assumes floppy-only use where a hard disk exists) is not
+done; report the conflict to the maintainer instead.
+
 ## Reusing other projects
 
 Before writing something new, check `alci/RELATED.md` for a project that

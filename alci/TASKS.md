@@ -145,6 +145,10 @@ The agent takes the first `TODO` from the top.
 
 ## Phase 6: universal image
 
+Principle (`STRATEGY.md`): wherever a hard disk is present, Alci is
+installed on it in full; the disk set and the repository exist for
+installation and for floppy-only machines.
+
 - [ ] F0 `TODO` Floppy budget. The 720K image (Alci acdd752) has 669 of 710
   data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
   List every file with its size and the task it serves, and propose a base
@@ -161,7 +165,8 @@ The agent takes the first `TODO` from the top.
   A catalogue on disk 1 maps each program to its disk (the same catalogue
   can point to the package repository, F2). In this order:
   1. Installer that copies the whole set to a hard disk, asking for each
-     disk in turn.
+     disk in turn. This is the main path: on any machine with a hard disk,
+     the floppies are installation media only.
   2. Two floppy drives: further disks are mounted from B: on request.
   3. One drive, no hard disk, last: the root filesystem lives on disk 1,
      so a swap needs kernel work (flush and invalidate the cache for the
