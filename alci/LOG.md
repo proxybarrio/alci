@@ -26,3 +26,15 @@
 - A1 done: `fork` skips the unused gap in the data segment. 10 runs of
   `pwd` 21% faster, pipes 9% faster, no memory cost. MartyPC harness can
   now type `( ) $ " ' <` and print the final screen (`ELKS_SCREEN`).
+
+## 2026-11-17
+
+- Upstream ghaerr/elks master (`9b3c134`) already contained in `alci`:
+  nothing to merge.
+- A1b set to `HUMAN` (it needs the maintainer's go-ahead).
+- A2 dropped: the timer tick costs 3.2% of the CPU (1523 cycles per tick).
+  A trial patch cut the idle tick by 21% but gained only 0.46% on the
+  benchmarks (value 0.28), so it was not kept. Figures in `RESULTS.md`.
+- `setup.sh`: refresh the package lists when `xxd` is missing, install
+  `libzstd-dev` for 86Box, and switch an existing MartyPC clone to
+  `elks-bench`.

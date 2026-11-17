@@ -180,6 +180,47 @@ machine-class condition; the code is freed when no disk has EDD. Checked:
 A true 80186 PC was not available (86Box has no PC-compatible 80186
 machine); the V20 runs the same instruction set.
 
+## Timer tick cost, task A2 (MartyPC, 2026-11-17)
+
+ELKS ghaerr/elks `9b3c134` (fully merged in Alci), Alci `cf9e7b7`, same
+configuration (`alci/elks.config`) and toolchain. Idle cost measured with
+`@idle 5` and the sampling profiler (sample every 7 cycles), cycles per
+100 Hz tick outside the `hlt` of the idle loop.
+
+| Where | Cycles per tick |
+| --- | --- |
+| interrupt entry and exit (`_irqit`, `save_regs`, `doirq`, `do_IRQ`, `timer_tick`, `was_trap`, EOI, `restore_regs`) | about 720 |
+| `do_bottom_half` | 350 |
+| `schedule()` called by the idle loop | 168 |
+| `serial_bh` (no serial port open) | 168 |
+| `timer_bh`, `run_timer_list`, idle loop | 126 |
+| `calc_cpu_usage` (far call every tick) | 56 |
+| BIOS IRQ 0, every 5th tick | 29 |
+| total | 1523 (3.2% of the CPU, not 7.6% as estimated before) |
+
+Trial patch (rejected, not committed): skip `serial_bh` when no port is
+open, count CPU usage ticks in `timer_bh` and make the far call only every
+2 s, and skip `schedule()` in the idle loop when no task is runnable.
+Idle tick 1523 -> 1210 cycles (-21%). Cost +22 bytes of kernel code, +1
+byte of bss.
+
+| Benchmark | Alci cf9e7b7 | with trial patch |
+| --- | --- | --- |
+| `cat` of 200 lines to screen | 1.509 | 1.497 (-0.8%) |
+| `ls -l /bin`, from floppy | 7.961 | 7.923 (-0.5%) |
+| `ls -l /bin`, cached | 4.055 | 4.013 (-1.0%) |
+| `cat /bin/sh` | 1.706 | 1.698 (-0.5%) |
+| `cat /bin/vi` | 4.724 | 4.715 (-0.2%) |
+| 10 runs of `pwd` | 1.618 | 1.610 (-0.5%) |
+| three-stage pipe, 20 KB | 4.632 | 4.619 (-0.3%) |
+| `sort` on 20 KB | 5.479 | 5.442 (-0.7%) |
+| `grep` on 20 KB | 3.685 | 3.660 (-0.7%) |
+| boot to prompt | 14.184 | 14.180 |
+
+Mean `bench2.sh` gain 0.46%: value 0.46 / (1 + 33 / 50) = 0.28, below the
+threshold of 2. The whole tick costs 3.2% of the CPU, so no change to the
+per-tick path alone can reach the threshold on these benchmarks.
+
 ## Merges to review
 
 Commits whose merge into `alci` changed one of our measurements (see

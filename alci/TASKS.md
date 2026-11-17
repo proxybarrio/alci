@@ -22,13 +22,20 @@ The agent takes the first `TODO` from the top.
   `pwd`: 2.00 s -> 1.58 s cold, 1.68 s -> 1.30 s warm. Three-stage pipe
   4.75 s -> 4.33 s. No extra RAM. Shell behaviour checked identical
   (background jobs, pipes, subshells, command substitution, `sh -c`).
-- [ ] A1b `TODO` The remaining fork cost (~17% of the `pwd` loop) is the
+- [ ] A1b `HUMAN` The remaining fork cost (~17% of the `pwd` loop) is the
   shell's real data and bss, 8.3 KB per fork. Option: `vfork` in ash for
   simple commands. Risky: the child must not touch shared data before
-  `exec`. Study how dash does it before trying. Needs the maintainer's go-ahead.
-- [ ] A2 `TODO` Timer: the kernel spends ~7.6% of CPU even when idle
-  (100 Hz tick). Reduce per-tick work or skip idle ticks. Also measure the
-  effect on command times.
+  `exec`. Study how dash does it before trying. Waiting for the
+  maintainer's go-ahead (status changed from `TODO` on 2026-11-17 so the
+  agent does not stop on it).
+- [x] A2 `DROPPED 2026-11-17` Timer. Measured: the 100 Hz tick costs 1523
+  cycles, 3.2% of an 8088 at 4.77 MHz (not 7.6%). Trial patch (skip
+  `serial_bh` with no port open, CPU usage far call every 2 s instead of
+  every tick, no `schedule()` in the idle loop when nothing is runnable):
+  idle tick -21%, benchmarks -0.2% to -1.0%, mean 0.46%, value 0.28.
+  Rejected by the gain threshold. Tickless idle would save power only, not
+  time. Details in `RESULTS.md`. Could be reconsidered as part of a wider
+  power-saving task.
 - [ ] A2b `TODO` Line reading in user programs. `grep` (minix1) spends 83%
   of its time in user space, about half of it in `get_line()`, a
   `getc()` loop one character at a time. Read lines by scanning the
