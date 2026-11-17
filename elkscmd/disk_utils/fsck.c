@@ -222,9 +222,8 @@ void unmap_inode_buffer()
 		printd("none mapped\n");
 		return;
 	}
-	/* Seek past the superblock, inode maps and zone maps to the inode block.
-	 * Use long arithmetic: block * BLOCK_SIZE overflows a 16-bit int past
-	 * inode block 31 (inode 1024).
+	/* Seek past the superblock, inode maps and zone maps to the inode block
+	 * using long arithmetic to avoid overflow past block 31 (inode 1024).
 	 */
 	lseek(IN, ((off_t)(2 + IMAPS + ZMAPS) + mapped_block) * BLOCK_SIZE, SEEK_SET);
 	if (BLOCK_SIZE != write(IN, inode_buffer, BLOCK_SIZE)) {
