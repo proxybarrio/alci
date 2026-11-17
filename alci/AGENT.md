@@ -101,7 +101,19 @@ as they are. Record every reuse and its licence in `alci/RELATED.md`.
 ## Procedure
 
 1. Prepare the environment:
-   - `git clone --depth 50 -b alci https://github.com/proxybarrio/elks /home/claude/elks`
+   - `git clone -b alci https://github.com/proxybarrio/elks /home/claude/elks`
+     (full history: the merge in the next step needs it)
+   - Sync with upstream before anything else (fetch only, never push there):
+     `git fetch https://github.com/ghaerr/elks master` then
+     `git merge --no-edit FETCH_HEAD` if `git rev-list --count alci..FETCH_HEAD`
+     is not 0. Conflicts:
+     - If both sides make the same code change and differ only in comments
+       or whitespace (typical when ghaerr merges one of our proposals), take
+       upstream's version (`git checkout --theirs <file>`).
+     - Any other conflict: `git merge --abort`, write it in `LOG.md` and in
+       the report, and go on with the task on the unsynced branch.
+     After a merge, rebuild and run the functional suite; if it fails, do not
+     push the merge (`git reset --hard ORIG_HEAD`) and report it.
    - `bash /home/claude/elks/alci/scripts/setup.sh` (prebuilt toolchain,
      MartyPC with the ELKS runner, first build). It must print
      `ALCI SETUP OK`.
