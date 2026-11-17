@@ -89,6 +89,11 @@ new kernel code, E0b), SLIP over the serial port, or the modem.
   travel with it, and no GEOS code goes into the kernel. Programs that run
   outside ELKS (modem firmware, relays) are used as they are. See
   `RELATED.md`.
+- The Alci desktop is Nano-X, improved in look and behaviour in the spirit
+  of GEOS (Commodore 64 first, then PC/GEOS), the way Haiku follows BeOS.
+  Ideas and style are free to follow; GEOS code, icons and fonts stay out of
+  GPL code, os8088 code (MIT) may be adapted with its notice kept, and the
+  GEOS name is not used for our desktop. Details in task D4.
 - Changes useful to ELKS in general are offered to the ELKS project
   regularly, with measurements, for its maintainers to consider. The first,
   the fsck fix for inodes above 1024, was merged as ghaerr/elks #2853 on

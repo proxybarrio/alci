@@ -91,6 +91,22 @@ The agent takes the first `TODO` from the top.
   engine (memory, time per window and per text line).
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
+- [ ] D4 `TODO` Alci desktop: improve Nano-X (look and behaviour) in the
+  spirit of GEOS, the way Haiku follows BeOS. GEOS existed on the Commodore
+  64 (Berkeley Softworks, 1986) and later on the PC as PC/GEOS; today only
+  the PC/GEOS source (FreeGEOS, Apache 2.0) is available to study. Rules:
+  1. Ideas, behaviour and general style may be taken from GEOS on any
+     platform (menus, dialogs, font handling, redraw strategy). They are not
+     protected by copyright.
+  2. No GEOS code, icons, fonts or bitmaps go into Nano-X or any GPL code:
+     Apache 2.0 is not compatible with GPLv2. Write our own from scratch
+     after studying the design (clean-room: the notes in
+     `alci/docs/gui-study.md` describe behaviour, never copy code).
+  3. os8088 (MIT) code may be adapted, keeping its copyright notice in each
+     file taken and a line in `RELATED.md`.
+  4. "GEOS" is a trademark: never name the Alci desktop GEOS, and never copy
+     its screens pixel by pixel. Say "inspired by GEOS".
+  Depends on D1 and D2.
 
 ## Phase 5: Claude terminal
 
