@@ -224,10 +224,12 @@ The agent takes the first `TODO` from the top.
   3. Plausibility check: if the network time differs from the RTC (where
      present) by more than a set margin, report it instead of setting it
      silently.
-  4. Without network: keep the machine clock. Ask for date and time at boot
-     only when the clock is clearly wrong (earlier than the build date, as
-     on an XT without a real-time clock, which starts at 1970), so boots
-     with a valid clock cost nothing.
+  4. Order at boot: if the machine clock is valid, use it (and correct it
+     from the network when a network is present). If it is clearly wrong
+     (earlier than the build date, as on an XT without a real-time clock,
+     which starts at 1970), take the time from the network; ask the user
+     for date and time only when no network time can be obtained. Boots
+     with a valid clock, or with a working network, never stop to ask.
   The commented `date -s` example in `/etc/net.cfg` stays as it is; this
   task adds an alternative. Measure size of the client (target
   under 4 KB) and keep it out of memory when no network is present.
