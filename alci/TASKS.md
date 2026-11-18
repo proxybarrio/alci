@@ -205,6 +205,23 @@ The agent takes the first `TODO` from the top.
   Bobcat's sources and licence, and the effort to port it, against writing
   a small browser for ELKS.
 
+- [ ] E7 `TODO` (low priority) Clock from the network, time zone from the
+  user. The clock is kept in UTC and the time zone is never fixed in the
+  sources:
+  1. Time zone: asked once (at install or first boot, from a short list of
+     zone names) and stored as `TZ` in `/bootopts`; changeable later.
+  2. Time: a small SNTP client sets the clock in UTC at network start. It
+     asks the nearest source first: the NTP server given by DHCP (option
+     42) or the gateway, which many routers serve, then a public pool
+     (pool.ntp.org) or our relay (E0c). No single private server.
+  3. Plausibility check: if the network time differs from the RTC (where
+     present) by more than a set margin, report it instead of setting it
+     silently.
+  Upstream added a commented `date -s` line in `/etc/net.cfg` that fetches
+  local time over plain HTTP from one personal server with a fixed zone
+  name; this task replaces it on Alci. Measure size of the client (target
+  under 4 KB) and keep it out of memory when no network is present.
+
 ## Phase 6: universal image
 
 Principle (`STRATEGY.md`): wherever a hard disk is present, Alci is
