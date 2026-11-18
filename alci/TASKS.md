@@ -112,10 +112,9 @@ The agent takes the first `TODO` from the top.
   patches, rerun the reference benchmarks and record any change in timing.
   Keep credit to os8088 in the branch README.
 
-- [ ] A6 `HUMAN` Fork 86Box: create `proxybarrio/86box` from
-  `86Box/86box` (the Fork button on GitHub, as for MartyPC) and give the
-  scheduled agent access to it. Then the agent (status back to `TODO`)
-  creates branch `alci` from the fork's `master`, commits os8088's PicoMEM
+- [ ] A6 `TODO` 86Box fork: `proxybarrio/86box` exists (created
+  2026-11-18 from `86Box/86box`) and the scheduled agent has access. The
+  agent creates branch `alci` from the fork's `master`, commits os8088's PicoMEM
   patch (`tools/86box/patches/07-picomem.patch`, MIT, credited in the
   commit and in `RELATED.md`), checks that `setup.sh` builds from it, and
   from then on follows the emulator watch in `AGENT.md`. Later changes of
