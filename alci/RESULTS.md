@@ -293,6 +293,19 @@ says the loss fell elsewhere, since it depends on timing. Both upstream
 images, filled to the same 25 free blocks, give "No space left on device"
 as expected.
 
+## Emulator updates
+
+Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
+(`86Box/86box` into `proxybarrio/86box` branch `alci`), with the timings
+of the same Alci build before and after. As of 2026-11-18: MartyPC
+`elks-bench` is based on upstream `05c0d08` (2026-09-07), the latest on
+`main`; 86Box is built from upstream `960d6b7` (2026-11-17) plus the
+PicoMEM patch.
+
+| Date | Emulator | from -> to | what changed for us | timings |
+| --- | --- | --- | --- | --- |
+| | | | none so far | |
+
 ## Merges to review
 
 Commits whose merge into `alci` changed one of our measurements (see

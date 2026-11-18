@@ -7,9 +7,11 @@ on any PC from the 8088 to the 286. Each scheduled run does ONE task from
 
 ## Fixed rules
 
-1. Write ONLY to `proxybarrio/elks` (branch `alci`) and `proxybarrio/martypc`
-   (branch `elks-bench`). Never push to `ghaerr/elks` or `dbalsom/martypc`,
-   never open issues, pull requests or comments upstream: the maintainer does that.
+1. Write ONLY to `proxybarrio/elks` (branch `alci`), `proxybarrio/martypc`
+   (branch `elks-bench`) and `proxybarrio/86box` (branch `alci`, once the
+   fork exists). Never push to `ghaerr/elks`, `dbalsom/martypc` or
+   `86Box/86box`, never open issues, pull requests or comments upstream:
+   the maintainer does that.
 2. Never `push --force`, never rewrite published commits.
 3. One task per run. If it is too big, split it in `TASKS.md` and do only
    the first piece.
@@ -76,7 +78,7 @@ BIOS, the floppy controller or the boot sector, and before a release.
 
 Every timing you record (`RESULTS.md`, reports, commit messages) names
 both versions: the upstream ELKS commit and the Alci commit, measured with
-the same configuration and toolchain. Add new results as a new dated
+the same configuration, toolchain and emulator commit (MartyPC or 86Box). Add new results as a new dated
 section; never overwrite older figures.
 
 Report the vetoes checked and the value in the final message.
@@ -127,6 +129,20 @@ as they are. Record every reuse and its licence in `alci/RELATED.md`.
        to take it anyway (for example a needed fix that costs some bytes),
        to take the rest and `git revert` it on `alci`, to find another
        way to adapt Alci, or to talk it over with the ELKS maintainers.
+   - Watch the emulators' upstreams too (fetch only, never push there):
+     `dbalsom/martypc` branch `main` into our `elks-bench`, and
+     `86Box/86box` branch `master` into our `proxybarrio/86box` branch
+     `alci`. Count the new commits each run and name them in the report
+     (one line each for those that touch the CPU, timers, the 8250, the
+     floppy or hard disk controllers, or the automation socket). Merge
+     them at most once a week, as a task of their own, not on the same
+     night as an Alci patch: an emulator change can move every timing.
+     After the merge, rebuild, run the reference benchmarks (MartyPC) or
+     the functional suite (86Box) on the current `alci` build with the old
+     and the new emulator, and record any change in `RESULTS.md` under
+     "Emulator updates". If timings move, later comparisons use the new
+     emulator for both sides. Conflicts with our patches: abort the merge,
+     record it and tell the maintainer.
    - `bash /home/claude/elks/alci/scripts/setup.sh` (prebuilt toolchain,
      MartyPC with the ELKS runner, first build). It must print
      `ALCI SETUP OK`.

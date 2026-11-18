@@ -52,3 +52,7 @@
   serial input (the harness's end marker), not a hang. The same loss shows
   up on upstream ELKS master on the IBM XT. S1 is now about that serial
   loss.
+- Emulators are now watched like ELKS: upstream MartyPC and 86Box commits
+  are counted each run and merged at most weekly, with timings before and
+  after (`AGENT.md`, `RESULTS.md` "Emulator updates"). Task A6: fork
+  86Box into `proxybarrio/86box`, waiting for the maintainer.
