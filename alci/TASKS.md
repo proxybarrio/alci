@@ -59,6 +59,13 @@ The agent takes the first `TODO` from the top.
   one, and see what can be shortened. Matters for V5 and for the Claude
   terminal on the serial modem (E0). Meanwhile, make `t86.py` robust: check
   the echo of each line and resend it, or type at a set rate.
+- [ ] S2 `TODO` Check `clock -w` on AT-class machines after 1999.
+  `cmos_settime()` in `elkscmd/sys_utils/clock.c` writes `tm_year` (126 for
+  2026) to CMOS register 9 as BCD, giving 0xC6, which is not valid BCD; the
+  century register is not written. The other RTC paths in the same file
+  subtract 100 first. Reproduce on 86Box (AT and 386): `date -s`, `clock
+  -w`, reboot, and see what the BIOS setup and `clock -r` show. If
+  confirmed, the fix is a few lines and a candidate to offer upstream.
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser
@@ -217,6 +224,10 @@ The agent takes the first `TODO` from the top.
   3. Plausibility check: if the network time differs from the RTC (where
      present) by more than a set margin, report it instead of setting it
      silently.
+  4. Without network: keep the machine clock. Ask for date and time at boot
+     only when the clock is clearly wrong (earlier than the build date, as
+     on an XT without a real-time clock, which starts at 1970), so boots
+     with a valid clock cost nothing.
   The commented `date -s` example in `/etc/net.cfg` stays as it is; this
   task adds an alternative. Measure size of the client (target
   under 4 KB) and keep it out of memory when no network is present.
