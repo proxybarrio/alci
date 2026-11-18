@@ -217,9 +217,8 @@ The agent takes the first `TODO` from the top.
   3. Plausibility check: if the network time differs from the RTC (where
      present) by more than a set margin, report it instead of setting it
      silently.
-  Upstream added a commented `date -s` line in `/etc/net.cfg` that fetches
-  local time over plain HTTP from one personal server with a fixed zone
-  name; this task replaces it on Alci. Measure size of the client (target
+  The commented `date -s` example in `/etc/net.cfg` stays as it is; this
+  task adds an alternative. Measure size of the client (target
   under 4 KB) and keep it out of memory when no network is present.
 
 ## Phase 6: universal image
