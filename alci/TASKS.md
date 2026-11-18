@@ -45,16 +45,20 @@ The agent takes the first `TODO` from the top.
   (minix3) reads with `read()` and gains nothing; `sed` (minix3) reads one
   `getchar()` at a time through a look-ahead variable shared by the whole
   program, left for A2d.
-- [ ] S1 `TODO` Hang when writing to a full floppy. On 86Box (IBM XT,
-  `fd720` image, serial console) the functional suite stops at
-  `cat /bin/sh | cat | cat > /tmp/p` once the disk is full: no "No space
-  left on device", no prompt for 600 s. It happens with the image built on
-  2026-11-17 for A2b (25 free blocks), not with the one before (26 free);
-  the same image with the old `grep` still hangs and `grep` has not run yet
-  at that point, so the layout of the disk triggers it, not the A2b code.
-  MartyPC with the same commands does not hang. Reproduce, find where the
-  writer or the pipe waits, check upstream ELKS on the same image. Data
-  safety: see the 1.0 criteria in `STRATEGY.md`.
+- [ ] S1 `TODO` Serial input loses characters on the IBM XT. On 86Box (IBM XT,
+  8088 4.77 MHz, IBM BIOS, console on COM1 at 19200 baud) `t86.py` sends
+  each command line in one go and a character is sometimes lost: `wc -l`
+  arrives as `wc` (Alci 64182af), `and-ok` as `an-ok` (upstream master
+  df2a61c), the `@@` of the end marker as `@` (Alci with A2b, `fd720`
+  image, which looked like a hang on a full disk but was not: the system
+  answers). Which character is lost moves with timing; upstream ELKS has it
+  too, and on the V20 it was seen on 2026-11-16. At 19200 baud a byte
+  arrives every 520 us (about 2480 cycles at 4.77 MHz) and the 8250 has no
+  FIFO, so any stretch longer than that with interrupts off loses a byte.
+  Find those stretches (MartyPC profiler or 86Box), measure the longest
+  one, and see what can be shortened. Matters for V5 and for the Claude
+  terminal on the serial modem (E0). Meanwhile, make `t86.py` robust: check
+  the echo of each line and resend it, or type at a set rate.
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser

@@ -48,3 +48,7 @@
 - New task S1: on 86Box XT with the 720K image the suite hangs once the
   floppy is full; it depends on the image layout, not on the A2b code.
   New task A2d for `sed` and `uniq`.
+- S1 rewritten: the "hang on a full floppy" was a character lost on the
+  serial input (the harness's end marker), not a hang. The same loss shows
+  up on upstream ELKS master on the IBM XT. S1 is now about that serial
+  loss.

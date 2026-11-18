@@ -275,14 +275,23 @@ path), a last line without newline, binary files, and stdin from a pipe:
 output identical to the previous build (MartyPC, md5 of each output).
 `test_libc`: 38 tests, 5805 assertions, none failed. Functional suite with
 five new `grep` lines: identical on QEMU, T1200 (XT-IDE and its own disk),
-PC1512 and AT. Two differences, both not caused by the patch:
+PC1512 and AT. Two differences on the IBM XT, both from characters lost on
+the serial input (task S1), not from the patch:
 
-- IBM XT, hard disk: the previous build prints `1 9 59` for
-  `ls -l /tmp/c.Z | wc -l`, the new one `1`. The previous build loses
-  `-l` on the serial input at that point, every run: a serial input loss
-  that moves with timing (V5), already seen on the V20.
-- IBM XT, `fd720` image: the new image hangs once the floppy is full
-  (task S1). The same image with the old `grep` hangs too.
+- hard disk image: the previous build prints `1 9 59` for
+  `ls -l /tmp/c.Z | wc -l`, because `-l` was lost on the way in.
+- `fd720` image: the new image seemed to hang once the floppy was full.
+  It does not: the first `@` of the test harness's end marker was lost, so
+  the harness waited for a marker that never came; the shell had already
+  printed "No space left on device" and answers further commands. Adding
+  one `df` before that line moves the loss elsewhere and the suite ends.
+
+Upstream for comparison, same configuration, same suite, IBM XT:
+ELKS master `df2a61c` loses a character too (`and-ok` arrives as
+`an-ok`); release v0.9.2 (`e7a56a4`) lost none in this run, which only
+says the loss fell elsewhere, since it depends on timing. Both upstream
+images, filled to the same 25 free blocks, give "No space left on device"
+as expected.
 
 ## Merges to review
 
