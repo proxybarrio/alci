@@ -509,6 +509,39 @@ Kernel cost with the option on: about 1.5 KB resident (`exec.o` +928
 bytes, `lz4dec.o` 146, `lzsa1dec.o` 333, `seg_shrink`). Off by default:
 nothing.
 
+## Text cache, task F4b round 3 (MartyPC and 86Box, 2026-11-19)
+
+Alci `b512731a`, `CONFIG_EXEC_TEXT_CACHE` (exited programs kept in free
+memory, freed as soon as an allocation needs the room). Four 720K images,
+same tree: plain, plain + cache, LZSA1, LZSA1 + cache. MartyPC
+`elks-bench` `d6f5ca8`, floppy rotation model on, emulated seconds.
+
+| Command | XT plain | XT cache | XT LZSA1 | XT LZSA1 + cache | 8086 plain | 8086 LZSA1 + cache |
+| --- | --- | --- | --- | --- | --- | --- |
+| `grep`, first run | 4.39 | 4.20 | 3.90 | 3.71 | 3.88 | 3.26 |
+| `grep` x10 | 2.22 | 1.82 | 3.06 | 1.87 | 1.03 | 0.88 |
+| `sort`, first run | 2.02 | 2.04 | 1.89 | 2.16 | 2.02 | 1.96 |
+| `sort` x10 | 2.40 | 2.14 | 2.93 | 2.18 | 1.13 | 1.04 |
+| `vi -r`, first run | 4.29 | 4.35 | 3.74 | 3.81 | 3.02 | 2.48 |
+| `vi -r`, second run | 4.75 | 0.44 | 1.02 | 0.25 | 3.37 | 0.12 |
+| `sed`, first run | 4.76 | 4.46 | 2.86 | 3.19 | 4.26 | 2.72 |
+| `sed` x10 | 3.12 | 2.55 | 4.20 | 2.64 | 1.44 | 1.23 |
+
+LZSA1 + cache against today's plain image: faster everywhere but the
+first `sort` on the XT (+7%; -3% on the 8086), where the position of the
+files on the floppy differs between the two images (task A3). Free space
+on the 720K image: 41 KB plain, 124 KB LZSA1.
+
+Checks with LZSA1 + cache: floppy suite 34/34 on QEMU, XT, T1200, PC1512,
+AT and 386; hard disk 34/34 on QEMU and AT; a program file overwritten
+or replaced runs its new contents; `umount` works after running a
+program from the mounted disk; eight background `sh -c` on the 512K AT
+all start (kept texts are freed for them; `meminfo` shows less free
+memory while texts are kept).
+
+Resident kernel cost, against `61835b74` with everything off: text cache
+704 bytes; text cache, LZ4 and LZSA1 together 2208 bytes.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

@@ -402,11 +402,15 @@ Rules for the floppy set (decided 2026-11-19):
   cycles per byte against 8-10 for a plain copy (`RESULTS.md`). Decoding
   program code cannot get near a copy, so the next lever is not to decode
   again. Next, in order:
-  1. Text cache (was point 5 below): keep the text segment of a program
-     that exits in free memory, given back as soon as memory is needed,
-     and reuse it at the next exec of the same unchanged file. A repeated
-     start then costs no decoding and no copy, compressed or not.
-  2. Then decide the format (LZSA1 for now) and what to compress.
+  Round 3 (2026-11-19): text cache done (`CONFIG_EXEC_TEXT_CACHE`, off by
+  default): with LZSA1 it removes the cost of repeated starts, and helps
+  plain programs too (`RESULTS.md`). Waiting for the maintainer:
+  1. Turn on text cache and LZSA1 in `alci/elks.config` and the image
+     builds (cost 2.2 KB of kernel with both decoders; drop the LZ4
+     decoder to save about 0.5 KB if LZSA1 is chosen).
+  2. Full V2 benchmarks (`bench.sh`, `bench2.sh`) and S1/V4 checks on the
+     final configuration, then hard disk images too.
+  3. `meminfo` could show kept texts apart from used memory.
   3. A rule for what to compress: large programs rarely started in loops
      (`vi edit ftp ftpd ktcp fsck sed diff find fdisk`: about 40 KB) and
      not the small tools used in scripts.

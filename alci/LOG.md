@@ -101,4 +101,8 @@
   authors). Both faster from floppy, both slower from the cache by the
   same amount; LZSA1 packs best (124 KB free on 720K). Still off by
   default. Proposed next: a text cache for repeated starts.
+- F4b round 3: text cache (exited programs kept in free memory, freed on
+  demand). With LZSA1 it makes repeated starts faster than today's plain
+  system; 34/34 on all machines. Off by default until the maintainer
+  decides.
 
