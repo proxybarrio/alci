@@ -10,6 +10,7 @@ bin/os2dump
 bin/elf2elks
 bin/elks-compress
 bin/exomizer
+bin/lzsa
 bin/eman
 bin/ewcc
 bin/ewlink
