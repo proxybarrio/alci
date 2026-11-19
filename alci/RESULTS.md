@@ -383,7 +383,7 @@ tick), the BIOS EOI only at the end, then the serial handler entry.
 | --- | --- | --- |
 | Alci `800cfd1e` | 643 us | 3 (two runs, same 3) |
 | Alci with the BIOS handler in a bottom half only | 519 us | 0 (no margin left) |
-| Alci `49b6c795` (also EOI before `timer_tick`) | 384 us | 0 (four runs) |
+| Alci `49b6c795` (also EOI before `timer_tick`) | 384 us | 0 (two stress runs, plus the full suites) |
 | ELKS `df2a61c5`, commands present on its 720K disk | 638 us | 1, the run stalled at command 42 |
 | ELKS `df2a61c5` + `alci/upstream/timer-eoi-com1.patch` | 377 us | 0 |
 
