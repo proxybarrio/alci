@@ -51,7 +51,7 @@ media. Floppy-only operation exists for machines without a hard disk.
 
 | Machine | How Alci runs |
 | --- | --- |
-| Hard disk present | Full install on the hard disk from the disk set (F3, step 1). No disk swapping. |
+| Hard disk present | Full install on the hard disk from the disk set (F3, step 1); the installer is on disk 1 of every distribution. No disk swapping. |
 | Two floppy drives | Disk 1 in A:, the other disks mounted from B: on request (F3, step 2). |
 | One floppy drive, no hard disk | Disk 1 stays the system disk; other disks are swapped in on request, with kernel support for a safe swap (F3, step 3, built last). |
 

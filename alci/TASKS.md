@@ -285,6 +285,19 @@ Rules for the floppy set (decided 2026-11-19):
   is decided in F0 (it costs about 104 KB per disk).
 - Every change of layout is measured before and after (`bench.sh`,
   `bench2.sh`): the position of files on the floppy changes timings.
+- Disk 1 also keeps the communication programs: `telnet`, `telnetd`,
+  `ftp`, `ftpd` and `miniterm` (communicating is part of the base).
+- Every distribution (720K, 1.44M and any other floppy set) includes the
+  installer that puts the whole set on a hard disk (F3 step 1), on disk 1.
+- Proposed split for 720K, agreed in principle (F0 gives the exact list
+  and sizes): disk 1 "System" (kernel, shell, login, file commands, `vi`
+  and `edit`, text tools with `wc` and `head`, `fsck` and process tools,
+  network and communication, the disk swap program, the installer);
+  disk 2 "Tools" (archives, `diff`, `find`, script helpers, disk
+  maintenance); disk 3 "Connections" (`traceroute`, `httpd`, `netcat`,
+  the SSH client); disk 4 "Extra" (games, `basic`, `paint`). Disks 2-4
+  carry a small kit (`ls cat cp more mount umount`, about 25 KB) and a
+  label, not the kernel; a bootable disk 3 with SSH is an option.
 
 - [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) has 669 of 710
   data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
@@ -305,7 +318,11 @@ Rules for the floppy set (decided 2026-11-19):
   can point to the package repository, F2). In this order:
   1. Installer that copies the whole set to a hard disk, asking for each
      disk in turn. This is the main path: on any machine with a hard disk,
-     the floppies are installation media only.
+     the floppies are installation media only. It goes on disk 1 of every
+     distribution. Reuse first: ELKS already has `sys` (a script that
+     copies the booted system to `/dev/hda1` and similar), `fdisk`,
+     `mkfs` and `makeboot`; the installer adds the questions, the
+     partition step and the copy of disks 2, 3...
   2. Two floppy drives: further disks are mounted from B: on request.
   3. One drive, no hard disk, last: the root filesystem lives on disk 1,
      so a swap needs kernel work (flush and invalidate the cache for the

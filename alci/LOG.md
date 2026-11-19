@@ -85,4 +85,8 @@
   New rules for the floppy set in `TASKS.md` (phase 6), new task E8 (SSH
   client, study first). The floppy suite gets its missing programs from
   the test disk: 34/34 on all six machines.
+- Decided: `telnet telnetd ftp ftpd miniterm` stay on disk 1; every
+  distribution carries on disk 1 an installer for the whole set on a hard
+  disk (built on ELKS's `sys`, `fdisk`, `mkfs`, `makeboot`). Recorded in
+  `TASKS.md` (phase 6) and `STRATEGY.md`.
 
