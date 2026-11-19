@@ -31,9 +31,9 @@ if [ ! -d $MPC ]; then cp -r $ROOT/martypc/install $MPC; cp $MPC/martypc-elks.to
 # 86Box with the automation socket, and its ROM set (functional tests on real BIOSes)
 if [ ! -x $ROOT/86box/86box/build/src/86Box ]; then
   apt-get install -y -q cmake ninja-build libsdl2-dev libslirp-dev libsndfile1-dev libserialport-dev \
-    libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev libzstd-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1 || \
+    libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev libzstd-dev libarchive-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1 || \
     { apt-get update -q > /dev/null 2>&1; apt-get install -y -q cmake ninja-build libsdl2-dev libslirp-dev libsndfile1-dev \
-      libserialport-dev libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev libzstd-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1; }
+      libserialport-dev libevdev-dev libxkbcommon-dev libopenal-dev libpng-dev libfreetype-dev libzstd-dev libarchive-dev qemu-system-x86 > $ROOT/work/apt86.log 2>&1; }
   mkdir -p $ROOT/86box
   # our fork (branch alci, PicoMEM patch already in) if it exists, else upstream patched below
   [ -d $ROOT/86box/86box ] || GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 -b alci https://github.com/proxybarrio/86box $ROOT/86box/86box 2>/dev/null || \
