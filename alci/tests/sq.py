@@ -9,6 +9,8 @@
 import subprocess, sys, time, select, os
 img, kind, cpu, mem, cmdf, rawf = sys.argv[1:7]
 drive = ['-drive', f'file={img},format=raw,if=floppy' if kind == 'fd' else f'file={img},format=raw,if=ide']
+# FD2=<image>: second floppy drive (disk 2 of the floppy suite, functional-fd.txt)
+if os.environ.get('FD2'): drive += ['-drive', f"file={os.environ['FD2']},format=raw,if=floppy,index=1"]
 mem_mb = max(1, int(mem) // 1024)
 p = subprocess.Popen(['qemu-system-i386', '-cpu', cpu, '-m', str(mem_mb), '-display', 'none', '-serial', 'stdio',
      '-monitor', 'none', '-boot', 'a' if kind == 'fd' else 'c', '-snapshot', '-no-reboot'] + drive,

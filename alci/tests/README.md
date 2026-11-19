@@ -7,6 +7,12 @@ measured separately on MartyPC (`alci/scripts`).
   `-hd32.img` with the console on the serial port and `/bin/sh` as init.
 - `functional.txt`: the suite, one command per line, under 60 characters
   (the ELKS tty input line is 80 and the drivers add a marker).
+- `functional-fd.txt`: the same suite for the 720K floppy image, on small
+  files (`/tmp` is on the floppy). The programs it needs that are not on the
+  720K base disk (`tar compress md5sum test_libc test_float`) come from a
+  second disk, `<label>-fd720b.img` (made by `mkimg.sh`), mounted read-only
+  on `/mnt` by the first command. Give it to the drivers as `FD2=<image>`
+  (`st86.py` and `sq.py`).
 - `qtest.py <img> <fd|hd> <cpu> <mem_kb> <suite>`: runs the suite on QEMU.
 - `t86.py <machine> <img> <suite> [--times]`: runs it on 86Box with the real
   BIOS of an IBM XT (8088 4.77 MHz, CGA), Toshiba T1200 (8086 9.54 MHz),
@@ -55,3 +61,6 @@ shared by both systems passes. For acceptance use the strict tools:
   `functional.txt` against expected values computed from the image itself
   (file lists, checksums, /etc/passwd), and reports TIMEOUT, SKIPPED,
   NOECHO, ECHOBAD, NOPROMPT and wrong output as FAIL. Exit 1 on any FAIL.
+  It also takes `functional-fd.txt` (the floppy probe message of the
+  `mount` in its first line is allowed, and `tar` may report a record size
+  under 20 for the small archive).

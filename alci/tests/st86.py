@@ -38,7 +38,8 @@ if hd and hdfile == vm + '/disk.img':
     cfg += '[Floppy and CD-ROM drives]\nfdd_01_type = %s\n' % fdt
 else:
     cfg += '[Floppy and CD-ROM drives]\nfdd_01_type = %s\nfdd_01_fn = %s/disk.img\n' % (fdt, vm)
-cfg += 'fdd_02_type = none\n'
+# FD2=<image>: second 720K drive (disk 2 of the floppy suite, functional-fd.txt)
+cfg += ('fdd_02_type = 35_2dd\nfdd_02_fn = %s\n' % os.environ['FD2']) if os.environ.get('FD2') else 'fdd_02_type = none\n'
 if os.environ.get('PICOMEM'):
     # PicoMEM card (os8088's 86Box patch and libpmhost): NE2000 over the
     # emulator's network (slirp: the host is 10.0.2.2), card IRQ 7, NE2000 300h/IRQ 3
@@ -70,6 +71,8 @@ if mach in ('at', '386'):
     # IBM AT keeps drive types in CMOS and has no setup in ROM: write them
     cm = {0x0e: 0, 0x0f: 0, 0x10: 0x30, 0x12: 0, 0x14: 0x01, 0x15: 0x00, 0x16: 0x02, 0x17: 0, 0x18: 0} if mach == 'at' else \
          {0x0e: 0, 0x0f: 0, 0x10: 0x30, 0x12: 0, 0x14: 0x01, 0x15: 0x80, 0x16: 0x02, 0x17: 0x80, 0x18: 0x01}
+    if os.environ.get('FD2'):
+        cm[0x10] = 0x33; cm[0x14] |= 0x40     # second 720K drive
     for r in range(0x10, 0x2e): cm.setdefault(r, 0)
     cs = sum(cm[r] for r in range(0x10, 0x2e))
     cm[0x2e] = cs >> 8; cm[0x2f] = cs & 0xff

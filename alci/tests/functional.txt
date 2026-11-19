@@ -21,7 +21,7 @@ cmp /bin/sh /tmp/a && echo dd-ok
 cat /bin/sh | cat | cat > /tmp/p; cmp /bin/sh /tmp/p
 cp /bin/vi /tmp/b; cmp /bin/vi /tmp/b && echo cp-ok
 cd /tmp; tar cf t.tar a b; mkdir x; cd x; tar xf ../t.tar
-cmp a /bin/sh && cmp b /bin/vi && echo tar-ok; cd /
+cd /tmp/x && cmp a /bin/sh && cmp b /bin/vi && echo tar-ok
 compress -c /bin/sort > /tmp/c.Z; ls -l /tmp/c.Z | wc -l
 compress -dc /tmp/c.Z | md5sum; md5sum /bin/sort
 sort -r /etc/passwd | head -2

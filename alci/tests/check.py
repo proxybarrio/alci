@@ -25,6 +25,9 @@ md5 = hashlib.md5(mfs('cat', '/bin/sort')).hexdigest()
 def lines(*l): return list(l)
 E = {}  # command index -> expected list of lines, or a callable(list)->bool
 E[0] = lines()
+if 'mount' in cmds[0]:
+    # functional-fd.txt mounts disk 2: allow the kernel's floppy probe message
+    E[0] = lambda o: all(re.fullmatch(r'(fd|df)1: .*', l) for l in o)
 E[1] = lines('/bin')
 E[2] = lambda o: len(o) == 1 and re.fullmatch(r'X/Y\s*%d\s*Z' % len(binlist), o[0]) is not None
 E[3] = lines('n1', 'n2', 'n3')
@@ -40,7 +43,19 @@ E[12] = lines()
 E[13] = lines('Files are identical', 'dd-ok')
 E[14] = lines('Files are identical')
 E[15] = lines('Files are identical', 'cp-ok')
-E[16] = lines('Tar: blocksize = 20')
+def tarblocks():
+    # tar of /tmp/a (from the dd line) and /tmp/b (from the cp line): a header
+    # and the data of each file, two end records; tar reports at most 20
+    srcs = [re.search(r'if=(\S+)', cmds[12]).group(1), re.search(r'cp (\S+)', cmds[15]).group(1)]
+    n = 2
+    for f in srcs:
+        n += 1 + (len(mfs('cat', f)) + 511) // 512
+    return min(n, 20)
+# tar xf prints the size of the first record it reads: 20 for a large
+# archive, the archive size (with tar's own padding) for a smaller one
+TB = tarblocks()
+E[16] = lambda o: len(o) == 1 and re.fullmatch(r'Tar: blocksize = (\d+)', o[0]) is not None \
+    and TB <= int(o[0].split()[-1]) <= 20
 E[17] = lines('Files are identical', 'Files are identical', 'tar-ok')
 E[18] = lines('1')
 E[19] = lines('%s  -' % md5, '%s  /bin/sort' % md5)

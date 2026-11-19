@@ -1,0 +1,46 @@
+## Alci functional test suite. One command per line, max ~60 chars
+## (ELKS tty input line is 80 chars). Output must be deterministic.
+## Run with alci/tests/qtest.py on QEMU; compare against upstream.
+## 720K floppy variant of functional.txt: same commands on small files
+## (/tmp is on the floppy). Programs that are not on the 720K base disk
+## (tar compress md5sum test_libc test_float) come from the second disk
+## made by mkimg.sh (<label>-fd720b.img), passed to the drivers as FD2.
+export PATH=/bin:/mnt/bin; mount -o ro /dev/fd1 /mnt
+## --- shell
+(cd /bin; pwd)
+echo X$(pwd)Y$(ls /bin | wc -l)Z
+for i in 1 2 3; do echo n$i; done
+sh -c 'for i in a b; do echo in-$i; done'
+false || echo or-ok; true && echo and-ok
+case abc in a*) echo case-ok;; *) echo bad;; esac
+x=1; while test $x -lt 4; do echo w$x; x=$(expr $x + 1); done
+## --- fork and processes
+sleep 1 & sleep 1 & sleep 1 & wait; echo bg3-ok
+for i in 1 2 3 4 5 6 7 8; do sh -c 'echo p' & done; wait
+sh -c 'sh -c "sh -c \"sh -c pwd\""'
+cd /bin; ls | head -20 | xargs ls -d | wc -l; cd /
+## --- files and pipes
+dd if=/bin/dd of=/tmp/a bs=512 2>/dev/null
+cmp /bin/dd /tmp/a && echo dd-ok
+cat /bin/dd | cat | cat > /tmp/p; cmp /bin/dd /tmp/p
+cp /bin/cmp /tmp/b; cmp /bin/cmp /tmp/b && echo cp-ok
+cd /tmp; tar cf t.tar a b; mkdir x; cd x; tar xf ../t.tar
+cd /tmp/x && cmp a /bin/dd && cmp b /bin/cmp && echo tar-ok
+compress -c /bin/sort > /tmp/c.Z; ls -l /tmp/c.Z | wc -l
+compress -dc /tmp/c.Z | md5sum; md5sum /bin/sort
+sort -r /etc/passwd | head -2
+ls /bin | sort | uniq | tail -3
+yes abc | head -500 | sort | uniq -c
+cd /tmp; rm -rf p a b x t.tar c.Z; ls; cd /
+mkdir /tmp/d; touch /tmp/d/f1 /tmp/d/f2; ls /tmp/d
+rm -r /tmp/d; ls /tmp; sync; echo sync-ok
+## --- libc
+test_libc 2>&1 | tail -3
+test_float 2>&1 | tail -2
+## --- line reading (grep, fgets)
+grep -n root /etc/passwd
+grep -i -c ROOT /etc/passwd; grep -v root /etc/passwd | wc -l
+yes abcdef | head -300 | grep -n e | tail -1
+echo $(yes abcdefghij | head -80) | grep -c j
+echo $(yes abcdefghij | head -80) | wc -c
+grep -c zzz /etc/passwd || echo grep-none

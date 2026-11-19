@@ -1,5 +1,6 @@
 #!/bin/bash
-# usage: mkimg.sh <src tree> <label>  -> ${ALCI_QT:-/home/claude/qt}/<label>-{fd1440,hd32}.img with serial console + shell
+# usage: mkimg.sh <src tree> <label>  -> ${ALCI_QT:-/home/claude/qt}/<label>-{fd720,fd1440,hd32,hd20t}.img with serial console + shell,
+# and <label>-fd720b.img (second disk for functional-fd.txt)
 mkdir -p ${ALCI_QT:-/home/claude/qt}
 set -e
 T=$1; L=$2; cd $T; source ./env.sh >/dev/null
@@ -26,4 +27,10 @@ cp image/fd720-minix.img ${ALCI_QT:-/home/claude/qt}/$L-fd720.img; cp image/fd14
 python3 -c "
 for i in range(200): print('Line %03d: the quick brown fox jumps over the lazy dog 0123456789 abcdefghij' % i)" > /tmp/alci-b.txt
 for I in fd720 fd1440 hd32 hd20t; do elks/tools/bin/mfs ${ALCI_QT:-/home/claude/qt}/$L-$I.img cp /tmp/alci-b.txt /b.txt > /dev/null; done
+# second 720K disk for the floppy suite (functional-fd.txt): the programs it
+# needs that are not on the 720K base disk, mounted read-only on /mnt
+D2=/tmp/alci-d2.$$; rm -rf $D2; mkdir -p $D2/bin
+for P in misc_utils/tar misc_utils/compress file_utils/md5sum test/libc/test_libc test/other/test_float; do cp elkscmd/$P $D2/bin/; done
+rm -f ${ALCI_QT:-/home/claude/qt}/$L-fd720b.img
+elks/tools/bin/mfs ${ALCI_QT:-/home/claude/qt}/$L-fd720b.img genfs -1 -n14 -i64 -s720 $D2 > /dev/null; rm -rf $D2
 echo IMG $L OK
