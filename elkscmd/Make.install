@@ -137,14 +137,14 @@ ifdef CONFIG_APPS_720K
 endif
 
 ifdef CONFIG_APPS_1200K
-	TAGS = :boot|:360k|:720k|:1200k|:net|
+	TAGS = :boot|:360k|:720k|:1200k|:net|:xnet|
 ifdef CONFIG_APPS_COMPRESS
 	TAGS += :360c|:1200c|:1440k|
 endif
 endif
 
 ifdef CONFIG_APPS_1232K
-	TAGS = :boot|:360k|:720k|:1200k|:1232k|:net|
+	TAGS = :boot|:360k|:720k|:1200k|:1232k|:net|:xnet|
 ifdef CONFIG_APPS_COMPRESS
 	# does not include :1200c
 	TAGS += :360c|:1232c|
@@ -152,7 +152,7 @@ endif
 endif
 
 ifdef CONFIG_APPS_1440K
-	TAGS = :boot|:360k|:720k|:1200k|:1440k|:net|
+	TAGS = :boot|:360k|:720k|:1200k|:1440k|:net|:xnet|
 ifdef CONFIG_APPS_COMPRESS
 	# does not include :1232c
 	TAGS += :360c|:1200c|:1440c|
@@ -161,7 +161,7 @@ endif
 
 ifdef CONFIG_APPS_2880K
     # :128k|:192k| rom apps not included
-	TAGS = :boot|:init|:ash|:sash|:net|:360k|:360c|:720k|:1200k|:1200c|:1232k|:1232c|:1440k|:1440c|:2880k|
+	TAGS = :boot|:init|:ash|:sash|:net|:xnet|:360k|:360c|:720k|:1200k|:1200c|:1232k|:1232c|:1440k|:1440c|:2880k|
 ifndef CONFIG_APPS_FTRACE
 	CONFIG_APP_MAN_PAGES=y
 endif
