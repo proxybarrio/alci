@@ -89,4 +89,8 @@
   distribution carries on disk 1 an installer for the whole set on a hard
   disk (built on ELKS's `sys`, `fdisk`, `mkfs`, `makeboot`). Recorded in
   `TASKS.md` (phase 6) and `STRATEGY.md`.
+- 720K set redefined: disk 1 unchanged, disks 2 and 3 only with what is
+  not on it. `wc head cmp sleep xargs yes` stay on disk 2 (disk 1 keeps
+  its 41 KB of working room). Long-term aim in `STRATEGY.md`: disk 1
+  boots into the graphical interface.
 

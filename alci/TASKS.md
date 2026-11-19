@@ -289,15 +289,20 @@ Rules for the floppy set (decided 2026-11-19):
   `ftp`, `ftpd` and `miniterm` (communicating is part of the base).
 - Every distribution (720K, 1.44M and any other floppy set) includes the
   installer that puts the whole set on a hard disk (F3 step 1), on disk 1.
-- 720K set: three disks (decided 2026-11-19). Disk 1 "System": kernel,
-  shell, login, file commands, `vi` and `edit`, text tools with `wc` and
-  `head`, `fsck` and process tools, network, `telnet telnetd ftp ftpd
-  miniterm`, the installer, the disk manager (F5); about 90 KB free.
-  Disk 2 "Tools and extras": archives, `diff`, `find`, script helpers,
-  system and disk maintenance, printing, games, `basic`, `paint`, sound
-  (about 560 KB). Disk 3 "Connections": `traceroute httpd netcat` and
-  the SSH client (E8). Disks 2 and 3 carry a small kit (`ls cat cp more
-  mount umount`, about 27 KB) and a label. Sizes in the F0 list.
+- 720K set (decided 2026-11-19, replaces the earlier split): disk 1 is
+  the current 720K image, unchanged. Disks 2 and 3 hold only programs
+  that are not on disk 1: disk 2 everything else that exists today
+  (archives, `wc head cmp sleep xargs yes`, `diff find`, script helpers,
+  system and disk maintenance, printing, games, `basic`, `paint`, sound:
+  about 500 KB), disk 3 the SSH client (E8) and later additions. Disks
+  2 and 3 carry a small kit (`ls cat cp more mount umount`, about 27 KB)
+  and a label. Uses: installing everything on a hard disk from 720K
+  floppies (T1200), reaching the extra programs without a hard disk.
+- `wc head cmp sleep xargs yes` stay off disk 1 (2026-11-19): with them
+  disk 1 would have 23 KB free instead of 41, and that space is the
+  working room of a floppy-only system: `vi` keeps its temporary file in
+  `/tmp` (about the size of the text being edited), `sort` too, and the
+  user's own files go there. Editing a 20-30 KB text would fail.
 - Nothing is split before the disk manager (F5) works.
 - Free space is part of the design: disk 1 keeps enough room for `/tmp`
   and everyday work (a minimum to fix in F0, checked by the build), and

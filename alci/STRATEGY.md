@@ -62,6 +62,18 @@ repository reachable once the system is online (F2). One catalogue says,
 for each program, which disk or package holds it. A single program must
 fit on one disk; in practice RAM is the stricter limit.
 
+## Long-term aim for the floppy set (2026-11-19)
+
+A machine with only a 720K drive should, in the end, boot disk 1
+straight into the graphical interface, the way os8088 starts its desktop
+from its boot floppy and GEOS on the C64 started from its system disk,
+with further programs and the user's files on other disks reached through
+the disk manager (task F5) and Personal Storage disks. Whether the kernel,
+Nano-X and a desktop fit on one 720K disk with room left is not known yet:
+D2 measures Nano-X, and disk 1 may then be rebuilt around the interface,
+with the text tools moving to disk 2. Until then disk 1 stays the text
+system it is today.
+
 ## Reaching the network and Claude
 
 Alci uses the best path the machine has, in this order:
