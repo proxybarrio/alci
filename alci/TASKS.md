@@ -101,9 +101,21 @@ The agent takes the first `TODO` from the top.
   time in `hlt`). Also measure on its own the CPU usage change from the A2
   trial (far call every 2 s, -2 bytes) and keep it if it is free.
 
-- [ ] A3 `TODO` File order on the floppy image: place the kernel, shell,
-  `bootopts` and the files read at boot close together and in read order.
-  Measure boot with `ELKS_FDROT=9`.
+- [ ] A3 `DOING` Boot from floppy. Measured 2026-11-19 (Alci `010d6729`,
+  720K, MartyPC `e1c5187` with `ELKS_FDROT=9`, `ELKS_BOOT_TEXT=login:`,
+  `ELKS_FDTRACE=1`): XT 22.8 s to `login:`, of which BIOS POST 4.0 s,
+  boot loader 6.9 s (kernel 104 KB), kernel start 1.7 s, the rest 10 s
+  reading init, scripts and programs. File order: upstream's
+  `image/Image.all` (small boot files next to the inode table, kernel
+  after) is already good; putting `bootopts` and `linux` first was 0.4 s
+  slower (22.8 -> 23.2 s). Where the time goes instead:
+  1. The boot loader goes back to cylinder 0 three times while loading
+     `/linux` to re-read the inode block (about 0.5 s each).
+  2. It reads one head per call and waits about 50 ms for the other head.
+  3. In the kernel, track reads start at sector 1 and wait 150-190 ms for
+     it on most new tracks.
+  Next: 1 (boot loader keeps the inode), then 2; both touch the boot
+  sector, so they need a test on the real T1200 before release.
 
 - [ ] A5 `TODO` Release network card drivers that find no card, as done for
   EDD (the same rule for every optional device). Resident

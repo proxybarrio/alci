@@ -109,4 +109,8 @@
   720K: 123 KB free. Suites 34/34 on every machine, serial and clock
   checks unchanged. Next idea from the maintainer: fewer disks in the
   720K set, now that there is room.
+- A3 started: the floppy boot traced command by command on MartyPC
+  (new `ELKS_FDTRACE` and `ELKS_BOOT_TEXT` in `elks-bench`). Upstream's
+  file order is already good; the time goes to the boot loader re-reading
+  the inode block and to waits for sector 1. Plan in `TASKS.md`.
 
