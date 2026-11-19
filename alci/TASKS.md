@@ -360,15 +360,19 @@ Rules for the floppy set (decided 2026-11-19):
      disk holds each program. A command that is not on the disk in use
      gets an answer like "tar is on disk 2 Tools: insert it and press
      Enter"; the program is loaded, then disk 1 is asked for again.
-  3. Document disks, called "Personal storage" (name to confirm): any
-     blank floppy can become one, with its own name. Saving to it must work from every program, not only
+  3. Document disks, called "Personal Storage" with a sequential number
+     (decided 2026-11-19): any blank floppy can become one, and gets the
+     next free number ("Personal Storage 1", "Personal Storage 2"...),
+     kept in the list of known disks on disk 1; the number is also in its
+     label, so two of them are never confused. Its path is short, without
+     spaces and within the 14 characters of a MINIX name (`/disks/ps1`). Saving to it must work from every program, not only
      those with a menu: the plan to evaluate is a path per disk name
-     (for example `/disks/Personal/file.txt`), so that any program (`vi`,
+     (for example `/disks/ps1/letter.txt`), so that any program (`vi`,
      `cp`, later the desktop's save dialogs) can save there, and the
      system asks for that disk when it is needed. Everything pending is
      written before a swap; disk 1 stays read-only while it is out.
   4. Two drives: disk 1 stays in drive A, disk 2 in drive B. When disk 3
-     or a Personal storage disk is needed, the swap happens in drive B,
+     or a Personal Storage disk is needed, the swap happens in drive B,
      then disk 2 is asked for again; disk 1 never leaves drive A, so this
      case needs no kernel work. One drive: every swap happens in drive A.
      Hard disk: the same names point to folders, nothing to swap.
