@@ -97,4 +97,8 @@
   Storage disks will be FAT. F4b started: LZ4 executables work (34/34,
   73 KB freed on 720K) but are kept off by default: faster from floppy,
   slower from the cache. Next: a faster decoder and other formats (LZSA).
+- F4b round 2: LZ4 decoder sped up, LZSA1 added (zlib decoder by the LZSA
+  authors). Both faster from floppy, both slower from the cache by the
+  same amount; LZSA1 packs best (124 KB free on 720K). Still off by
+  default. Proposed next: a text cache for repeated starts.
 

@@ -396,15 +396,17 @@ Rules for the floppy set (decided 2026-11-19):
   disk, first starts from floppy faster (grep -7% XT, -11% 8086), starts
   from the cache slower (grep x10 +50%), about 1 KB of kernel when on.
   Figures in `RESULTS.md`. Not to be dropped without the maintainer.
-  Next, in order:
-  1. A faster decoder: fewer checks per token, word copies for long
-     literals and for matches whose offset is 2 or more, measured on
-     MartyPC per byte produced.
-  2. Other formats with fast 8088 decoders, measured the same way and with
-     the licence checked: LZSA1 and LZSA2 (made for 8-bit and 8088
-     machines, with published 8088 decoders), the fast LZ4 8088 decoders
-     published by others, and for comparison ZX0 and aPLib (better ratio,
-     slower). Keep the best trade.
+  Round 2 (2026-11-19): faster LZ4 decoder and LZSA1 (LZSA project's 8088
+  decoder, zlib): LZSA1 packs best (124 KB free on 720K) and is the
+  fastest from floppy; from the cache both cost the same, about 37
+  cycles per byte against 8-10 for a plain copy (`RESULTS.md`). Decoding
+  program code cannot get near a copy, so the next lever is not to decode
+  again. Next, in order:
+  1. Text cache (was point 5 below): keep the text segment of a program
+     that exits in free memory, given back as soon as memory is needed,
+     and reuse it at the next exec of the same unchanged file. A repeated
+     start then costs no decoding and no copy, compressed or not.
+  2. Then decide the format (LZSA1 for now) and what to compress.
   3. A rule for what to compress: large programs rarely started in loops
      (`vi edit ftp ftpd ktcp fsck sed diff find fdisk`: about 40 KB) and
      not the small tools used in scripts.

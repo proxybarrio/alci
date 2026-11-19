@@ -474,6 +474,41 @@ out of the cache. Kernel cost when the option is on: about 1 KB resident
 which is the default. Not adopted yet: the repeated-start slowdown breaks
 V2.
 
+## Faster decoders and LZSA1, task F4b round 2 (MartyPC, 2026-11-19)
+
+Alci `30b055bd`, same kernel (`CONFIG_EXEC_LZ4=y`, both decoders) for the
+three 720K images: plain, LZ4 (decoder without per-sequence checks, word
+copies) and LZSA1 (LZSA project's 8088 speed decoder, zlib licence).
+MartyPC `elks-bench` `d6f5ca8`, floppy rotation model on, emulated seconds.
+
+Free space on the 720K image (no test files): plain 41 KB, LZ4 113 KB,
+LZSA1 124 KB. Floppy suite 34/34 on QEMU, IBM XT and IBM AT with LZSA1
+(and with LZ4, round 1).
+
+| Command | XT plain | XT LZ4 | XT LZSA1 | 8086 plain | 8086 LZ4 | 8086 LZSA1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `grep`, first run | 4.39 | 4.10 | 3.90 | 3.88 | 3.44 | 3.44 |
+| `grep` x10, from the cache | 2.22 | 3.07 | 3.06 | 1.03 | 1.46 | 1.50 |
+| `sort`, first run | 2.02 | 2.02 | 1.89 | 2.02 | 1.81 | 1.43 |
+| `sort` x10, from the cache | 2.40 | 2.96 | 2.93 | 1.13 | 1.41 | 1.42 |
+| `vi -r`, first run | 4.29 | 3.76 | 3.74 | 3.02 | 2.45 | 2.41 |
+| `vi -r`, second run | 4.75 | 1.06 | 1.02 | 3.37 | 0.52 | 0.53 |
+| `sed`, first run | 4.76 | 4.18 | 2.86 | 4.26 | 3.78 | 2.43 |
+| `sed` x10, from the cache | 3.12 | 4.18 | 4.20 | 1.44 | 1.98 | 2.05 |
+
+Profile of the `grep` loop: decoding costs about 37 cycles per byte
+produced with either format (most sequences in program code are short
+matches, so the cost per sequence dominates), against about 8-10 for
+copying a plain program out of the buffer cache, while reading from the
+floppy costs far more than either. Hence: from the floppy, both formats
+are faster and LZSA1 the most (it also packs best); from the cache,
+both are slower by the same amount. `vi`'s second run is fast compressed
+because 44 KB of it fit in the buffer cache and 59 KB plain do not.
+
+Kernel cost with the option on: about 1.5 KB resident (`exec.o` +928
+bytes, `lz4dec.o` 146, `lzsa1dec.o` 333, `seg_shrink`). Off by default:
+nothing.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
