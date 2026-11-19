@@ -293,6 +293,77 @@ says the loss fell elsewhere, since it depends on timing. Both upstream
 images, filled to the same 25 free blocks, give "No space left on device"
 as expected.
 
+## Compressed executables on the 720K floppy, task F4 point 0 (MartyPC, 2026-11-19)
+
+Same tree (Alci `29beabbc`, upstream ELKS `df2a61c5` merged), same
+configuration and toolchain; two 720K images made with
+`CONFIG_APPS_COMPRESS` off and on (`elks-compress`, exomizer). MartyPC
+`elks-bench` `5dea3d5`, GLaBIOS, floppy rotation model (`ELKS_FDROT=9`).
+First run after boot, then a second run of the same command. `sh` and `ls`
+are marked `:nocomp` upstream and stay uncompressed on both images, so
+their rows show only the effect of the different disk layout.
+
+| Command | IBM XT 8088 4.77, plain | compressed | 8086 7.16 MHz (`elks_86`, turbo), plain | compressed |
+| --- | --- | --- | --- | --- |
+| boot to prompt | 18.36 | 17.64 | 15.53 | 14.57 |
+| `vi -r` (59280 -> 37414 bytes), first | 5.11 | 40.36 | 3.64 | 20.03 |
+| `vi -r`, again | 4.48 | 39.94 | 3.23 | 19.59 |
+| `cat /etc/passwd > /dev/null` (928 -> 829), first | 1.79 | 2.57 | 1.76 | 1.93 |
+| `cat /etc/passwd > /dev/null`, again | 0.99 | 1.53 | 0.98 | 1.36 |
+| `ls /etc > /dev/null` (not compressed), first | 4.52 | 4.18 | 4.18 | 3.55 |
+| `sh -c true` (not compressed), first | 1.68 | 1.58 | 1.48 | 0.97 |
+
+Emulated seconds. Space: 669 -> 539 blocks of 1 KB in use (130 KB freed).
+Memory while loading: the kernel decompresses in place, 16 extra bytes per
+segment (the 16 bytes of the text segment stay allocated while it is in
+use). The kernel decompressor is very slow on the 8088: about 0.7 s per KB
+of `vi`. Decision: compression not adopted for the 720K image, since
+starting a compressed program is slower on both machines (`vi` 8 times
+slower on the XT). A faster decompressor (assembly) could reopen it.
+
+## Functional suite on the 720K floppy, task F4 (2026-11-19)
+
+`alci/tests/functional-fd.txt` (same 34 commands on small files, second
+disk on `/mnt` for `tar compress md5sum test_libc test_float`), strict
+drivers and `check.py`. 86Box built from upstream `d4f9a04` with the
+PicoMEM patch; QEMU 8.2.2 (`486`, 640K).
+
+720K image: 41 -> 82 free blocks (`wc head cmp sleep xargs yes` added,
+`ftp ftpd telnet traceroute` moved to 1200K and larger images).
+
+| Image | xt | t1200 | pc1512 | at | 386 | QEMU |
+| --- | --- | --- | --- | --- | --- | --- |
+| Alci `29beabbc`, `functional.txt` (before) | 10/34 | | | 15/34 | | |
+| Alci `59478e75` (F4), `functional-fd.txt` | 33/34 (S1: one character lost) | 34/34 | 34/34 | 34/34 | 34/34 | 34/34 |
+| Alci `800cfd1e` (F4 + S3), `functional-fd.txt` | 34/34 | 34/34 | 34/34 | 34/34 | 34/34 | 34/34 |
+
+Hard disk (`functional.txt`, with the stricter `tar-ok`): QEMU 34/34 on
+`59478e75` and `800cfd1e`, IBM AT 34/34 on `800cfd1e`.
+
+## Out of memory on the AT with 512K, task S3 (86Box, 2026-11-19)
+
+Cause: the data segment of a program is sized with the exact length of
+its argv and envp. The interactive `/bin/sh` has a 22624-byte data
+segment; `sh -c 'echo p'` started from it gets 22672 bytes. Eight of them
+in background: each forked copy (22624) is freed after its exec, but the
+hole is 48 bytes too small for the next exec, so the 224 KB free (AT, 512K,
+64K of buffers) fragment and six of eight execs fail. The order of earlier
+commands decides whether it happens, which is why ELKS and Alci, and the
+floppy and hard disk images, traded results (boot line on the AT: ELKS
+`df2a61c5` 350K free, Alci 348K). Fix (`800cfd1e`): round the data
+segment to 256 bytes in `exec`; both get 22784.
+
+| Alci build, AT 512K, fd720, first 11 commands with absent programs | `sh: not enough memory` (two runs) |
+| --- | --- |
+| `59478e75` | 6, 6 |
+| `800cfd1e` | 0, 0 |
+
+Cost: `exec.o` +17 bytes of code, resident kernel +16 bytes (one
+paragraph), about 128 bytes per process on average (+160 for `sh`).
+`bench.sh` and `bench2.sh` on MartyPC: every timing within 0.01%.
+Vetoes: V1 suite 34/34 everywhere (table above), V2 no change, V3 cost as
+stated, V4 and V5 untouched code.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
@@ -304,7 +375,7 @@ PicoMEM patch.
 
 | Date | Emulator | from -> to | what changed for us | timings |
 | --- | --- | --- | --- | --- |
-| | | | none so far | |
+| 2026-11-19 | 86Box | `960d6b7` -> `d4f9a04` | `proxybarrio/86box` has no `alci` branch yet (A6), so `setup.sh` built upstream master plus the PicoMEM patch; needs `libarchive-dev` | functional tests only, no timings compared |
 
 ## Merges to review
 

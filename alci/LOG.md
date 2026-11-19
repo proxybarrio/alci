@@ -56,3 +56,20 @@
   are counted each run and merged at most weekly, with timings before and
   after (`AGENT.md`, `RESULTS.md` "Emulator updates"). Task A6: fork
   86Box into `proxybarrio/86box`, waiting for the maintainer.
+
+## 2026-11-19
+
+- Merged upstream ELKS `df2a61c5` (3 commits: `net.cfg` trimmed and
+  network time option); only `/etc/net.cfg` changes. Functional suites
+  pass after the merge.
+- Upstream MartyPC: no new commits. 86Box: `proxybarrio/86box` has no
+  `alci` branch yet, so `setup.sh` built upstream `d4f9a04` plus the
+  PicoMEM patch; it now also installs `libarchive-dev`.
+- F4 done: compressed programs measured and not adopted (`vi` starts 8
+  times slower on the XT); 720K image gets the core text tools and loses
+  four network programs (41 -> 82 free blocks); new floppy suite
+  `functional-fd.txt` with a second disk; `tar-ok` made strict. 34/34 on
+  all six machines. New task F4b (faster decompressor).
+- S3 done: `exec` rounds data segments to 256 bytes, which removes the
+  fragmentation behind `sh: not enough memory` on the 512K AT.
+

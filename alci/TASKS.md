@@ -66,12 +66,16 @@ The agent takes the first `TODO` from the top.
   subtract 100 first. Reproduce on 86Box (AT and 386): `date -s`, `clock
   -w`, reboot, and see what the BIOS setup and `clock -r` show. If
   confirmed, the fix is a few lines and a candidate to offer upstream.
-- [ ] S3 `TODO` On 86Box `at` (286, 512K) with the fd720 image, Alci
-  `6f813ff1` prints `sh: not enough memory` six times in functional
-  command 9 (eight `sh -c` in background); ELKS `df2a61c5` passes it on the
-  same image and machine. With hd32 it is the reverse (ELKS fails, Alci
-  passes). Find what takes the extra memory on the floppy image (buffers,
-  track cache, kernel size) and fix it without losing the hd32 result.
+- [x] S3 `DONE 2026-11-19` Out of memory on 86Box `at` (286, 512K) with the
+  fd720 image (`sh: not enough memory` in functional command 9). Cause: the
+  data segment size included the exact length of argv and envp, so
+  `sh -c` got 48 bytes more than the shell that forked it; the segments
+  freed by the forked copies were too small for the next exec and memory
+  fragmented. Whether it showed depended on earlier commands, hence the
+  results traded between ELKS and Alci, floppy and hard disk. `exec` now
+  rounds the data segment to 256 bytes: 6 failures -> 0, hard disk still
+  34/34. Cost +17 bytes of code, +16 bytes resident, about 128 bytes per
+  process. Also applies to ELKS (`alci/upstream/`).
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser
@@ -280,41 +284,30 @@ installation and for floppy-only machines.
      memory before asking for disk 1 back) and XT drives give no
      disk-change signal. Test on 86Box and on a real T1200 before use.
   Rule: every program fits on one disk (RAM is the stricter limit anyway).
-- [ ] F4 `TODO` The functional suite on the 720K floppy (Alci 6f813ff1 and
-  ELKS df2a61c5 alike: 16/34 on every 86Box machine and on QEMU, no
-  timeouts). Two separate causes:
-  1. Missing programs: `wc head cmp sleep xargs yes tar compress md5sum`
-     (about 53 KB) and `test_libc test_float` (about 105 KB) are not on the
-     720K image, which has 25 KB free. Make room on the base disk for the
-     core text tools (`wc head cmp sleep xargs yes`, about 23 KB) by moving
-     programs few people need at boot (for example `ftpd ftp telnet
-     traceroute edit`, about 75 KB) to disk 2 of the set (F3). `tar
-     compress md5sum` and the two test programs go on disk 2 as well.
-  2. No space for temporary files: the suite copies `/bin/sh`, `/bin/vi`,
-     a tar archive and its extraction to `/tmp`, about 400 KB, more than a
-     720K disk can hold. Add `alci/tests/functional-fd.txt` with the same
-     commands on small files (for example `/etc/passwd` and a 4 KB file)
-     so each feature is still exercised; the hard disk keeps the full
-     suite. Fix the `tar-ok` check so it fails when `cd x` fails.
-  0. First lever, already in the tree: the kernel is built with
-     `CONFIG_EXEC_COMPRESS=y` but the images are made with
-     `CONFIG_APPS_COMPRESS` off. Running `elks-compress` (exomizer) on the
-     69 programs of the 720K image (Alci 6f813ff1) takes them from 516 to
-     373 blocks of 1 KB: 143 KB freed, enough for all the missing programs
-     of point 1 without moving anything. Before adopting it, measure on
-     MartyPC (xt and t1200) the time to start `sh`, `vi`, `ls` and `cat`
-     compressed and plain (less to read from the floppy, more CPU work to
-     decompress) and the memory needed while decompressing. Keep it only
-     if starting programs from floppy is not slower and no program stops
-     fitting in memory; on hard disk images decide separately.
-  Further, smaller levers to evaluate: a multi-call binary (`busyelks`,
-  already in the tree) for the small tools, so the libc code they share is
-  stored once; the space lost in the last block of each file (about 31 KB
-  over 69 files with 1 KB blocks). Comments are not a lever: programs are
-  compiled, and the text files in `/etc` add up to a few KB.
-  Acceptance: 34/34 on the 720K image on xt, t1200, pc1512, at, 386 and
-  QEMU, with the strict checker. The same image layout can be offered to
-  ELKS as a proposal, since its 720K image has the same gaps.
+- [x] F4 `DONE 2026-11-19` The functional suite on the 720K floppy: 34/34
+  with the strict checker on xt, t1200, pc1512, at, 386 and QEMU (Alci
+  `800cfd1e`, with S3). Done:
+  0. Compressed programs (`CONFIG_APPS_COMPRESS`) measured on MartyPC and
+     not adopted: 130 KB freed, but every compressed program starts slower
+     (`vi` 5.1 s -> 40.4 s on the XT, 3.6 s -> 20.0 s on the 8086 at
+     7.16 MHz; the kernel decompressor is slow). Figures in `RESULTS.md`.
+  1. `wc head cmp sleep xargs yes` added to the 720K image; `ftp ftpd
+     telnet traceroute` moved to a new `:xnet` tag (1200K and larger, hard
+     disk). 41 -> 82 free blocks.
+  2. `alci/tests/functional-fd.txt`: the same commands on small files; the
+     programs not on the base disk (`tar compress md5sum test_libc
+     test_float`) come from a second disk made by `mkimg.sh` and mounted
+     on `/mnt` (a stand-in for disk 2 of F3). `tar-ok` fails when
+     `cd x` fails.
+  Open for the maintainer: whether `edit` (22 KB) stays on the 720K disk,
+  and where `tar compress md5sum` live once F3 exists. A faster
+  decompressor would make point 0 worth measuring again (task F4b).
+- [ ] F4b `TODO` Faster `exec` decompression: the in-kernel exomizer
+  decruncher (`elks/fs/exodecr.c`, C with a far pointer per byte) costs
+  about 0.7 s per KB on the 8088 (F4 point 0). Profile it on MartyPC and
+  write the inner loop in assembly; adopt compression for the 720K image
+  only if starting `vi`, `cat` and the others from floppy is then not
+  slower than plain.
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 
