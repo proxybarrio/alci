@@ -86,7 +86,7 @@ struct inode;
 void text_cache_put(segment_s *, struct inode *);
 segment_s *text_cache_take(struct inode *);
 void text_cache_drop(struct inode *);
-void text_cache_flush(kdev_t);
+void text_cache_flush(unsigned short dev);     /* kdev_t */
 int text_cache_evict(void);
 #endif
 void seg_free_pid(pid_t pid);
