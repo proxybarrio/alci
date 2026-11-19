@@ -409,7 +409,8 @@ void mm_get_usage (struct mem_usage *mu)
             if (seg->flags != SEG_FLAG_FREE)
                 xmsused += seg->size;
         } else {
-            if (seg->flags == SEG_FLAG_FREE)
+            if (seg->flags == SEG_FLAG_FREE
+                || (seg->flags & SEG_FLAG_TYPE) == SEG_FLAG_KEPT)  /* given back on demand */
                 free += seg->size;
             else
                 used += seg->size;

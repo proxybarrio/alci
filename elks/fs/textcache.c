@@ -66,6 +66,7 @@ void text_cache_put(segment_s *seg, struct inode *inode)
         tc_free(TC_SIZE - 1);
     for (n = TC_SIZE - 1; n > 0; n--)
         tc[n] = tc[n - 1];
+    seg->flags = (seg->flags & ~SEG_FLAG_TYPE) | SEG_FLAG_KEPT;
     tc[0].seg = seg;                            /* takes over the reference */
     tc[0].inode = inode;
     tc[0].size = inode->i_size;
@@ -88,6 +89,7 @@ segment_s *text_cache_take(struct inode *inode)
             }
             tc_remove(n, &seg, &ino);
             iput(ino);
+            seg->flags = (seg->flags & ~SEG_FLAG_TYPE) | SEG_FLAG_CSEG;
             return seg;
         }
     }

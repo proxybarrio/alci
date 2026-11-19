@@ -106,7 +106,7 @@ struct task_struct *find_process(unsigned int seg)
 
 static long total_segsize = 0;
 static char *segtype[] =
-    { "free", "CSEG", "DSEG", "DDAT", "FDAT", "BUF ", "RDSK", "VID " };
+    { "free", "CSEG", "DSEG", "DDAT", "FDAT", "BUF ", "RDSK", "VID ", "KEPT" };
 
 void display_seg(word_t mem)
 {
