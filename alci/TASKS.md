@@ -365,7 +365,10 @@ Rules for the floppy set (decided 2026-11-19):
      next free number ("Personal Storage 1", "Personal Storage 2"...),
      kept in the list of known disks on disk 1; the number is also in its
      label, so two of them are never confused. Its path is short, without
-     spaces and within the 14 characters of a MINIX name (`/disks/ps1`). Saving to it must work from every program, not only
+     spaces and within the 14 characters of a MINIX name (`/disks/ps1`).
+     When the program has finished with it, the system asks for the
+     disk that was there before: disk 1 with one drive, disk 2 in drive B
+     with two. All of F5 is for machines without a hard disk. Saving to it must work from every program, not only
      those with a menu: the plan to evaluate is a path per disk name
      (for example `/disks/ps1/letter.txt`), so that any program (`vi`,
      `cp`, later the desktop's save dialogs) can save there, and the
