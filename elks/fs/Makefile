@@ -42,7 +42,7 @@ ifdef CONFIG_EXEC_COMPRESS
 	OBJS += exodecr.o
 endif
 ifdef CONFIG_EXEC_LZ4
-	OBJS += lz4dec.o
+	OBJS += lz4dec.o lzsa1dec.o
 endif
 
 #########################################################################

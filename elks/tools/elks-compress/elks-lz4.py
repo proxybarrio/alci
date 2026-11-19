@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """elks-lz4: compress the text, far text and data of ELKS a.out executables
-with LZ4 (ALCI), for in-place decoding by the kernel (fs/lz4dec.S).
+with LZ4, or LZSA1 with ELKS_PACK_FMT=lzsa1 (ALCI), for in-place decoding by
+the kernel (fs/lz4dec.S, fs/lzsa1dec.S). LZSA1 uses the lzsa tool ($LZSA).
 
 usage: elks-lz4.py [-v] [-n] file...
 
@@ -20,6 +21,10 @@ import lz4.block
 MINIX_SPLITID = 0x04200301
 MINIX_SPLITID_AHISTORICAL = 0x04300301
 ESH_COMPR_LZ4 = 0x344C
+ESH_COMPR_LZSA1 = 0x3153
+import os
+FMT = os.environ.get('ELKS_PACK_FMT', 'lz4')     # lz4 or lzsa1
+LZSA = os.environ.get('LZSA', 'lzsa')            # LZSA compressor, for lzsa1
 HDR = '<IBBHIIIIHHI'         # struct minix_exec_hdr, 32 bytes
 SUPL = '<IIIIIIHHHH'         # struct elks_supl_hdr, 32 bytes
 
@@ -66,16 +71,81 @@ def inplace_ok(comp, dlen):
     return w == dlen
 
 
+def lzsa1_inplace_ok(comp, dlen):
+    """The same check for a raw LZSA1 block (BlockFormat_LZSA1.md)."""
+    s = max(0, dlen + margin(len(comp)) - len(comp))
+    s = (s + 15) & ~15
+    r = w = 0
+    n = len(comp)
+    try:
+        while True:
+            tok = comp[r]; r += 1
+            ll = (tok >> 4) & 7
+            if ll == 7:
+                b = comp[r]; r += 1
+                if b <= 248:
+                    ll = 7 + b
+                elif b == 250:
+                    ll = 256 + comp[r]; r += 1
+                else:
+                    ll = comp[r] | (comp[r + 1] << 8); r += 2
+            r += ll; w += ll
+            if w > s + r:
+                return False
+            lo = comp[r]; r += 1
+            hi = 0xff
+            if tok & 0x80:
+                hi = comp[r]; r += 1
+            off = ((hi << 8) | lo) - 65536
+            ml = tok & 15
+            if ml == 15:
+                b = comp[r]; r += 1
+                if b <= 237:
+                    ml = 18 + b
+                elif b == 239:
+                    ml = 256 + comp[r]; r += 1
+                else:
+                    ml = comp[r] | (comp[r + 1] << 8); r += 2
+                    if ml == 0:
+                        break           # end of data
+            else:
+                ml += 3
+            if w + off < 0:
+                return False
+            w += ml
+            if w > s + r:
+                return False
+    except IndexError:
+        return False
+    return w == dlen and r == n
+
+
+def run_lzsa(args, inp):
+    import subprocess, tempfile, os
+    with tempfile.TemporaryDirectory() as d:
+        a, b = os.path.join(d, 'a'), os.path.join(d, 'b')
+        open(a, 'wb').write(inp)
+        if subprocess.run([LZSA] + args + [a, b], capture_output=True).returncode:
+            return None
+        return open(b, 'rb').read()
+
+
 def pack(data):
     if not data:
         return None
-    c = lz4.block.compress(bytes(data), mode='high_compression',
-                           compression=12, store_size=False)
-    if len(c) >= len(data) or len(c) >= 65520:
-        return None
-    if lz4.block.decompress(c, uncompressed_size=len(data)) != bytes(data):
-        return None
-    if not inplace_ok(c, len(data)):
+    data = bytes(data)
+    if FMT == 'lzsa1':
+        c = run_lzsa(['-f1', '-r'], data)
+        if c is None or run_lzsa(['-d', '-f1', '-r'], c) != data:
+            return None
+        ok = lzsa1_inplace_ok(c, len(data))
+    else:
+        c = lz4.block.compress(data, mode='high_compression',
+                               compression=12, store_size=False)
+        if lz4.block.decompress(c, uncompressed_size=len(data)) != data:
+            return None
+        ok = inplace_ok(c, len(data))
+    if not ok or len(c) >= len(data) or len(c) >= 65520:
         return None
     return c
 
@@ -110,7 +180,7 @@ def do_file(path, verbose, dry):
     supl[6] = len(ct) if ct else 0
     supl[7] = len(cd) if cd else 0
     supl[8] = len(cf) if cf else 0
-    supl[9] = ESH_COMPR_LZ4
+    supl[9] = ESH_COMPR_LZSA1 if FMT == 'lzsa1' else ESH_COMPR_LZ4
     h[1] = 64
     out = struct.pack(HDR, *h) + struct.pack(SUPL, *supl) + \
         (ct or text) + (cf or ftext) + (cd or data) + rest

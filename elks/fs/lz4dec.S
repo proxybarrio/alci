@@ -4,15 +4,15 @@
 //                             unsigned int src_len, unsigned int dst_len)
 //
 // Decodes the LZ4 block at src_seg:0 (src_len bytes) to dst_seg:0.
-// Returns the number of bytes written, or 0xFFFF if the block is bad:
-// output past dst_len, input past src_len, or a match offset of zero or
-// pointing before the start of the output. Each segment is addressed
+// Returns the number of bytes written, or 0xFFFF if the block does not
+// end exactly at src_len (or a length overflows). Each segment is addressed
 // with offsets 0..len, so a block may be decoded in place, with the
 // source above the destination in memory, as long as the writer never
 // overtakes the reader (the packer checks this, see elks-lz4.py).
 //
-// Literals and matches are copied with rep movsb, which is also correct
-// for overlapping matches (offset shorter than the length).
+// Runs of 8 bytes or more are copied by words; a match whose source is
+// only one byte back (a repeated byte) is copied by bytes, which rep movsb
+// does correctly while the copy overlaps itself.
 // Assumes DS=SS on entry, saves SI, DI, BP and ES, as the other far
 // memory routines do.
 
@@ -42,89 +42,81 @@ lz4_decompress:
 	xor	%di,%di
 	cld
 
+// No checks per sequence: an executable is trusted code in real mode, and
+// the disk's own CRC catches damaged sectors. The result must still end
+// the input exactly, and the caller rejects one of the wrong length.
 next_token:
 	cmp	%bx,%si			// end of input: done
 	jae	done
 	lodsb
 	mov	%ax,%bp			// BP (low byte) = token
 	mov	$4,%cl
-	shr	%cl,%al
-	xor	%ch,%ch
-	mov	%al,%cl			// CX = literal length
-	cmp	$15,%cx
+	shr	%cl,%al			// AL = literal length, ZF if none
+	jz	2f
+	cbw
+	xchg	%ax,%cx			// CX = literal length
+	cmp	$15,%cl
 	jne	1f
-	call	ext_len			// add extension bytes to CX
+	call	ext_len
 1:
-	jcxz	2f
-	mov	%di,%ax			// output bounds: DI + CX <= DX
-	add	%cx,%ax
-	jc	bad
-	cmp	%dx,%ax
-	ja	bad
-	mov	%si,%ax			// input bounds: SI + CX <= BX
-	add	%cx,%ax
-	jc	bad
-	cmp	%bx,%ax
-	ja	bad
+	cmp	$8,%cx
+	jb	4f
+	shr	$1,%cx			// long run: words, then the odd byte
 	rep
+	movsw
+	adc	%cx,%cx
+4:	rep
 	movsb				// literals DS:SI -> ES:DI
 2:
 	cmp	%bx,%si			// last sequence has no match
 	jae	done
-	mov	%si,%ax			// two offset bytes must be there
-	add	$2,%ax
-	jc	bad
-	cmp	%bx,%ax
-	ja	bad
-	mov	%bp,%cx			// CL = token
 	lodsw				// AX = match offset
-	or	%ax,%ax
-	jz	bad
-	cmp	%di,%ax			// offset <= bytes produced
-	ja	bad
-	mov	%ax,%bp			// BP = offset
-	and	$15,%cx
-	cmp	$15,%cx
+	xchg	%ax,%bp			// BP = offset, AX = token
+	and	$15,%ax
+	xchg	%ax,%cx			// CX = match length - 4
+	cmp	$15,%cl
 	jne	3f
 	call	ext_len
 3:
 	add	$4,%cx			// minimum match length
-	jc	bad
-	mov	%di,%ax			// output bounds: DI + CX <= DX
-	add	%cx,%ax
-	jc	bad
-	cmp	%dx,%ax
-	ja	bad
-	push	%si
 	push	%ds
-	mov	%es,%ax
-	mov	%ax,%ds
+	mov	%si,%ax			// save SI
+	mov	%es,%si
+	mov	%si,%ds			// match source is in the output
 	mov	%di,%si
 	sub	%bp,%si			// source = output - offset
+	cmp	$2,%bp			// words when the source is 2+ bytes back
+	jb	5f
+	cmp	$8,%cx
+	jb	5f
+	shr	$1,%cx
 	rep
+	movsw
+	adc	%cx,%cx
+5:	rep
 	movsb
+	mov	%ax,%si
 	pop	%ds
-	pop	%si
 	jmp	next_token
 
-// CX += extension bytes (each 255 continues), with input bounds check
+// CX += extension bytes (each 255 continues); overflow is an error
 ext_len:
-	cmp	%bx,%si
-	jae	ext_bad
 	lodsb
-	xor	%ah,%ah
-	add	%ax,%cx
+	add	%al,%cl
+	adc	$0,%ch
 	jc	ext_bad
 	cmp	$255,%al
 	je	ext_len
 	ret
 ext_bad:
 	pop	%ax			// drop return address
-	jmp	bad
-
 bad:
 	mov	$0xFFFF,%di
+	jmp	9f
 done:
+	cmp	%bx,%si			// input must end exactly
+	jne	bad
+9:
 	mov	%di,%ax
 	pop	%ds
 	pop	%es

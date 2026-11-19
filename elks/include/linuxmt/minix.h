@@ -55,6 +55,7 @@ struct elks_supl_hdr {
 };
 
 #define ESH_COMPR_LZ4   0x344C  /* "L4" in esh_reserved (ALCI) */
+#define ESH_COMPR_LZSA1 0x3153  /* "S1" in esh_reserved (ALCI) */
 
 struct minix_reloc {
     uint32_t    r_vaddr;        /* address of place within section */
@@ -85,6 +86,8 @@ struct minix_reloc {
 
 /* elks/fs/exodecr.c - minix binary decompressor */
 extern unsigned int lz4_decompress(unsigned int src_seg, unsigned int dst_seg,
+    unsigned int src_len, unsigned int dst_len);
+extern unsigned int lzsa1_decompress(unsigned int src_seg, unsigned int dst_seg,
     unsigned int src_len, unsigned int dst_len);
 extern unsigned int decompress(char *buf, unsigned int seg, unsigned int orig_size,
     unsigned int compr_size, int safety);
