@@ -142,8 +142,14 @@ void do_exit(int status)
     current->state = TASK_EXITING;
     cancel_alarm(find_alarm(current));
     for (i = 0; i < MAX_SEGS; i++) {
-        if (current->mm[i])
+        if (current->mm[i]) {
+#ifdef CONFIG_EXEC_TEXT_CACHE
+            if (i == SEG_CODE)          /* keep the text for the next exec */
+                text_cache_put(current->mm[i], current->t_inode);
+            else
+#endif
             seg_put(current->mm[i]);
+        }
         current->mm[i] = 0;
     }
 

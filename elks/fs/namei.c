@@ -39,6 +39,9 @@ int permission(register struct inode *inode, int mask)
     struct task_struct *p;
 
     if (mask & MAY_WRITE) {     /* disallow writing over running programs */
+#ifdef CONFIG_EXEC_TEXT_CACHE
+        text_cache_drop(inode); /* a kept text of this file is stale */
+#endif
         p = &task[0];
         do {
             if (p->state <= TASK_STOPPED && (p->t_inode == inode))

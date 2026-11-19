@@ -220,6 +220,9 @@ int do_umount(kdev_t dev)
         }
         else if (sb->s_covered) {
             if (!sb->s_covered->i_mount) panic("umount");
+#ifdef CONFIG_EXEC_TEXT_CACHE
+            text_cache_flush(dev);      /* kept texts hold inodes of dev */
+#endif
             if (!fs_may_umount(dev, sb->s_mounted)) retval = -EBUSY;
             else {
                 retval = 0;

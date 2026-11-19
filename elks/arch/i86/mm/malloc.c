@@ -114,7 +114,7 @@ static segment_s * seg_split (segment_s * s1, SELEXT_T size0)
 
 // Get free segment
 
-static segment_s * seg_free_get (SELEXT_T size0, word_t type)
+static segment_s * seg_free_get1 (SELEXT_T size0, word_t type)
 {
     // First get the smallest suitable free segment
 
@@ -156,6 +156,24 @@ static segment_s * seg_free_get (SELEXT_T size0, word_t type)
     }
 
     return best_seg;
+}
+
+
+// Get free segment, freeing cached program texts while it fails (ALCI)
+
+static segment_s * seg_free_get (SELEXT_T size0, word_t type)
+{
+    segment_s * seg;
+
+    while (!(seg = seg_free_get1 (size0, type))
+#ifdef CONFIG_EXEC_TEXT_CACHE
+           && text_cache_evict()
+#else
+           && 0
+#endif
+          )
+        continue;
+    return seg;
 }
 
 

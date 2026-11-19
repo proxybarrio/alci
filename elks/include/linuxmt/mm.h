@@ -79,6 +79,15 @@ void seg_put (segment_s *);
 segment_s * seg_dup (segment_s *);
 segment_s * seg_dup_data (segment_s *, segoff_t, segoff_t);
 void seg_shrink (segment_s *, segext_t);
+
+#ifdef CONFIG_EXEC_TEXT_CACHE
+struct inode;
+void text_cache_put(segment_s *, struct inode *);
+segment_s *text_cache_take(struct inode *);
+void text_cache_drop(struct inode *);
+void text_cache_flush(kdev_t);
+int text_cache_evict(void);
+#endif
 void seg_free_pid(pid_t pid);
 
 extern list_s _seg_all;

@@ -239,6 +239,9 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
     size_t len, min_len, heap, stack = 0;
     size_t bytes;
     segext_t paras;
+#ifdef CONFIG_EXEC_TEXT_CACHE
+    int from_cache = 0;
+#endif
     ASYNCIO_REENTRANT struct minix_exec_hdr mh;         /* 32 bytes */
 #ifdef CONFIG_EXEC_MMODEL
     ASYNCIO_REENTRANT struct elks_supl_hdr esuph;       /* 24 bytes */
@@ -271,6 +274,10 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
         }
     } while (++currentp < &task[max_tasks]);
     currentp = current;
+#ifdef CONFIG_EXEC_TEXT_CACHE
+    if (!seg_code && (seg_code = text_cache_take(inode)) != 0)
+        from_cache = 1;                 /* we hold its reference */
+#endif
 
     min_len = (size_t)mh.dseg;
     if (add_overflow(min_len, (size_t)mh.bseg, &min_len)) {
@@ -532,6 +539,9 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
   code_seg_loaded: ;
 #endif
     } else {
+#ifdef CONFIG_EXEC_TEXT_CACHE
+        if (!from_cache)
+#endif
         seg_get (seg_code);
 
   code_seg_found_exec:
@@ -674,6 +684,11 @@ static void FARPROC finalize_exec(struct inode *inode, segment_s *seg_code,
     /* From this point, the old code and data segments are not needed anymore */
     for (i = 0; i < MAX_SEGS; i++) {
         if (currentp->mm[i]) {
+#ifdef CONFIG_EXEC_TEXT_CACHE
+            if (i == SEG_CODE && !multisegment)     /* keep the old text */
+                text_cache_put(currentp->mm[i], currentp->t_inode);
+            else
+#endif
             seg_put(currentp->mm[i]);
             currentp->mm[i] = 0;
         }
