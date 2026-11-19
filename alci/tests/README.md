@@ -39,3 +39,19 @@ Procedure: build images for the patched tree and for the previous commit (a
 git worktree), run the suite on each machine, diff the outputs. They must be
 identical, except where upstream fails and Alci does not (record it in
 `RESULTS.md`).
+
+## Strict checking
+
+`qtest.py` and `t86.py` exit 0 even after a TIMEOUT, ignore a missing
+prompt, and are normally judged by comparing with ELKS output, so a failure
+shared by both systems passes. For acceptance use the strict tools:
+
+- `sq.py <image> <fd|hd> <cpu> <mem_kb> <suite> <rawlog>`: QEMU driver that
+  checks the echo of each command and the return of the prompt, lists the
+  commands not run, and exits 1 on any problem.
+- `st86.py <machine> <image> <suite> [--times]`: the same for 86Box (same
+  machines and options as `t86.py`; `RAWLOG=<file>` saves the serial log).
+- `check.py <suite> <output> <image>`: checks every command of
+  `functional.txt` against expected values computed from the image itself
+  (file lists, checksums, /etc/passwd), and reports TIMEOUT, SKIPPED,
+  NOECHO, ECHOBAD, NOPROMPT and wrong output as FAIL. Exit 1 on any FAIL.
