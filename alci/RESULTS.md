@@ -596,6 +596,107 @@ PC1512, AT, 386; 1.44M, hd32 and the T1200's own disk boot. Also measured:
 putting `/bootopts` and `/linux` first in `image/Image.all` was 0.4 s
 slower than upstream's order, which stays.
 
+## Network drivers released when no card is found, task A5 (2026-11-19)
+
+Alci `6feabbf1` against `6e094135`, same toolchain and configuration
+(`alci/elks.config`: NE2000, WD8003 and 3C509 drivers on). Kernel image
+106864 -> 107520 bytes (near code 59760 -> 55728, far code 29808 ->
+34464, data 9520 -> 9552, bss 7776). Areas given back at boot when the
+card is not found: NE2000 1904, WD8003 1952, 3C509 1744 bytes.
+
+Main memory (`meminfo`, after boot):
+
+| Machine, card | before | after |
+| --- | --- | --- |
+| QEMU 486, hd32, no card | 484K | 489K |
+| QEMU 486, hd32, NE2000 | - | 488K |
+| 86Box XT, 720K, no card | 485K | 490K |
+| 86Box XT, 720K, PicoMEM NE2000 | 486K | 489K |
+| 86Box XT, 720K, WD8003E | 486K | 489K |
+
+Network on the 86Box XT (8088 4.77 MHz, `d4f9a04` with PicoMEM patch),
+`urlget` of a 30000-byte file over slirp: `md5sum` right with both cards
+and both builds; to `/dev/null`, two runs each:
+
+| Card | before | after |
+| --- | --- | --- |
+| NE2000 (PicoMEM) | 2.85, 2.77 s | 2.86, 2.79 s |
+| WD8003E | 2.81, 2.63 s | 2.66, 2.65 s |
+
+QEMU with an NE2000: `ktcp` up, two 30000-byte downloads with the right
+`md5sum`. 3C509: 86Box's 3C509B is not found by the driver, before or
+after (not tested with a card). SMC Ultra and PCnet: compiled, not run.
+
+MartyPC `elks-bench` `e1c5187`, `bench.sh` and `bench2.sh` commands on
+720K images of the two kernels (same programs), emulated seconds:
+
+| Benchmark | before | after |
+| --- | --- | --- |
+| `cat` of 200 lines to `/dev/null` | 3.944 | 3.881 |
+| `cat` of 200 lines to screen | 1.509, 1.514 | 1.509, 1.514 |
+| `ls -l /bin`, from floppy | 7.487 | 7.349 |
+| `ls -l /bin`, cached | 3.941 | 3.946 |
+| boot to prompt | 13.631 | 13.677 |
+| `cat /bin/sh > /dev/null` | 1.542 | 1.501 |
+| `cat /bin/vi > /dev/null` | 4.120 | 3.852 |
+| 10 runs of `pwd` | 1.534 | 1.497 |
+| three-stage pipe | 4.145 | 3.886 |
+| `sort` on 20 KB | 5.446 | 5.421 |
+| `grep` on 20 KB | 2.574 | 2.545 |
+
+Suites 34/34: hard disk on QEMU and 86Box AT, floppy on QEMU and 86Box XT.
+
+## Date asked at boot, task E7 point 4 (2026-11-19)
+
+Alci `70b577df`. `clock -c -u` runs in `rc.sys` after the network start.
+QEMU with a full boot (init, `rc.sys`, getty on the serial line):
+
+| RTC at power on | answer | result |
+| --- | --- | --- |
+| 2020-01-01 | `202611191230` | date and RTC set to 19 Nov 2026 12:30; a second `clock -c` asks nothing |
+| 2020-01-01 | Enter | date kept, boot goes on |
+| 2020-01-01 | `bad` | asked again |
+| 2020-01-01 | nothing | boot goes on after 60.3 s |
+| 2026-12-01 | - | no question |
+
+`clock` 3936 -> 4784 bytes; 720K disk 1: 122 -> 121 KB free. Suites 34/34
+(QEMU hard disk, 86Box XT floppy); test images boot with `init=/bin/sh`,
+so `rc.sys` does not run there.
+
+## Corrupted LZSA1 programs, review of F4b (2026-11-19)
+
+Alci `70b577df`, 720K image, QEMU 486. Twelve copies of `/bin/grep`
+(LZSA1, 7383 compressed bytes of text) each with a different corruption
+(one bit flipped, 8 to 1000 bytes overwritten in the text or the data,
+256 zero bytes, the end marker removed), each started in a fresh boot:
+
+| Outcome | copies |
+| --- | --- |
+| ran normally (byte in the data section) | 1 |
+| rejected by exec (wrong length), shell then tried it as a script | 3 |
+| ran and was stopped (stack overflow, `SIGSEGV`), system fine | 1 |
+| whole system hung (CPU found running BIOS code) | 7 |
+
+Host model of the decoder (`alci/tests/lzsa1-model.py`, same steps as
+`lzsa1dec.S`, decoding in place as exec does), 500 corruptions of each
+kind on the same `grep`:
+
+| Corruption | accepted | rejected | wrote outside the segment |
+| --- | --- | --- | --- |
+| one bit flipped | 428 | 72 | 13 |
+| one byte replaced | 438 | 62 | 14 |
+| 16 bytes replaced | 107 | 393 | 168 |
+| tail replaced by random bytes | 0 | 500 | 500 |
+| tail replaced by zeros | 0 | 500 | 500 |
+
+"Accepted" means the block decodes to the right length: the program then
+runs with wrong code, as an uncompressed program with the same damage
+would. "Wrote outside" means the decoder wrote past the segment exec
+allocated, up to 64 KB of other memory, kernel included; nearly all of
+them wrote 64 KB without reaching an end marker. A file cut short is
+rejected before decoding (exec checks the bytes read); a file of the right
+size with a damaged tail is not. Plan: task F4c.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

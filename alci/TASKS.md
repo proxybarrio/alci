@@ -120,16 +120,16 @@ The agent takes the first `TODO` from the top.
   18.19 s on the 8086; boots on every 86Box machine and QEMU. Needs a
   test on the real T1200 (boot block). Next: point 2, then 3.
 
-- [ ] A5 `TODO` Release network card drivers that find no card, as done for
-  EDD (the same rule for every optional device). Resident
-  cost today with no card present (2026-11-16, Alci 3ecae5b): NE2000 2135
-  bytes (`ne2k.o` + `ne2k-asm.o`), WD8003 2303, 3C509 2116, about 6.5 KB in
-  all. Put each driver's run-time code in its own paragraph-aligned
-  `.fartext.<drv>` section, mark the driver absent at boot when the probe
-  fails, guard every entry point (open returns ENODEV without calling into
-  freed code), and give the region back to the memory manager. Check on
-  86Box with and without the PicoMEM card, with the functional suite and
-  with `ktcp` plus `urlget`.
+- [x] A5 `DONE 2026-11-19` Release network card drivers that find no card,
+  as done for EDD. Driver operations are far (`struct eth_farops`); the
+  NE2000, WD8003 and 3C509 drivers keep their run-time code in their own
+  aligned sections, given back at boot when the card is not found. Freed:
+  NE2000 1904, WD8003 1952, 3C509 1744 bytes; image +656 bytes, so 4.9 KB
+  more free memory with no card and 3 KB with one card. Tested with an
+  NE2000 (QEMU, 86Box PicoMEM) and a WD8003E (86Box): `ktcp`, `urlget`,
+  same speed. Not tested with a 3C509: 86Box's 3C509B is not found by
+  either build. SMC Ultra and PCnet are compiled only (far operations,
+  resident). See `RESULTS.md`.
 - [ ] A4 `TODO` Adopt os8088's MartyPC patch set (github.com/jggonz/os8088,
   `tools/martypc/`, MIT): 17 patches plus `debug_server.rs`, pinned to
   MartyPC `e15cb04f` (2026-06-28). Checked 2026-11-16: all 17 apply in
@@ -259,7 +259,7 @@ The agent takes the first `TODO` from the top.
   time, and on which disk it goes (disk 3 on 720K, and on 1.44M if it does
   not fit). Until then, a way that works today: `telnet` from Alci to a
   machine on the desk (a Raspberry Pi), and `ssh` from there.
-- [ ] E7 `TODO` (low priority) Clock from the network, time zone from the
+- [ ] E7 `DOING` (low priority) Clock from the network, time zone from the
   user. The clock is kept in UTC and the time zone is never fixed in the
   sources:
   1. Time zone: asked once (at install or first boot, from a short list of
@@ -280,6 +280,11 @@ The agent takes the first `TODO` from the top.
   The commented `date -s` example in `/etc/net.cfg` stays as it is; this
   task adds an alternative. Measure size of the client (target
   under 4 KB) and keep it out of memory when no network is present.
+  Point 4 done 2026-11-19, the question part: `clock -c` in `rc.sys`,
+  after the network start, asks for the date when it is older than the
+  day `clock` was built; Enter keeps it, no answer lets the boot go on
+  after 60 s; a typed date is also written to the RTC. Next: the SNTP
+  client (points 1-3); the `net.cfg` example is unchanged.
 
 ## Phase 6: universal image
 
@@ -417,6 +422,26 @@ Rules for the floppy set (decided 2026-11-19):
   hard disk images later; (`meminfo` shows kept texts as KEPT and
   counts them as free, done 2026-11-19); with the
   space gained, fewer disks in the 720K set (to discuss).
+- [ ] F4c `TODO` Robust LZSA1 decoding (from a review of F4b). Today the
+  decoder trusts the block and exec only rejects a result of the wrong
+  length. On QEMU, 7 of 12 hand-corrupted copies of `grep` hung the whole
+  system; a host model of the decoder (`tests/lzsa1-model.py`) shows why:
+  some corruptions (and almost every tail of zeros, as an interrupted
+  write leaves) never reach an end marker and write over the 64 KB above
+  the segment, kernel included. Plan: in `lzsa1dec.S`, before each
+  literal and match copy, stop when the output would pass the allocated
+  size or the input pass its length (both are already passed in), and
+  return an error; measure the cost (expected a few cycles per sequence,
+  about 1% of decoding) and the size. Then the corruption test in
+  emulation: no corrupted file may hang the system. A checksum is not
+  needed for floppies (the controller checks every sector); downloaded
+  packages will carry their own hash (E0c, F5).
+- [ ] F4d `TODO` Text cache, small fix: a cached program file that is
+  unlinked without being opened for writing (`mv` over it) keeps its
+  disk blocks until the entry leaves the cache (checked on QEMU: `sed`
+  replaced by `mv`, its 14 KB came back only after five other programs
+  ran). `rm` is not affected (it checks write access, which drops the
+  entry). Drop the entry when the link count reaches zero.
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 

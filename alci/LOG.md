@@ -120,4 +120,12 @@
   prepared, not sent.
 - A3 point 1: the floppy boot loader keeps the inode block; boot 0.6 s
   faster on the XT. Needs a test on the real T1200.
-
+- A5 done: the NE2000, WD8003 and 3C509 drivers give their code back at
+  boot when no card is found (about 1.9 KB each). With no card 4.9 KB
+  more free memory, with one card 3 KB; network speed unchanged.
+- E7 point 4: when the date is older than the system, `rc.sys` asks for
+  it after the network start (`clock -c`); no answer in 60 s, boot goes
+  on. The network time client is still to do.
+- Review of F4b: corrupted LZSA1 programs can hang the system (7 of 12 on
+  QEMU); a host model shows the decoder writing past its segment. Tasks
+  F4c (bounds checks in the decoder) and F4d (text cache and `mv`).
