@@ -365,7 +365,8 @@ Rules for the floppy set (decided 2026-11-19):
      disk holds each program. A command that is not on the disk in use
      gets an answer like "tar is on disk 2 Tools: insert it and press
      Enter"; the program is loaded, then disk 1 is asked for again.
-  3. Document disks, called "Personal Storage" with a sequential number
+  3. Document disks, called "Personal Storage" with a sequential number,
+     in FAT format so that any PC can read them (decided 2026-11-19)
      (decided 2026-11-19): any blank floppy can become one, and gets the
      next free number ("Personal Storage 1", "Personal Storage 2"...),
      kept in the list of known disks on disk 1; the number is also in its
@@ -389,15 +390,28 @@ Rules for the floppy set (decided 2026-11-19):
   in order: labels and the `disk` command, the catalogue and the
   missing-command message, document disks on two drives, then single
   drive swaps (kernel work, F3 step 3). Test on 86Box XT, T1200, AT.
-- [ ] F4b `TODO` Faster `exec` decompression: the in-kernel exomizer
-  decruncher (`elks/fs/exodecr.c`, C with a far pointer per byte) costs
-  about 0.7 s per KB on the 8088 (F4 point 0). First candidate: LZ4, which
-  os8088 ships for every file because it expands about four times faster
-  than better-ratio formats (`docs/os8088-study.md`; its 8086 decoder is
-  MIT). Otherwise profile exomizer on MartyPC and write its inner loop in
-  assembly; adopt compression for the 720K image
-  only if starting `vi`, `cat` and the others from floppy is then not
-  slower than plain.
+- [ ] F4b `DOING` Faster compressed executables. Done (2026-11-19): LZ4
+  in `exec`, experimental and off by default (`CONFIG_EXEC_LZ4`,
+  `CONFIG_APPS_COMPRESS_LZ4`, `elks-lz4.py`): 73 KB freed on the 720K
+  disk, first starts from floppy faster (grep -7% XT, -11% 8086), starts
+  from the cache slower (grep x10 +50%), about 1 KB of kernel when on.
+  Figures in `RESULTS.md`. Not to be dropped without the maintainer.
+  Next, in order:
+  1. A faster decoder: fewer checks per token, word copies for long
+     literals and for matches whose offset is 2 or more, measured on
+     MartyPC per byte produced.
+  2. Other formats with fast 8088 decoders, measured the same way and with
+     the licence checked: LZSA1 and LZSA2 (made for 8-bit and 8088
+     machines, with published 8088 decoders), the fast LZ4 8088 decoders
+     published by others, and for comparison ZX0 and aPLib (better ratio,
+     slower). Keep the best trade.
+  3. A rule for what to compress: large programs rarely started in loops
+     (`vi edit ftp ftpd ktcp fsck sed diff find fdisk`: about 40 KB) and
+     not the small tools used in scripts.
+  4. Shrink the cost in `exec` (one helper for the three sections).
+  5. Idea to evaluate, wider: keep the text segment of a program that has
+     just exited in free memory until the memory is needed, so that a
+     repeated start copies nothing at all, compressed or not.
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 

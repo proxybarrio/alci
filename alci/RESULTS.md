@@ -444,6 +444,36 @@ with the test disk now carrying also `wc head cmp sleep xargs yes`, and no
 `/b.txt` on fd720 so that `/tmp` fits): 34/34 on xt, t1200, pc1512, at,
 386 and QEMU.
 
+## LZ4 compressed executables, task F4b (MartyPC, 2026-11-19)
+
+Alci `ce5e04a7` built twice with the same kernel (`CONFIG_EXEC_LZ4=y`):
+720K image plain, and with `CONFIG_APPS_COMPRESS_LZ4` (programs packed by
+`elks-lz4.py`, only when they save a 1K block; `sh`, `ls` and `ps` stay
+plain as upstream marks them). MartyPC `elks-bench` `d6f5ca8`, floppy
+rotation model on, emulated seconds.
+
+Space: 686 -> 613 blocks in use on the 720K image (73 KB freed; exomizer
+freed 130). Correctness: `functional-fd.txt` 34/34 on QEMU, IBM XT and
+IBM AT with the LZ4 image.
+
+| Command | XT 8088 4.77 plain | XT LZ4 | 8086 7.16 plain | 8086 LZ4 |
+| --- | --- | --- | --- | --- |
+| boot to prompt | 18.36 | 17.66 | 15.52 | 14.97 |
+| `grep`, first run from floppy | 4.19 | 3.90 | 3.88 | 3.45 |
+| `grep` 10 times, from the cache | 2.23 | 3.35 | 1.03 | 1.58 |
+| `sort`, first run | 2.02 | 1.96 | 2.02 | 1.89 |
+| `sort` 10 times, from the cache | 2.40 | 3.14 | 1.13 | 1.49 |
+| `pwd` 10 times (not compressed) | 1.82 | 1.80 | 1.09 | 0.89 |
+| `vi -r`, first run | 4.94 | 4.46 | | |
+
+A program read from the floppy starts faster (less to read), one already
+in the buffer cache starts slower: the decoder costs about 54 cycles per
+byte produced on the 8088, against about 10 for copying a plain program
+out of the cache. Kernel cost when the option is on: about 1 KB resident
+(`exec.o` +803 bytes, `lz4dec.o` 174, `seg_shrink`); nothing when off,
+which is the default. Not adopted yet: the repeated-start slowdown breaks
+V2.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

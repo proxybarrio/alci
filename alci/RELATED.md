@@ -40,3 +40,5 @@ Nano-X. This note was first written outside this repository and checked on
 2026-11-16, with further projects found by web search the same day; details of other projects may change.
 
 Study of os8088's distribution and what Alci takes from it: `docs/os8088-study.md` (2026-11-19).
+
+LZ4 (2026-11-19): the block format is public (BSD-2-Clause reference library); the host packer uses the Python `lz4` module (BSD-3-Clause) and runs outside ELKS; the kernel decoder `elks/fs/lz4dec.S` is our own, no code copied.

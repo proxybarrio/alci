@@ -93,4 +93,8 @@
   not on it. `wc head cmp sleep xargs yes` stay on disk 2 (disk 1 keeps
   its 41 KB of working room). Long-term aim in `STRATEGY.md`: disk 1
   boots into the graphical interface.
+- Study of os8088's distribution (`docs/os8088-study.md`). Personal
+  Storage disks will be FAT. F4b started: LZ4 executables work (34/34,
+  73 KB freed on 720K) but are kept off by default: faster from floppy,
+  slower from the cache. Next: a faster decoder and other formats (LZSA).
 
