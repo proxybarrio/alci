@@ -23,6 +23,10 @@ if test "$net" != ""; then
 	net start $net
 fi
 
+# no clock, or a clock behind the day this system was built: ask for the
+# date, after the network had its chance to set it (Enter or 60 s skip)
+clock -c -u
+
 # View message of day
 #if test -f /etc/motd; then
 #	cat /etc/motd

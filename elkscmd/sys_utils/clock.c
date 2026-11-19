@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
+#include <sys/select.h>
 #include <string.h>
 #include <arch/irq.h>
 #include <arch/io.h>
@@ -163,6 +164,7 @@ int writeit;
 int setit;
 int universal;
 int astclock;
+int checkit;
 int verbose;
 
 void do_gettime(struct tm *);
@@ -201,7 +203,7 @@ int  cmos_probe(void);
 
 int usage(void)
 {
-    errmsg("clock [-u] {-r,-w,-s,-A}\n");
+    errmsg("clock [-u] {-r,-w,-s,-c,-A}\n");
     exit(1);
 }
 
@@ -249,13 +251,97 @@ time_t utc_mktime(struct tm *t)
     return ret;
 }
 
+/* ALCI: the day this program was built, from __DATE__ ("Nov 19 2026") */
+#define BUILD_YEAR  ((__DATE__[7] - '0') * 1000 + (__DATE__[8] - '0') * 100 + \
+                     (__DATE__[9] - '0') * 10 + (__DATE__[10] - '0'))
+#define BUILD_MON   (__DATE__[0] == 'J' ? (__DATE__[1] == 'a' ? 0 : __DATE__[2] == 'n' ? 5 : 6) : \
+                     __DATE__[0] == 'F' ? 1 : \
+                     __DATE__[0] == 'M' ? (__DATE__[2] == 'r' ? 2 : 4) : \
+                     __DATE__[0] == 'A' ? (__DATE__[1] == 'p' ? 3 : 7) : \
+                     __DATE__[0] == 'S' ? 8 : __DATE__[0] == 'O' ? 9 : \
+                     __DATE__[0] == 'N' ? 10 : 11)
+#define BUILD_DAY   ((__DATE__[4] == ' ' ? 0 : __DATE__[4] - '0') * 10 + (__DATE__[5] - '0'))
+
+#define ASK_SECONDS 60          /* then boot goes on with the date as it is */
+
+/*
+ * -c (ALCI): when the date is older than the day this system was built, the
+ * clock is missing or wrong: ask for the date, set it and write it to the
+ * RTC. Enter keeps the date; with no answer the boot goes on by itself.
+ */
+static int two(char *p)
+{
+    return (p[0] - '0') * 10 + p[1] - '0';
+}
+
+static void check_date(void)
+{
+    struct tm tm;
+    struct timeval tv;
+    struct timezone tz;
+    fd_set fds;
+    time_t t = time(NULL);
+    char buf[32], dig[12];
+    int n, i, d;
+
+    memset(&tm, 0, sizeof(tm));
+    tm.tm_year = BUILD_YEAR - 1900;
+    tm.tm_mon = BUILD_MON;
+    tm.tm_mday = BUILD_DAY;
+    if (t >= utc_mktime(&tm) || getuid() != 0)
+        return;
+
+    outmsg("Date is older than this system: ");
+    outstr(ctime(&t));
+    for (;;) {
+        outmsg("New date YYYYMMDDhhmm (Enter keeps it): ");
+        FD_ZERO(&fds);
+        FD_SET(STDIN_FILENO, &fds);
+        tv.tv_sec = ASK_SECONDS;
+        tv.tv_usec = 0;
+        if (select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv) <= 0) {
+            outmsg("\n");
+            return;
+        }
+        n = read(STDIN_FILENO, buf, sizeof(buf));
+        for (i = d = 0; i < n && d < 12; i++)
+            if (buf[i] >= '0' && buf[i] <= '9')
+                dig[d++] = buf[i];
+        if (n <= 0 || buf[0] == '\n')
+            return;             /* Enter keeps the date */
+        if (d < 12)
+            continue;
+        tm.tm_year = two(dig) * 100 + two(dig + 2) - 1900;
+        tm.tm_mon = two(dig + 4) - 1;
+        tm.tm_mday = two(dig + 6);
+        tm.tm_hour = two(dig + 8);
+        tm.tm_min = two(dig + 10);
+        if (tm.tm_year >= 70 && (unsigned)tm.tm_mon < 12 && tm.tm_mday > 0
+                && tm.tm_mday < 32 && tm.tm_hour < 24 && tm.tm_min < 60)
+            break;
+    }
+
+    /* the typed time is local time */
+    tzset();
+    t = utc_mktime(&tm) + timezone;
+    tv.tv_sec = t;
+    tv.tv_usec = 0;
+    tz.tz_minuteswest = 0;
+    tz.tz_dsttime = DST_NONE;
+    if (settimeofday(&tv, &tz) != 0) {
+        errmsg("clock: unable to set time\n");
+        return;
+    }
+    do_settime(universal ? gmtime(&t) : localtime(&t));
+}
+
 int main(int argc, char **argv)
 {
     struct tm tm;
     time_t systime;
     int    arg;
 
-    while ((arg = getopt(argc, argv, "rwsuvA")) != -1) {
+    while ((arg = getopt(argc, argv, "rwscuvA")) != -1) {
         switch (arg) {
         case 'r':
             readit = 1;
@@ -265,6 +351,9 @@ int main(int argc, char **argv)
             break;
         case 's':
             setit = 1;
+            break;
+        case 'c':
+            checkit = 1;
             break;
         case 'u':
             universal = 1;
@@ -293,8 +382,13 @@ int main(int argc, char **argv)
     ds3231_init();
 #endif
 
-    if (readit + writeit + setit > 1)
+    if (readit + writeit + setit + checkit > 1)
         usage();                /* only allow one of these */
+
+    if (checkit) {
+        check_date();
+        return 0;
+    }
 
     if (!(readit | writeit | setit))    /* default to read */
         readit = 1;
