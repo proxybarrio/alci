@@ -296,6 +296,22 @@ installation and for floppy-only machines.
      commands on small files (for example `/etc/passwd` and a 4 KB file)
      so each feature is still exercised; the hard disk keeps the full
      suite. Fix the `tar-ok` check so it fails when `cd x` fails.
+  0. First lever, already in the tree: the kernel is built with
+     `CONFIG_EXEC_COMPRESS=y` but the images are made with
+     `CONFIG_APPS_COMPRESS` off. Running `elks-compress` (exomizer) on the
+     69 programs of the 720K image (Alci 6f813ff1) takes them from 516 to
+     373 blocks of 1 KB: 143 KB freed, enough for all the missing programs
+     of point 1 without moving anything. Before adopting it, measure on
+     MartyPC (xt and t1200) the time to start `sh`, `vi`, `ls` and `cat`
+     compressed and plain (less to read from the floppy, more CPU work to
+     decompress) and the memory needed while decompressing. Keep it only
+     if starting programs from floppy is not slower and no program stops
+     fitting in memory; on hard disk images decide separately.
+  Further, smaller levers to evaluate: a multi-call binary (`busyelks`,
+  already in the tree) for the small tools, so the libc code they share is
+  stored once; the space lost in the last block of each file (about 31 KB
+  over 69 files with 1 KB blocks). Comments are not a lever: programs are
+  compiled, and the text files in `/etc` add up to a few KB.
   Acceptance: 34/34 on the 720K image on xt, t1200, pc1512, at, 386 and
   QEMU, with the strict checker. The same image layout can be offered to
   ELKS as a proposal, since its 720K image has the same gaps.
