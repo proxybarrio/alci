@@ -66,6 +66,12 @@ The agent takes the first `TODO` from the top.
   subtract 100 first. Reproduce on 86Box (AT and 386): `date -s`, `clock
   -w`, reboot, and see what the BIOS setup and `clock -r` show. If
   confirmed, the fix is a few lines and a candidate to offer upstream.
+- [ ] S3 `TODO` On 86Box `at` (286, 512K) with the fd720 image, Alci
+  `6f813ff1` prints `sh: not enough memory` six times in functional
+  command 9 (eight `sh -c` in background); ELKS `df2a61c5` passes it on the
+  same image and machine. With hd32 it is the reverse (ELKS fails, Alci
+  passes). Find what takes the extra memory on the floppy image (buffers,
+  track cache, kernel size) and fix it without losing the hd32 result.
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser
