@@ -501,7 +501,7 @@ void cmos_gettime(struct tm *tm)
 
 void cmos_settime(struct tm *tmp)
 {
-    unsigned char save_control, save_freq_select;
+    unsigned char save_control, save_freq_select, century;
 
     save_control = cmos_read(11);       /* tell the clock it's being set */
     cmos_write(11, (save_control | 0x80));
@@ -514,7 +514,13 @@ void cmos_settime(struct tm *tmp)
     cmos_write_bcd(6, tmp->tm_wday + 3);
     cmos_write_bcd(7, tmp->tm_mday);
     cmos_write_bcd(8, tmp->tm_mon + 1);
-    cmos_write_bcd(9, tmp->tm_year);
+    cmos_write_bcd(9, tmp->tm_year % 100);  /* two BCD digits: 126 -> 0x26 */
+    /* IBM AT century byte (CMOS 0x32), written only where it already holds a
+     * BCD century, so that a machine using 0x32 for something else is left
+     * alone (ALCI) */
+    century = cmos_read(0x32);
+    if (century == 0x19 || century == 0x20)
+        cmos_write_bcd(0x32, 19 + tmp->tm_year / 100);
 
     cmos_write(10, save_freq_select);
     cmos_write(11, save_control);
