@@ -115,4 +115,9 @@
   the inode block and to waits for sector 1. Plan in `TASKS.md`.
 - `meminfo`: texts kept by the text cache are listed as KEPT and counted as
   free memory, since they are given back on demand.
+- S2 done: `clock -w` wrote an invalid year to the AT's CMOS after 1999;
+  fixed (two-digit BCD year, century byte where present). Patch for ELKS
+  prepared, not sent.
+- A3 point 1: the floppy boot loader keeps the inode block; boot 0.6 s
+  faster on the XT. Needs a test on the real T1200.
 

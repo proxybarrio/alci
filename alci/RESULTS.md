@@ -577,6 +577,25 @@ stress on the XT: no byte lost, longest wait 386 us (as before); `sleep
 60` takes 60.36 s on the XT (60.37 before); eight background `sh -c` on
 the 512K AT all start.
 
+## Floppy boot, task A3 point 1 (MartyPC, 2026-11-19)
+
+Alci `6d338ea9` against `958f9203`, 720K image with the normal `bootopts`
+(init, `rc.sys`, getty), MartyPC `elks-bench` `e1c5187`, `ELKS_FDROT=9`,
+time to the `login:` prompt (and to the shell prompt with `init=/bin/sh`):
+
+| Machine | before | after |
+| --- | --- | --- |
+| IBM XT 8088 4.77, to `login:` | 22.81 | 22.21 |
+| IBM XT 8088 4.77, to `#` | 17.86 | 17.26 |
+| 8086 7.16 MHz, to `login:` | 18.79 | 18.19 |
+| 8086 7.16 MHz, to `#` | 14.97 | 14.37 |
+
+The boot loader no longer re-reads the inode block for `/bootopts` and
+`/linux`. Floppy suite 34/34 on QEMU and 86Box XT, XT with V20, T1200,
+PC1512, AT, 386; 1.44M, hd32 and the T1200's own disk boot. Also measured:
+putting `/bootopts` and `/linux` first in `image/Image.all` was 0.4 s
+slower than upstream's order, which stays.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

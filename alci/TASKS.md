@@ -64,13 +64,14 @@ The agent takes the first `TODO` from the top.
   handler itself; a later task could shorten those (MartyPC meter
   `ELKS_IRQOFF`). At the console, the keyboard handler keeps IRQ 1 in
   service for up to 1 ms, which blocks COM1 too (seen on MartyPC).
-- [ ] S2 `TODO` Check `clock -w` on AT-class machines after 1999.
-  `cmos_settime()` in `elkscmd/sys_utils/clock.c` writes `tm_year` (126 for
-  2026) to CMOS register 9 as BCD, giving 0xC6, which is not valid BCD; the
-  century register is not written. The other RTC paths in the same file
-  subtract 100 first. Reproduce on 86Box (AT and 386): `date -s`, `clock
-  -w`, reboot, and see what the BIOS setup and `clock -r` show. If
-  confirmed, the fix is a few lines and a candidate to offer upstream.
+- [x] S2 `DONE 2026-11-19` `clock -w` on AT-class machines after 1999:
+  confirmed on 86Box IBM AT and ECS 386 (register 9 = 0xC6 for 2026, not
+  BCD). Fixed in `958f9203`: two-digit BCD year, and the IBM AT century
+  byte (CMOS 0x32) written only where it already holds 0x19 or 0x20.
+  2026 -> 0x26, 1999 -> 0x99 with century 0x19; `clock -r` reads both
+  back. Patch for ELKS in `alci/upstream/`. Seen and left alone: the day
+  of week is written as 3-9 (Sunday = 3), which 86Box's RTC also uses
+  but is outside the 1-7 range of a real MC146818.
 - [x] S3 `DONE 2026-11-19` Out of memory on 86Box `at` (286, 512K) with the
   fd720 image (`sh: not enough memory` in functional command 9). Cause: the
   data segment size included the exact length of argv and envp, so
@@ -114,8 +115,10 @@ The agent takes the first `TODO` from the top.
   2. It reads one head per call and waits about 50 ms for the other head.
   3. In the kernel, track reads start at sector 1 and wait 150-190 ms for
      it on most new tracks.
-  Next: 1 (boot loader keeps the inode), then 2; both touch the boot
-  sector, so they need a test on the real T1200 before release.
+  Point 1 done in `6d338ea9` (2026-11-19): the boot loader keeps the
+  inode block; boot to `login:` 22.81 -> 22.21 s on the 8088, 18.79 ->
+  18.19 s on the 8086; boots on every 86Box machine and QEMU. Needs a
+  test on the real T1200 (boot block). Next: point 2, then 3.
 
 - [ ] A5 `TODO` Release network card drivers that find no card, as done for
   EDD (the same rule for every optional device). Resident
