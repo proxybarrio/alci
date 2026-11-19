@@ -25,6 +25,7 @@ static byte_t sb_block [BLOCK_SIZE];  // super block block buffer
 static char linux[] = "/linux";
 static int i_now;
 static int i_boot;
+static int ib_last = -1;             // inode block in i_block (ALCI)
 static unsigned loadaddr;
 static int ib_first;                 // inode first block
 
@@ -79,7 +80,9 @@ void load_prog ()
 	// Avoid reuse of an old copy of /bootopts in memory
 	// if we're rebooting with no /bootopts
 	int __far *optseg = _MK_FP(OPTSEG, 0);
-	*optseg = i_boot = i_now = r_n = 0;
+	int zero = 0;
+	__asm__ ("" : "+a" (zero));	// a zero in AX: shorter stores than immediates
+	*optseg = i_boot = i_now = r_n = zero;
 
 	load_super();
 	load_file ();
@@ -156,7 +159,8 @@ static void load_inode ()
 	// Compute inode block and load if not cached
 
 	int ib = ib_first + i_now / INODES_PER_BLOCK;
-	disk_read_blk (ib, 2, i_block, seg_data ());
+	if (ib != ib_last)	// the root, /bootopts and /linux share a block (ALCI)
+		disk_read_blk (ib_last = ib, 2, i_block, seg_data ());
 
 	// Get inode data
 
