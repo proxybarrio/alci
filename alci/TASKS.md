@@ -391,8 +391,11 @@ Rules for the floppy set (decided 2026-11-19):
   drive swaps (kernel work, F3 step 3). Test on 86Box XT, T1200, AT.
 - [ ] F4b `TODO` Faster `exec` decompression: the in-kernel exomizer
   decruncher (`elks/fs/exodecr.c`, C with a far pointer per byte) costs
-  about 0.7 s per KB on the 8088 (F4 point 0). Profile it on MartyPC and
-  write the inner loop in assembly; adopt compression for the 720K image
+  about 0.7 s per KB on the 8088 (F4 point 0). First candidate: LZ4, which
+  os8088 ships for every file because it expands about four times faster
+  than better-ratio formats (`docs/os8088-study.md`; its 8086 decoder is
+  MIT). Otherwise profile exomizer on MartyPC and write its inner loop in
+  assembly; adopt compression for the 720K image
   only if starting `vi`, `cat` and the others from floppy is then not
   slower than plain.
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,

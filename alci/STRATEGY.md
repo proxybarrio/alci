@@ -62,7 +62,7 @@ repository reachable once the system is online (F2). One catalogue says,
 for each program, which disk or package holds it. A single program must
 fit on one disk; in practice RAM is the stricter limit.
 
-## Long-term aim for the floppy set (2026-11-19)
+## Long-term aim for the floppy set (2026-11-19, proposal to confirm after `docs/os8088-study.md`)
 
 A machine with only a 720K drive should, in the end, boot disk 1
 straight into the graphical interface, the way os8088 starts its desktop

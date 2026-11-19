@@ -38,3 +38,5 @@ Sources: the project pages linked above; Ars Technica, March 2023, on
 doschgpt; ghaerr/elks issue #2630; a video demonstration of ELKS with
 Nano-X. This note was first written outside this repository and checked on
 2026-11-16, with further projects found by web search the same day; details of other projects may change.
+
+Study of os8088's distribution and what Alci takes from it: `docs/os8088-study.md` (2026-11-19).
