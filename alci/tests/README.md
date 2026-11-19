@@ -28,7 +28,7 @@ measured separately on MartyPC (`alci/scripts`).
   `t86.py` with `SCREEN=1`: commands are typed on the emulated keyboard and
   completion is read from the text screen, so console speed is measured on
   each machine's own display (`KEYDELAY` ms between keys, 20 on the AT).
-  Images get `/b.txt`, 200 lines of text.
+  Images get `/b.txt`, 200 lines of text (not the fd720 image).
 - Network: `PICOMEM=<path to libpmhost-v2.so>` (and `PICOMEM_SD`) adds an
   emulated PicoMEM card to the 86Box machine, its NE2000 bridged to 86Box's
   network (slirp; the host is 10.0.2.2). Needs os8088's 86Box patch, see

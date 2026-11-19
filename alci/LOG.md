@@ -79,4 +79,10 @@
   ELKS prepared in `alci/upstream/`, not sent. MartyPC `elks-bench` got an
   interrupt latency meter (`ELKS_IRQOFF`), 86Box a probe kept as a patch
   in `alci/tests/`.
+- The 720K layout change (`59478e75`) is reverted: programs leave disk 1
+  only together with disk 2 and a disk swap that works on the XT. It had
+  also made some reads slower (grep +5%) and left `ftpd` in `net.cfg`.
+  New rules for the floppy set in `TASKS.md` (phase 6), new task E8 (SSH
+  client, study first). The floppy suite gets its missing programs from
+  the test disk: 34/34 on all six machines.
 

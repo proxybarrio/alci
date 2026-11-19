@@ -23,9 +23,9 @@ cd /bin; ls | head -20 | xargs ls -d | wc -l; cd /
 dd if=/bin/dd of=/tmp/a bs=512 2>/dev/null
 cmp /bin/dd /tmp/a && echo dd-ok
 cat /bin/dd | cat | cat > /tmp/p; cmp /bin/dd /tmp/p
-cp /bin/cmp /tmp/b; cmp /bin/cmp /tmp/b && echo cp-ok
+cp /bin/ln /tmp/b; cmp /bin/ln /tmp/b && echo cp-ok
 cd /tmp; tar cf t.tar a b; mkdir x; cd x; tar xf ../t.tar
-cd /tmp/x && cmp a /bin/dd && cmp b /bin/cmp && echo tar-ok
+cd /tmp/x && cmp a /bin/dd && cmp b /bin/ln && echo tar-ok
 compress -c /bin/sort > /tmp/c.Z; ls -l /tmp/c.Z | wc -l
 compress -dc /tmp/c.Z | md5sum; md5sum /bin/sort
 sort -r /etc/passwd | head -2

@@ -236,6 +236,14 @@ The agent takes the first `TODO` from the top.
   Bobcat's sources and licence, and the effort to port it, against writing
   a small browser for ELKS.
 
+- [ ] E8 `TODO` SSH client (decided 2026-11-19: wanted). ELKS has none.
+  First a study, no code: existing small clients and their licences, the
+  memory a client needs, and the time of the key exchange and host key
+  check on an 8088, a T1200 and a 286 (measure the curve25519 and
+  ed25519 or RSA code on MartyPC, as for E5). Output: size, RAM, waiting
+  time, and on which disk it goes (disk 3 on 720K, and on 1.44M if it does
+  not fit). Until then, a way that works today: `telnet` from Alci to a
+  machine on the desk (a Raspberry Pi), and `ssh` from there.
 - [ ] E7 `TODO` (low priority) Clock from the network, time zone from the
   user. The clock is kept in UTC and the time zone is never fixed in the
   sources:
@@ -264,11 +272,27 @@ Principle (`STRATEGY.md`): wherever a hard disk is present, Alci is
 installed on it in full; the disk set and the repository exist for
 installation and for floppy-only machines.
 
+Rules for the floppy set (decided 2026-11-19):
+- No program leaves the 720K base disk until disk 2 exists in the same
+  change, with the disk swap working on every machine, the XT included
+  (XT drives give no disk-change signal: the system asks for the disk and
+  checks a label on it, it never relies on the signal).
+- Disk 1 is chosen first (F0), then disk 2 and further disks: disk 3 for
+  other applications, for example the SSH client (E8). The same holds for
+  1.44M images if a program does not fit.
+- Disks 2, 3... carry whatever they need to be used on their own while
+  disk 1 is out of the drive; whether that includes a copy of the kernel
+  is decided in F0 (it costs about 104 KB per disk).
+- Every change of layout is measured before and after (`bench.sh`,
+  `bench2.sh`): the position of files on the floppy changes timings.
+
 - [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) has 669 of 710
   data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
   List every file with its size and the task it serves, and propose a base
   set (kernel, shell, core tools, networking, the package fetcher) that
-  leaves room, with the rest moved to packages.
+  leaves room, with the rest moved to packages. The proposal says, for each
+  program, disk 1, 2 or 3, and what each disk needs to work alone. The
+  maintainer decides; nothing moves before F3 step 3 works.
 - [ ] F2 `TODO` Package repository ("alci-get"): software fetched once ELKS is
   running and online, installed on a hard disk or a second floppy. An index
   with a SHA-256 hash per package, fetched over HTTPS (E5) or through the
@@ -289,24 +313,20 @@ installation and for floppy-only machines.
      memory before asking for disk 1 back) and XT drives give no
      disk-change signal. Test on 86Box and on a real T1200 before use.
   Rule: every program fits on one disk (RAM is the stricter limit anyway).
-- [x] F4 `DONE 2026-11-19` The functional suite on the 720K floppy: 34/34
-  with the strict checker on xt, t1200, pc1512, at, 386 and QEMU (Alci
-  `800cfd1e`, with S3). Done:
+- [x] F4 `DONE 2026-11-19` The functional suite on the 720K floppy, with the
+  strict checker. Done:
   0. Compressed programs (`CONFIG_APPS_COMPRESS`) measured on MartyPC and
      not adopted: 130 KB freed, but every compressed program starts slower
      (`vi` 5.1 s -> 40.4 s on the XT, 3.6 s -> 20.0 s on the 8086 at
      7.16 MHz; the kernel decompressor is slow). Figures in `RESULTS.md`.
-  1. `wc head cmp sleep xargs yes` added to the 720K image; `ftp ftpd
-     telnet traceroute` moved to a new `:xnet` tag (1200K and larger, hard
-     disk). 41 -> 82 free blocks.
+  1. Layout change tried in `59478e75` and reverted in `0249f4d7`: it took
+     programs off the base disk before disk 2 exists, left `ftpd` started
+     by `/etc/net.cfg` but absent, and made some reads slower (file
+     positions). The 720K disk keeps its program set until F0 and F3.
   2. `alci/tests/functional-fd.txt`: the same commands on small files; the
-     programs not on the base disk (`tar compress md5sum test_libc
-     test_float`) come from a second disk made by `mkimg.sh` and mounted
-     on `/mnt` (a stand-in for disk 2 of F3). `tar-ok` fails when
-     `cd x` fails.
-  Open for the maintainer: whether `edit` (22 KB) stays on the 720K disk,
-  and where `tar compress md5sum` live once F3 exists. A faster
-  decompressor would make point 0 worth measuring again (task F4b).
+     programs not on the base disk come from a test disk made by
+     `mkimg.sh` (`<label>-fd720b.img`), mounted on `/mnt`. `tar-ok` fails
+     when the extraction directory cannot be entered.
 - [ ] F4b `TODO` Faster `exec` decompression: the in-kernel exomizer
   decruncher (`elks/fs/exodecr.c`, C with a far pointer per byte) costs
   about 0.7 s per KB on the 8088 (F4 point 0). Profile it on MartyPC and

@@ -26,11 +26,14 @@ cp image/fd720-minix.img ${ALCI_QT:-/home/claude/qt}/$L-fd720.img; cp image/fd14
 # 200-line text file used by the screen benchmarks
 python3 -c "
 for i in range(200): print('Line %03d: the quick brown fox jumps over the lazy dog 0123456789 abcdefghij' % i)" > /tmp/alci-b.txt
-for I in fd720 fd1440 hd32 hd20t; do elks/tools/bin/mfs ${ALCI_QT:-/home/claude/qt}/$L-$I.img cp /tmp/alci-b.txt /b.txt > /dev/null; done
+# not on fd720: the floppy suite needs the space for /tmp
+for I in fd1440 hd32 hd20t; do elks/tools/bin/mfs ${ALCI_QT:-/home/claude/qt}/$L-$I.img cp /tmp/alci-b.txt /b.txt > /dev/null; done
 # second 720K disk for the floppy suite (functional-fd.txt): the programs it
-# needs that are not on the 720K base disk, mounted read-only on /mnt
+# may need that are not on the 720K base disk, mounted read-only on /mnt
 D2=/tmp/alci-d2.$$; rm -rf $D2; mkdir -p $D2/bin
-for P in misc_utils/tar misc_utils/compress file_utils/md5sum test/libc/test_libc test/other/test_float; do cp elkscmd/$P $D2/bin/; done
+for P in misc_utils/tar misc_utils/compress file_utils/md5sum test/libc/test_libc test/other/test_float \
+    minix1/wc minix3/head file_utils/cmp misc_utils/sleep sh_utils/xargs sh_utils/yes; do
+  cp elkscmd/$P $D2/bin/; done
 rm -f ${ALCI_QT:-/home/claude/qt}/$L-fd720b.img
 elks/tools/bin/mfs ${ALCI_QT:-/home/claude/qt}/$L-fd720b.img genfs -1 -n14 -i64 -s720 $D2 > /dev/null; rm -rf $D2
 echo IMG $L OK

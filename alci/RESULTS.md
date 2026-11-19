@@ -334,7 +334,7 @@ PicoMEM patch; QEMU 8.2.2 (`486`, 640K).
 | Image | xt | t1200 | pc1512 | at | 386 | QEMU |
 | --- | --- | --- | --- | --- | --- | --- |
 | Alci `29beabbc`, `functional.txt` (before) | 10/34 | | | 15/34 | | |
-| Alci `59478e75` (F4), `functional-fd.txt` | 33/34 (S1: one character lost) | 34/34 | 34/34 | 34/34 | 34/34 | 34/34 |
+| Alci `59478e75` (F4 layout, later reverted), `functional-fd.txt` | 33/34 (S1: one character lost) | 34/34 | 34/34 | 34/34 | 34/34 | 34/34 |
 | Alci `800cfd1e` (F4 + S3), `functional-fd.txt` | 34/34 | 34/34 | 34/34 | 34/34 | 34/34 | 34/34 |
 
 Hard disk (`functional.txt`, with the stricter `tar-ok`): QEMU 34/34 on
@@ -413,6 +413,36 @@ On MartyPC (GLaBIOS, keyboard console) the new `ELKS_IRQOFF` meter shows
 the timer tick holding IRQ 4 off for 1280-1535 cycles, 1792-2059 with
 the BIOS call, before the fix; and the keyboard handler holding IRQ 1 in
 service for up to 4756 cycles (1 ms) while keys are typed.
+
+## 720K layout change reverted, speed of the whole session (2026-11-19)
+
+MartyPC (`elks-bench` `d6f5ca8`), `bench.sh` and `bench2.sh`, Alci
+`29beabbc` (before this session's changes) against `be099d68` (F4 layout,
+S3, S1), emulated seconds:
+
+| Benchmark | `29beabbc` | `be099d68` |
+| --- | --- | --- |
+| `cat` to `/dev/null`, from floppy | 4.258 | 4.032 |
+| `cat` of 200 lines to screen | 1.509 | 1.514 |
+| `ls -l /bin`, from floppy | 7.865 | 7.592 |
+| `ls -l /bin`, cached | 3.984 | 4.110 |
+| boot to prompt | 14.184 | 14.176 |
+| `cat /bin/vi > /dev/null` | 4.699 | 4.816 |
+| three-stage pipe | 4.338 | 3.986 |
+| `sort` | 5.454 | 5.492 |
+| `grep` | 2.482 | 2.612 |
+
+S3 and S1 alone move timings by 0.6% at most (sections above), so the
+larger changes come from the layout change `59478e75`: files at other
+places on the floppy and two more entries in `/bin`. It was not measured
+before it was committed, and it also left `ftpd` in `/etc/net.cfg` but not
+on the disk. Reverted in `0249f4d7`; layout changes now wait for F0 and
+F3 and are measured before and after.
+
+Functional suite on the reverted image (`0249f4d7`, `functional-fd.txt`
+with the test disk now carrying also `wc head cmp sleep xargs yes`, and no
+`/b.txt` on fd720 so that `/tmp` fits): 34/34 on xt, t1200, pc1512, at,
+386 and QEMU.
 
 ## Emulator updates
 
