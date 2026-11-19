@@ -41,7 +41,7 @@ mainmenu_option next_comment
 		fi
 		bool 'Compressed exectuables' CONFIG_APPS_COMPRESS n
 		if [ "$CONFIG_APPS_COMPRESS" = "y" ]; then
-			bool '  LZ4 instead of exomizer (fast to load)' CONFIG_APPS_COMPRESS_LZ4 n
+			bool '  LZSA1 instead of exomizer (fast to load)' CONFIG_APPS_COMPRESS_LZSA y
 		fi
 
 		comment 'Binary Images'

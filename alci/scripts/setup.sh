@@ -9,9 +9,7 @@ mkdir -p $ROOT/work
 # host packages
 command -v xxd >/dev/null || apt-get install -y xxd || { apt-get update -q >/dev/null 2>&1; apt-get install -y xxd; }
 dpkg -s libudev-dev >/dev/null 2>&1 || sudo apt-get install -y libudev-dev pkg-config || apt-get install -y libudev-dev pkg-config
-# Python lz4 module for the experimental LZ4 executable packer (elks/tools/elks-compress/elks-lz4.py)
-python3 -c 'import lz4.block' 2>/dev/null || pip install -q --break-system-packages lz4 > /dev/null 2>&1 || true
-# LZSA compressor (zlib licence) for the experimental LZSA1 executable packer
+# LZSA compressor (zlib licence) for the LZSA1 executable packer (elks/tools/elks-compress/elks-pack.py)
 if [ ! -x $ELKS/elks/tools/bin/lzsa ] && mkdir -p $ELKS/elks/tools/bin; then
   (rm -rf $ROOT/work/lzsa && git clone -q --depth 1 https://github.com/emmanuel-marty/lzsa $ROOT/work/lzsa && \
    make -C $ROOT/work/lzsa > /dev/null 2>&1 && cp $ROOT/work/lzsa/lzsa $ELKS/elks/tools/bin/) || true

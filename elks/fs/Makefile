@@ -44,8 +44,8 @@ endif
 ifdef CONFIG_EXEC_TEXT_CACHE
 	OBJS += textcache.o
 endif
-ifdef CONFIG_EXEC_LZ4
-	OBJS += lz4dec.o lzsa1dec.o
+ifdef CONFIG_EXEC_LZSA
+	OBJS += lzsa1dec.o
 endif
 
 #########################################################################

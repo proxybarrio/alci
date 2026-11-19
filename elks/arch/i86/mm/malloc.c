@@ -303,7 +303,7 @@ void seg_free (segment_s * seg)
 // (ALCI: the in-place decompression margin of a loaded text segment).
 // Not in protected mode, where the descriptor limit would need changing.
 
-#ifdef CONFIG_EXEC_LZ4
+#ifdef CONFIG_EXEC_LZSA
 void seg_shrink (segment_s * seg, segext_t size)
 {
 #ifndef CONFIG_286_PMODE

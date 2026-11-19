@@ -1,74 +1,33 @@
 #!/usr/bin/env python3
-"""elks-lz4: compress the text, far text and data of ELKS a.out executables
-with LZ4, or LZSA1 with ELKS_PACK_FMT=lzsa1 (ALCI), for in-place decoding by
-the kernel (fs/lz4dec.S, fs/lzsa1dec.S). LZSA1 uses the lzsa tool ($LZSA).
+"""elks-pack: compress the text, far text and data of ELKS a.out executables
+with LZSA1 (ALCI), for in-place decoding by the kernel (fs/lzsa1dec.S).
+Uses the lzsa compressor ($LZSA, github.com/emmanuel-marty/lzsa).
 
-usage: elks-lz4.py [-v] [-n] file...
+usage: elks-pack.py [-v] [-n] file...
 
-Each section is packed with LZ4 HC (needs the Python 'lz4' module) and
+Each section is packed as a raw LZSA1 block and
 kept only if it is smaller and can be decoded in place, and a file is
 rewritten only if it then takes at least one 1K block less: the kernel reads the
 compressed bytes starting dlen + margin - clen bytes above the output, with
 margin = (clen >> 8) + 32, and the decoder must never write over bytes it has
 not read yet. The packer simulates the decode and refuses a section that
 would. The header is rewritten in the extended (64-byte) form with
-esh_reserved = 0x344C ("L4"). Files already compressed, or with a header
+esh_reserved = 0x3153 ("S1"). Files already compressed, or with a header
 this tool does not know, are left alone. -n: report only, write nothing.
 """
 import struct, sys
-import lz4.block
 
 MINIX_SPLITID = 0x04200301
 MINIX_SPLITID_AHISTORICAL = 0x04300301
-ESH_COMPR_LZ4 = 0x344C
 ESH_COMPR_LZSA1 = 0x3153
 import os
-FMT = os.environ.get('ELKS_PACK_FMT', 'lz4')     # lz4 or lzsa1
-LZSA = os.environ.get('LZSA', 'lzsa')            # LZSA compressor, for lzsa1
+LZSA = os.environ.get('LZSA', 'lzsa')            # the LZSA compressor
 HDR = '<IBBHIIIIHHI'         # struct minix_exec_hdr, 32 bytes
 SUPL = '<IIIIIIHHHH'         # struct elks_supl_hdr, 32 bytes
 
 
 def margin(clen):
     return (clen >> 8) + 32
-
-
-def inplace_ok(comp, dlen):
-    """True if a forward decode with the source at dlen + margin - clen
-    (rounded up to a paragraph) above the output never overwrites unread
-    input."""
-    need = dlen + margin(len(comp)) - len(comp)
-    s = max(0, need)
-    s = (s + 15) & ~15
-    r = w = 0
-    n = len(comp)
-    while r < n:
-        tok = comp[r]; r += 1
-        ll = tok >> 4
-        if ll == 15:
-            while True:
-                b = comp[r]; r += 1; ll += b
-                if b != 255:
-                    break
-        r += ll; w += ll
-        if w > s + r:               # literal bytes are read before written
-            return False
-        if r >= n:
-            break
-        off = comp[r] | (comp[r + 1] << 8); r += 2
-        ml = tok & 15
-        if ml == 15:
-            while True:
-                b = comp[r]; r += 1; ml += b
-                if b != 255:
-                    break
-        ml += 4
-        if off == 0 or off > w:
-            return False
-        w += ml
-        if w > s + r:               # match bytes must not reach unread input
-            return False
-    return w == dlen
 
 
 def lzsa1_inplace_ok(comp, dlen):
@@ -134,17 +93,10 @@ def pack(data):
     if not data:
         return None
     data = bytes(data)
-    if FMT == 'lzsa1':
-        c = run_lzsa(['-f1', '-r'], data)
-        if c is None or run_lzsa(['-d', '-f1', '-r'], c) != data:
-            return None
-        ok = lzsa1_inplace_ok(c, len(data))
-    else:
-        c = lz4.block.compress(data, mode='high_compression',
-                               compression=12, store_size=False)
-        if lz4.block.decompress(c, uncompressed_size=len(data)) != data:
-            return None
-        ok = inplace_ok(c, len(data))
+    c = run_lzsa(['-f1', '-r'], data)
+    if c is None or run_lzsa(['-d', '-f1', '-r'], c) != data:
+        return None
+    ok = lzsa1_inplace_ok(c, len(data))
     if not ok or len(c) >= len(data) or len(c) >= 65520:
         return None
     return c
@@ -180,7 +132,7 @@ def do_file(path, verbose, dry):
     supl[6] = len(ct) if ct else 0
     supl[7] = len(cd) if cd else 0
     supl[8] = len(cf) if cf else 0
-    supl[9] = ESH_COMPR_LZSA1 if FMT == 'lzsa1' else ESH_COMPR_LZ4
+    supl[9] = ESH_COMPR_LZSA1
     h[1] = 64
     out = struct.pack(HDR, *h) + struct.pack(SUPL, *supl) + \
         (ct or text) + (cf or ftext) + (cd or data) + rest

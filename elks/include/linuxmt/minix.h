@@ -51,10 +51,9 @@ struct elks_supl_hdr {
     uint16_t    esh_compr_tseg; /* compressed tseg size */
     uint16_t    esh_compr_dseg; /* compressed dseg size* */
     uint16_t    esh_compr_ftseg;/* compressed ftseg size*/
-    uint16_t    esh_reserved;   /* ESH_COMPR_LZ4: sections are LZ4, not exomizer */
+    uint16_t    esh_reserved;   /* ESH_COMPR_LZSA1: sections are LZSA1, not exomizer */
 };
 
-#define ESH_COMPR_LZ4   0x344C  /* "L4" in esh_reserved (ALCI) */
 #define ESH_COMPR_LZSA1 0x3153  /* "S1" in esh_reserved (ALCI) */
 
 struct minix_reloc {
@@ -85,8 +84,6 @@ struct minix_reloc {
 #define EXEC_FARTEXT_HDR_SIZE   (EXEC_MINIX_HDR_SIZE + SUPL_FARTEXT_HDR_SIZE)
 
 /* elks/fs/exodecr.c - minix binary decompressor */
-extern unsigned int lz4_decompress(unsigned int src_seg, unsigned int dst_seg,
-    unsigned int src_len, unsigned int dst_len);
 extern unsigned int lzsa1_decompress(unsigned int src_seg, unsigned int dst_seg,
     unsigned int src_len, unsigned int dst_len);
 extern unsigned int decompress(char *buf, unsigned int seg, unsigned int orig_size,

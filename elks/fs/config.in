@@ -35,9 +35,9 @@ mainmenu_option next_comment
 
 	bool 'Support compressed executables'  CONFIG_EXEC_COMPRESS       y
 	if [ "$CONFIG_EXEC_COMPRESS" == "y" ]; then
-	    bool '  LZ4 compressed executables (experimental)' CONFIG_EXEC_LZ4 n
+	    bool '  LZSA1 compressed executables (fast to load)' CONFIG_EXEC_LZSA y
 	fi
-	bool 'Keep exited programs in free memory' CONFIG_EXEC_TEXT_CACHE n
+	bool 'Keep exited programs in free memory' CONFIG_EXEC_TEXT_CACHE y
 	bool 'Support OS/2 executables'        CONFIG_EXEC_OS2            n
 	if [ "$CONFIG_EXEC_COMPRESS" == "y" ]; then
 	    define_bool CONFIG_EXEC_MMODEL y

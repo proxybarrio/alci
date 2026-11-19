@@ -56,27 +56,26 @@
 
 static int FARPROC execve_aout(struct inode *inode, struct file *filp,
     char *sptr, size_t slen);
-#ifdef CONFIG_EXEC_LZ4
-/* LZ4 sections (ALCI) are decoded in place: the compressed bytes are read
+#ifdef CONFIG_EXEC_LZSA
+/* LZSA1 sections (ALCI) are decoded in place: the compressed bytes are read
  * near the top of the segment and the output grows from the bottom. The
  * writer stays below the reader when the source starts at least
  * dlen + margin - clen bytes above the output (checked by the packer).
  * Returns that start in paragraphs above the output. */
-#define LZ4_MARGIN(clen)    (((clen) >> 8) + 32)
+#define FAST_MARGIN(clen)    (((clen) >> 8) + 32)
 
-#define FAST_COMPR(r)   ((r) == ESH_COMPR_LZ4 || (r) == ESH_COMPR_LZSA1)
+#define FAST_COMPR(r)   ((r) == ESH_COMPR_LZSA1)
 
 static unsigned int fast_unpack(unsigned int fmt, seg_t src, seg_t dst,
     unsigned int clen, unsigned int dlen)
 {
-    if (fmt == ESH_COMPR_LZSA1)
-        return lzsa1_decompress(src, dst, clen, dlen);
-    return lz4_decompress(src, dst, clen, dlen);
+    (void)fmt;
+    return lzsa1_decompress(src, dst, clen, dlen);
 }
 
-static segext_t lz4_src_para(size_t dlen, size_t clen)
+static segext_t fast_src_para(size_t dlen, size_t clen)
 {
-    unsigned long need = (unsigned long)dlen + LZ4_MARGIN(clen);
+    unsigned long need = (unsigned long)dlen + FAST_MARGIN(clen);
 
     need = (need > clen)? need - clen: 0;
     return (segext_t)((need + 15) >> 4);
@@ -424,9 +423,9 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
                 goto code_seg_found_exec;
         }
 #endif
-#ifdef CONFIG_EXEC_LZ4
+#ifdef CONFIG_EXEC_LZSA
         if (FAST_COMPR(esuph.esh_reserved)) {
-            /* LZ4 (ALCI): text, then far text, each read near the top of
+            /* LZSA1 (ALCI): text, then far text, each read near the top of
              * the segment and decoded in place; the margin is freed after */
             segext_t tparas = paras, top, src;
             size_t clen;
@@ -437,13 +436,13 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
 #endif
             top = tparas + fparas;
             if ((clen = esuph.esh_compr_tseg) != 0) {
-                src = lz4_src_para((size_t)mh.tseg, clen);
+                src = fast_src_para((size_t)mh.tseg, clen);
                 if (src + bytes_to_paras(clen) > top)
                     top = src + bytes_to_paras(clen);
             }
 #ifdef CONFIG_EXEC_MMODEL
             if ((clen = esuph.esh_compr_ftseg) != 0) {
-                src = tparas + lz4_src_para((size_t)esuph.esh_ftseg, clen);
+                src = tparas + fast_src_para((size_t)esuph.esh_ftseg, clen);
                 if (src + bytes_to_paras(clen) > top)
                     top = src + bytes_to_paras(clen);
             }
@@ -454,7 +453,7 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
             desc_chaccess(seg_code->base, DESC_KDATA);
 #endif
             clen = esuph.esh_compr_tseg;
-            src = clen? lz4_src_para((size_t)mh.tseg, clen): 0;
+            src = clen? fast_src_para((size_t)mh.tseg, clen): 0;
             bytes = clen? clen: (size_t)mh.tseg;
             currentp->t_regs.ds = seg_code->base + src;
             retval = filp->f_op->read(inode, filp, 0, bytes);
@@ -467,7 +466,7 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
 #ifdef CONFIG_EXEC_MMODEL
             if (esuph.esh_ftseg) {
                 clen = esuph.esh_compr_ftseg;
-                src = tparas + (clen? lz4_src_para((size_t)esuph.esh_ftseg, clen): 0);
+                src = tparas + (clen? fast_src_para((size_t)esuph.esh_ftseg, clen): 0);
                 bytes = clen? clen: (size_t)esuph.esh_ftseg;
                 currentp->t_regs.ds = seg_code->base + src;
                 retval = filp->f_op->read(inode, filp, 0, bytes);
@@ -535,7 +534,7 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
 #endif
         }
 #endif
-#ifdef CONFIG_EXEC_LZ4
+#ifdef CONFIG_EXEC_LZSA
   code_seg_loaded: ;
 #endif
     } else {
@@ -554,10 +553,10 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
 #endif
     }
 
-#ifdef CONFIG_EXEC_LZ4
-    /* LZ4 data (ALCI): room above the data for in-place decoding */
+#ifdef CONFIG_EXEC_LZSA
+    /* LZSA1 data (ALCI): room above the data for in-place decoding */
     if (FAST_COMPR(esuph.esh_reserved) && esuph.esh_compr_dseg) {
-        unsigned long need = ((unsigned long)lz4_src_para((size_t)mh.dseg, esuph.esh_compr_dseg)
+        unsigned long need = ((unsigned long)fast_src_para((size_t)mh.dseg, esuph.esh_compr_dseg)
             + bytes_to_paras(esuph.esh_compr_dseg)) << 4;
         if (need > len) {
             need = (need + 255) & ~255UL;
@@ -583,9 +582,9 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
                 //paras += 1;           /* add 16 bytes for safety offset */
     }
 #endif
-#ifdef CONFIG_EXEC_LZ4
+#ifdef CONFIG_EXEC_LZSA
     if (FAST_COMPR(esuph.esh_reserved) && esuph.esh_compr_dseg) {
-        segext_t src = lz4_src_para((size_t)mh.dseg, esuph.esh_compr_dseg);
+        segext_t src = fast_src_para((size_t)mh.dseg, esuph.esh_compr_dseg);
         currentp->t_regs.ds = seg_data->base + src;
         retval = filp->f_op->read(inode, filp, 0, bytes);
         currentp->t_regs.ds = seg_data->base;
@@ -607,7 +606,7 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
     }
 #ifdef CONFIG_EXEC_COMPRESS
         if (esuph.esh_compr_dseg &&
-#ifdef CONFIG_EXEC_LZ4
+#ifdef CONFIG_EXEC_LZSA
             !FAST_COMPR(esuph.esh_reserved) &&
 #endif
             decompress(0, seg_data->base, (size_t)mh.dseg, bytes, 16) != (size_t)mh.dseg)
