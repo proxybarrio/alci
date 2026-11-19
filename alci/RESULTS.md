@@ -364,6 +364,56 @@ paragraph), about 128 bytes per process on average (+160 for `sh`).
 Vetoes: V1 suite 34/34 everywhere (table above), V2 no change, V3 cost as
 stated, V4 and V5 untouched code.
 
+## Serial input losses on the IBM XT, task S1 (86Box, 2026-11-19)
+
+86Box upstream `d4f9a04` with the PicoMEM patch and a measurement probe
+in the 8250 (`alci/tests/86box-overrun.patch`, enabled with
+`ALCI_OVERRUN=1`: logs every overrun with the CPU state sampled at each bit
+time while the byte waited, and the longest wait of a byte in RBR). IBM
+XT, 8088 4.77 MHz, IBM BIOS, 720K floppy, console on COM1 at 19200 baud
+(one byte every 521 us), 300 commands typed by `st86.py` a whole line at
+a time (`s1b`: echo, pipes, `$(...)`, `grep`).
+
+Where the time went in each lost byte: a system call entry with IF=0
+(about 100 us), then the timer interrupt, IRQ 0 in service through the
+`_irqit` entry, `timer_tick()` and the BIOS IRQ 0 handler (every 5th
+tick), the BIOS EOI only at the end, then the serial handler entry.
+
+| Build | longest wait of a byte | bytes lost in 300 commands |
+| --- | --- | --- |
+| Alci `800cfd1e` | 643 us | 3 (two runs, same 3) |
+| Alci with the BIOS handler in a bottom half only | 519 us | 0 (no margin left) |
+| Alci `49b6c795` (also EOI before `timer_tick`) | 384 us | 0 (four runs) |
+| ELKS `df2a61c5`, commands present on its 720K disk | 638 us | 1, the run stalled at command 42 |
+| ELKS `df2a61c5` + `alci/upstream/timer-eoi-com1.patch` | 377 us | 0 |
+
+Functional suite on `49b6c795`: 34/34 on fd720 (`functional-fd.txt`) and
+hd32 on xt, t1200, pc1512, at, 386; T1200 own disk (hd20t) 34/34; QEMU
+fd and hd 34/34. V4: `sleep 60` takes 60.78 s emulated before and after.
+The BIOS floppy motor still turns off (BIOS data 0040:003F = 0 after
+idle). MartyPC (`elks-bench` `d6f5ca8`, meter off), `bench.sh` and
+`bench2.sh`, Alci `800cfd1e` -> `49b6c795`:
+
+| Benchmark | before | after |
+| --- | --- | --- |
+| `cat` of 200 lines to screen | 1.505 | 1.514 |
+| `ls -l /bin`, from floppy | 7.600 | 7.592 |
+| `ls -l /bin`, cached | 4.101 | 4.109 |
+| boot to prompt | 14.155 | 14.176 |
+| 10 runs of `pwd` | 1.572 | 1.572 |
+| three-stage pipe | 3.990 | 3.986 |
+| `sort` | 5.479 | 5.492 |
+| `grep` | 2.603 | 2.612 |
+
+Largest change +0.6%, under the 1% of V2. Cost: +29 bytes of code
+(`timer.o` +26, `irq.o` +6, `irqtab.o` -3), data and bss +2, resident
+kernel +32 bytes (two paragraphs).
+
+On MartyPC (GLaBIOS, keyboard console) the new `ELKS_IRQOFF` meter shows
+the timer tick holding IRQ 4 off for 1280-1535 cycles, 1792-2059 with
+the BIOS call, before the fix; and the keyboard handler holding IRQ 1 in
+service for up to 4756 cycles (1 ms) while keys are typed.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

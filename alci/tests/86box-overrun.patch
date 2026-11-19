@@ -1,0 +1,89 @@
+diff --git a/src/device/serial_ns8250.c b/src/device/serial_ns8250.c
+index b1bb2cc..b74646b 100644
+--- a/src/device/serial_ns8250.c
++++ b/src/device/serial_ns8250.c
+@@ -238,11 +238,24 @@ serial_poll_status(serial_t *dev)
+     }
+ }
+ 
++/* ALCI_OVERRUN: CPU state sampled at every bit time while a received byte
++   waits in RBR, printed when the next byte overruns it (measurement only) */
++static struct { uint16_t rcs, rip; uint8_t ifl, isr; } alci_ring[32];
++static int alci_ring_n;
++
+ static void
+ serial_receive_timer(void *priv)
+ {
+     serial_t *dev = (serial_t *) priv;
+ 
++    if ((dev->lsr & 0x01) && !dev->fifo_enabled && alci_ring_n < 32 && getenv("ALCI_OVERRUN")) {
++        alci_ring[alci_ring_n].rcs = CS;
++        alci_ring[alci_ring_n].rip = cpu_state.pc;
++        alci_ring[alci_ring_n].ifl = (cpu_state.flags & I_FLAG) ? 1 : 0;
++        alci_ring[alci_ring_n].isr = pic.isr;
++        alci_ring_n++;
++    }
++
+     serial_log("serial_receive_timer()\n");
+ 
+     timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
+@@ -287,8 +300,22 @@ serial_receive_timer(void *priv)
+             serial_log("Byte received: %04X\n", dev->out_new);
+ 
+             /* Indicate overrun. */
+-            if (dev->lsr & 0x01)
++            if (dev->lsr & 0x01) {
+                 dev->lsr |= 0x02;
++                /* ALCI_OVERRUN: report where the CPU is when a byte is lost
++                   (measurement only, no effect on emulation) */
++                if (getenv("ALCI_OVERRUN"))
++                    pclog("ALCI OVERRUN lost %02X, held %02X for %.0f us, CPU %04X:%04X IF=%d PIC ISR=%02X IMR=%02X\n",
++                          dev->dat, dev->out_new & 0xff,
++                          (double) (tsc - dev->alci_dr_tsc) / ((double) TIMER_USEC / 4294967296.0),
++                          CS, cpu_state.pc, (cpu_state.flags & I_FLAG) ? 1 : 0, pic.isr, pic.imr);
++                if (getenv("ALCI_OVERRUN")) {
++                    for (int i = 0; i < alci_ring_n; i++)
++                        pclog("ALCI OVERRUN   %2d %04X:%04X IF=%d ISR=%02X\n", i, alci_ring[i].rcs, alci_ring[i].rip, alci_ring[i].ifl, alci_ring[i].isr);
++                }
++            } else
++                dev->alci_dr_tsc = tsc;
++            alci_ring_n = 0;
+ 
+             dev->dat = (uint8_t) (dev->out_new & 0xff);
+             dev->out_new = 0xffff;
+@@ -872,6 +899,23 @@ serial_read(uint16_t addr, void *priv)
+                 /* Non-FIFO mode. */
+                 ret = dev->dat;
+ 
++                /* ALCI_OVERRUN: longest wait of a byte in RBR (measurement only) */
++                if ((dev->lsr & 0x01) && getenv("ALCI_OVERRUN")) {
++                    static double alci_max;
++                    double w = (double) (tsc - dev->alci_dr_tsc) / ((double) TIMER_USEC / 4294967296.0);
++                    static int alci_dumps;
++                    if (w > alci_max) {
++                        alci_max = w;
++                        pclog("ALCI MAXWAIT %.0f us\n", w);
++                    }
++                    if (w > 400.0 && alci_dumps < 12) {
++                        alci_dumps++;
++                        pclog("ALCI LONGWAIT %.0f us, read at %04X:%04X\n", w, CS, cpu_state.pc);
++                        for (int i = 0; i < alci_ring_n; i++)
++                            pclog("ALCI LONGWAIT   %2d %04X:%04X IF=%d ISR=%02X\n", i, alci_ring[i].rcs, alci_ring[i].rip, alci_ring[i].ifl, alci_ring[i].isr);
++                    }
++                }
++
+                 /* Always clear Data Ready interrupt. */
+                 dev->lsr &= 0xfe;
+                 dev->int_status &= ~SERIAL_INT_RECEIVE;
+diff --git a/src/include/86box/serial.h b/src/include/86box/serial.h
+index 86dc77e..e3a6982 100644
+--- a/src/include/86box/serial.h
++++ b/src/include/86box/serial.h
+@@ -179,6 +179,7 @@ extern void serial_endpoint_set_line(serial_endpoint_t *ep, uint32_t line, int o
+ extern int  serial_endpoint_get_line(serial_endpoint_t *ep, uint32_t line);
+ 
+ typedef struct serial_s {
++    uint64_t alci_dr_tsc; /* ALCI_OVERRUN measurement: when the byte now in RBR arrived */
+     uint8_t lsr;
+     uint8_t thr;
+     uint8_t mctrl;

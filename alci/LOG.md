@@ -72,4 +72,11 @@
   all six machines. New task F4b (faster decompressor).
 - S3 done: `exec` rounds data segments to 256 bytes, which removes the
   fragmentation behind `sh: not enough memory` on the 512K AT.
+- S1 done: serial bytes were lost behind the timer interrupt (IRQ 0 kept in
+  service through the BIOS IRQ 0 handler). EOI now comes before the
+  timer handler and the BIOS handler runs as a bottom half. Longest wait
+  of a byte 643 -> 384 us, no lost bytes; +29 bytes of code. Patch for
+  ELKS prepared in `alci/upstream/`, not sent. MartyPC `elks-bench` got an
+  interrupt latency meter (`ELKS_IRQOFF`), 86Box a probe kept as a patch
+  in `alci/tests/`.
 

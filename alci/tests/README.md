@@ -64,3 +64,13 @@ shared by both systems passes. For acceptance use the strict tools:
   It also takes `functional-fd.txt` (the floppy probe message of the
   `mount` in its first line is allowed, and `tar` may report a record size
   under 20 for the small archive).
+
+## Serial latency probe
+
+`86box-overrun.patch` (apply to 86Box, measurement only): with
+`ALCI_OVERRUN=1` the 8250 logs each receive overrun with the CPU state
+sampled at every bit time while the byte waited, the longest wait of a
+byte in RBR (`MAXWAIT`) and waits over 400 us (`LONGWAIT`). Read them with
+`DEBUGLOG=maxwait,overrun,longwait st86.py ...`. On MartyPC the runner has
+`ELKS_IRQOFF=<step cycles>` (see `run_elks.rs`).
+
