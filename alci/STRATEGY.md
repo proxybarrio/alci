@@ -56,8 +56,8 @@ media. Floppy-only operation exists for machines without a hard disk.
 | One floppy drive, no hard disk | Disk 1 stays the system disk; other disks are swapped in on request, with kernel support for a safe swap (F3, step 3, built last). |
 
 The base disk is a 720K floppy, the drive of the T1200 and the common
-denominator of the period. It holds what is needed to boot, work and find
-the rest. The rest lives on further disks of the set and in a package
+denominator of the period. It holds what is needed to boot, work, communicate (telnet,
+ftp, miniterm) and find the rest. The rest lives on further disks of the set and in a package
 repository reachable once the system is online (F2). One catalogue says,
 for each program, which disk or package holds it. A single program must
 fit on one disk; in practice RAM is the stricter limit.
