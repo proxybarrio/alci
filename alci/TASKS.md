@@ -299,6 +299,11 @@ Rules for the floppy set (decided 2026-11-19):
   the SSH client (E8). Disks 2 and 3 carry a small kit (`ls cat cp more
   mount umount`, about 27 KB) and a label. Sizes in the F0 list.
 - Nothing is split before the disk manager (F5) works.
+- Free space is part of the design: disk 1 keeps enough room for `/tmp`
+  and everyday work (a minimum to fix in F0, checked by the build), and
+  the split is accepted only when the floppy suite passes 34/34 with the
+  strict checker on the real three-disk set (no timeouts, no "No space
+  left"), on every machine, with one drive and with two.
 
 - [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) has 669 of 710
   data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
@@ -355,15 +360,18 @@ Rules for the floppy set (decided 2026-11-19):
      disk holds each program. A command that is not on the disk in use
      gets an answer like "tar is on disk 2 Tools: insert it and press
      Enter"; the program is loaded, then disk 1 is asked for again.
-  3. Document disks: any blank floppy can become a named document disk
-     ("Letters"). Saving to it must work from every program, not only
+  3. Document disks, called "Personal storage" (name to confirm): any
+     blank floppy can become one, with its own name. Saving to it must work from every program, not only
      those with a menu: the plan to evaluate is a path per disk name
-     (for example `/disks/Letters/file.txt`), so that any program (`vi`,
+     (for example `/disks/Personal/file.txt`), so that any program (`vi`,
      `cp`, later the desktop's save dialogs) can save there, and the
      system asks for that disk when it is needed. Everything pending is
      written before a swap; disk 1 stays read-only while it is out.
-  4. Two drives: B: holds programs or documents, no swapping. Hard disk:
-     the same names point to folders or to the floppy, nothing to swap.
+  4. Two drives: disk 1 stays in drive A, disk 2 in drive B. When disk 3
+     or a Personal storage disk is needed, the swap happens in drive B,
+     then disk 2 is asked for again; disk 1 never leaves drive A, so this
+     case needs no kernel work. One drive: every swap happens in drive A.
+     Hard disk: the same names point to folders, nothing to swap.
   Study first: AmigaOS volume names and "Please insert volume" requests,
   GEOS disk handling (ideas only, see `RELATED.md` rules). Then the steps
   in order: labels and the `disk` command, the catalogue and the
