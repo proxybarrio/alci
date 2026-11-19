@@ -280,6 +280,25 @@ installation and for floppy-only machines.
      memory before asking for disk 1 back) and XT drives give no
      disk-change signal. Test on 86Box and on a real T1200 before use.
   Rule: every program fits on one disk (RAM is the stricter limit anyway).
+- [ ] F4 `TODO` The functional suite on the 720K floppy (Alci 6f813ff1 and
+  ELKS df2a61c5 alike: 16/34 on every 86Box machine and on QEMU, no
+  timeouts). Two separate causes:
+  1. Missing programs: `wc head cmp sleep xargs yes tar compress md5sum`
+     (about 53 KB) and `test_libc test_float` (about 105 KB) are not on the
+     720K image, which has 25 KB free. Make room on the base disk for the
+     core text tools (`wc head cmp sleep xargs yes`, about 23 KB) by moving
+     programs few people need at boot (for example `ftpd ftp telnet
+     traceroute edit`, about 75 KB) to disk 2 of the set (F3). `tar
+     compress md5sum` and the two test programs go on disk 2 as well.
+  2. No space for temporary files: the suite copies `/bin/sh`, `/bin/vi`,
+     a tar archive and its extraction to `/tmp`, about 400 KB, more than a
+     720K disk can hold. Add `alci/tests/functional-fd.txt` with the same
+     commands on small files (for example `/etc/passwd` and a 4 KB file)
+     so each feature is still exercised; the hard disk keeps the full
+     suite. Fix the `tar-ok` check so it fails when `cd x` fails.
+  Acceptance: 34/34 on the 720K image on xt, t1200, pc1512, at, 386 and
+  QEMU, with the strict checker. The same image layout can be offered to
+  ELKS as a proposal, since its 720K image has the same gaps.
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 
