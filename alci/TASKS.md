@@ -366,8 +366,8 @@ Rules for the floppy set (decided 2026-11-19):
      gets an answer like "tar is on disk 2 Tools: insert it and press
      Enter"; the program is loaded, then disk 1 is asked for again.
   3. Document disks, called "Personal Storage" with a sequential number,
-     in FAT format so that any PC can read them (decided 2026-11-19)
-     (decided 2026-11-19): any blank floppy can become one, and gets the
+     in FAT format so that any PC can read them (decided 2026-11-19):
+     any blank floppy can become one, and gets the
      next free number ("Personal Storage 1", "Personal Storage 2"...),
      kept in the list of known disks on disk 1; the number is also in its
      label, so two of them are never confused. Its path is short, without
