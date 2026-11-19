@@ -281,6 +281,32 @@ void seg_free (segment_s * seg)
 }
 
 
+// Give back the top of a used segment, keeping its first size paragraphs
+// (ALCI: the in-place decompression margin of a loaded text segment).
+// Not in protected mode, where the descriptor limit would need changing.
+
+#ifdef CONFIG_EXEC_LZ4
+void seg_shrink (segment_s * seg, segext_t size)
+{
+#ifndef CONFIG_286_PMODE
+    segment_s * s2;
+
+    if (size >= seg->size)
+        return;
+    s2 = (segment_s *) heap_alloc (sizeof (segment_s), HEAP_TAG_SEG | HEAP_TAG_CLEAR);
+    if (!s2)
+        return;                 // keep the margin rather than fail
+    BASE(s2) = BASE(seg) + size;
+    s2->size = seg->size - size;
+    s2->flags = SEG_FLAG_USED;
+    list_insert_after (&seg->all, &s2->all);
+    seg->size = size;
+    seg_free (s2);              // marks it free and merges with a free neighbour
+#endif
+}
+#endif
+
+
 // Increase segment reference count
 
 segment_s * seg_get (segment_s * seg)

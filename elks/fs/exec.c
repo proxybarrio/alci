@@ -56,6 +56,23 @@
 
 static int FARPROC execve_aout(struct inode *inode, struct file *filp,
     char *sptr, size_t slen);
+#ifdef CONFIG_EXEC_LZ4
+/* LZ4 sections (ALCI) are decoded in place: the compressed bytes are read
+ * near the top of the segment and the output grows from the bottom. The
+ * writer stays below the reader when the source starts at least
+ * dlen + margin - clen bytes above the output (checked by the packer).
+ * Returns that start in paragraphs above the output. */
+#define LZ4_MARGIN(clen)    (((clen) >> 8) + 32)
+
+static segext_t lz4_src_para(size_t dlen, size_t clen)
+{
+    unsigned long need = (unsigned long)dlen + LZ4_MARGIN(clen);
+
+    need = (need > clen)? need - clen: 0;
+    return (segext_t)((need + 15) >> 4);
+}
+#endif
+
 static void FARPROC finalize_exec(struct inode *inode, segment_s *seg_code,
     segment_s *seg_data, word_t entry, int multisegment);
 
@@ -390,6 +407,65 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
                 goto code_seg_found_exec;
         }
 #endif
+#ifdef CONFIG_EXEC_LZ4
+        if (esuph.esh_reserved == ESH_COMPR_LZ4) {
+            /* LZ4 (ALCI): text, then far text, each read near the top of
+             * the segment and decoded in place; the margin is freed after */
+            segext_t tparas = paras, top, src;
+            size_t clen;
+#ifdef CONFIG_EXEC_MMODEL
+            segext_t fparas = bytes_to_paras((size_t)esuph.esh_ftseg);
+#else
+            segext_t fparas = 0;
+#endif
+            top = tparas + fparas;
+            if ((clen = esuph.esh_compr_tseg) != 0) {
+                src = lz4_src_para((size_t)mh.tseg, clen);
+                if (src + bytes_to_paras(clen) > top)
+                    top = src + bytes_to_paras(clen);
+            }
+#ifdef CONFIG_EXEC_MMODEL
+            if ((clen = esuph.esh_compr_ftseg) != 0) {
+                src = tparas + lz4_src_para((size_t)esuph.esh_ftseg, clen);
+                if (src + bytes_to_paras(clen) > top)
+                    top = src + bytes_to_paras(clen);
+            }
+#endif
+            seg_code = seg_alloc(top, SEG_FLAG_CSEG);
+            if (!seg_code) goto error_exec3;
+#ifdef CONFIG_286_PMODE
+            desc_chaccess(seg_code->base, DESC_KDATA);
+#endif
+            clen = esuph.esh_compr_tseg;
+            src = clen? lz4_src_para((size_t)mh.tseg, clen): 0;
+            bytes = clen? clen: (size_t)mh.tseg;
+            currentp->t_regs.ds = seg_code->base + src;
+            retval = filp->f_op->read(inode, filp, 0, bytes);
+            if (retval != bytes)
+                goto error_exec4;
+            retval = -ENOEXEC;
+            if (clen && lz4_decompress(seg_code->base + src, seg_code->base,
+                    clen, (size_t)mh.tseg) != (size_t)mh.tseg)
+                goto error_exec4;
+#ifdef CONFIG_EXEC_MMODEL
+            if (esuph.esh_ftseg) {
+                clen = esuph.esh_compr_ftseg;
+                src = tparas + (clen? lz4_src_para((size_t)esuph.esh_ftseg, clen): 0);
+                bytes = clen? clen: (size_t)esuph.esh_ftseg;
+                currentp->t_regs.ds = seg_code->base + src;
+                retval = filp->f_op->read(inode, filp, 0, bytes);
+                if (retval != bytes)
+                    goto error_exec4;
+                retval = -ENOEXEC;
+                if (clen && lz4_decompress(seg_code->base + src, seg_code->base + tparas,
+                        clen, (size_t)esuph.esh_ftseg) != (size_t)esuph.esh_ftseg)
+                    goto error_exec4;
+            }
+#endif
+            seg_shrink(seg_code, tparas + fparas);
+            goto code_seg_loaded;
+        }
+#endif
 #ifdef CONFIG_EXEC_COMPRESS
         if (esuph.esh_compr_tseg || esuph.esh_compr_ftseg) {
             if (esuph.esh_compr_tseg)
@@ -442,6 +518,9 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
 #endif
         }
 #endif
+#ifdef CONFIG_EXEC_LZ4
+  code_seg_loaded: ;
+#endif
     } else {
         seg_get (seg_code);
 
@@ -455,6 +534,20 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
 #endif
     }
 
+#ifdef CONFIG_EXEC_LZ4
+    /* LZ4 data (ALCI): room above the data for in-place decoding */
+    if (esuph.esh_reserved == ESH_COMPR_LZ4 && esuph.esh_compr_dseg) {
+        unsigned long need = ((unsigned long)lz4_src_para((size_t)mh.dseg, esuph.esh_compr_dseg)
+            + bytes_to_paras(esuph.esh_compr_dseg)) << 4;
+        if (need > len) {
+            need = (need + 255) & ~255UL;
+            retval = -ENOMEM;
+            if (need > 0xFFF0)
+                goto error_exec4;
+            len = (size_t)need;
+        }
+    }
+#endif
     paras = len >> 4;
     retval = -ENOMEM;
     debug_reloc("EXEC: allocating %04x paras (%04x bytes) for data segment\n", paras, len);
@@ -470,14 +563,33 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
                 //paras += 1;           /* add 16 bytes for safety offset */
     }
 #endif
+#ifdef CONFIG_EXEC_LZ4
+    if (esuph.esh_reserved == ESH_COMPR_LZ4 && esuph.esh_compr_dseg) {
+        segext_t src = lz4_src_para((size_t)mh.dseg, esuph.esh_compr_dseg);
+        currentp->t_regs.ds = seg_data->base + src;
+        retval = filp->f_op->read(inode, filp, 0, bytes);
+        currentp->t_regs.ds = seg_data->base;
+        if (retval != bytes)
+            goto error_exec5;
+        retval = -ENOEXEC;
+        if (lz4_decompress(seg_data->base + src, seg_data->base, bytes,
+                (size_t)mh.dseg) != (size_t)mh.dseg)
+            goto error_exec5;
+    } else
+#endif
+    {
     currentp->t_regs.ds = seg_data->base;
     retval = filp->f_op->read(inode, filp, (char *)base_data, bytes);
     if (retval != bytes) {
         debug("EXEC(dseg read): bad result %d, expected %u\n", retval, bytes);
         goto error_exec5;
     }
+    }
 #ifdef CONFIG_EXEC_COMPRESS
         if (esuph.esh_compr_dseg &&
+#ifdef CONFIG_EXEC_LZ4
+            esuph.esh_reserved != ESH_COMPR_LZ4 &&
+#endif
             decompress(0, seg_data->base, (size_t)mh.dseg, bytes, 16) != (size_t)mh.dseg)
                 goto error_exec5;
 #endif

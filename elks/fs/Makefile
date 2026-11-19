@@ -41,6 +41,9 @@ OBJS  = buffer.o super.o devices.o fcntl.o stat.o inode.o file_table.o \
 ifdef CONFIG_EXEC_COMPRESS
 	OBJS += exodecr.o
 endif
+ifdef CONFIG_EXEC_LZ4
+	OBJS += lz4dec.o
+endif
 
 #########################################################################
 # Commands.
