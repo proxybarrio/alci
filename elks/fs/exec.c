@@ -359,6 +359,12 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
         goto error_exec3;
     }
     len &= ~(size_t)15;
+    /* Round up to 256 bytes (ALCI): the size then no longer depends on the
+     * exact length of argv and envp, so the data segment freed by one copy
+     * of a program fits the next one (fork and exec of the same program).
+     * The extra bytes go to the gap between heap and stack. */
+    if (len <= 0xFF00)
+        len = (len + 255) & ~(size_t)255;
 
     debug("EXEC: Malloc time\n");
 
