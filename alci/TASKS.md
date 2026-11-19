@@ -285,6 +285,18 @@ The agent takes the first `TODO` from the top.
   day `clock` was built; Enter keeps it, no answer lets the boot go on
   after 60 s; a typed date is also written to the RTC. Next: the SNTP
   client (points 1-3); the `net.cfg` example is unchanged.
+  Decided 2026-11-19: time from NTP servers run by time institutes (INRIM,
+  then PTB, then NIST), asked by `ktcp`, which already speaks UDP for
+  DHCP; the question at boot only when none answers. Summer time is
+  computed in one place only: `clock`, at boot and whenever the time is
+  set, turns the POSIX `TZ` rule (Italy: `CET-1CEST,M3.5.0,M10.5.0/3`)
+  into the current offset, the next change and the offset after it, kept
+  by the kernel next to the `struct timezone` it already holds; `libc`
+  takes the offset from `gettimeofday` instead of parsing `TZ` (today it
+  only knows whole hours, no summer time). Measure the kernel and `libc`
+  cost first. Floppy systems: the zone is asked once and saved in
+  `/bootopts` on disk 1; on a write-protected disk 1 it stays UTC and a
+  line at boot says so, without asking each time.
 
 ## Phase 6: universal image
 
