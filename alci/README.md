@@ -21,9 +21,11 @@ repository.
 - `RELATED.md`: other projects that cover parts of the same ground.
 - `AGENT.md`: instructions for the automated agent that works on this branch.
 - `scripts/`: environment setup, benchmarks on MartyPC, profile reader.
+- `tests/`: functional and speed tests on QEMU and 86Box (see `tests/README.md`).
+- `upstream/`: patches prepared for ELKS, sent by the maintainer.
+- `docs/`: studies (`os8088-study.md`).
 
 Every change on branch `alci` is a separate commit, so that any of them can
 be offered upstream on its own. Changes are developed with the help of Claude
 (Anthropic) and measured on the cycle-accurate MartyPC emulator, then
 checked on 86Box (six machines with their real BIOS), QEMU and real hardware.
-- `tests/`: functional and speed tests on QEMU and 86Box (see `tests/README.md`).

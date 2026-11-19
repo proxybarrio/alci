@@ -129,3 +129,8 @@
 - Review of F4b: corrupted LZSA1 programs can hang the system (7 of 12 on
   QEMU); a host model shows the decoder writing past its segment. Tasks
   F4c (bounds checks in the decoder) and F4d (text cache and `mv`).
+- Decisions on date and time (recorded in `STRATEGY.md` and E7): UTC in
+  the clock, the user's zone as a POSIX `TZ` rule, summer time computed in
+  one place, time from NTP servers of time institutes, the question at
+  boot as the last resort; floppy rules for saving the zone. Order agreed:
+  F4c, E7, F4d. Documents brought up to date.

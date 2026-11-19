@@ -2,7 +2,9 @@
 
 Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
 `HUMAN` (needs the maintainer), `BLOCKED` (waiting on something).
-The agent takes the first `TODO` from the top.
+The agent takes the first `TODO` from the top, except for the order
+agreed with the maintainer on 2026-11-19: F4c, then E7 (network time,
+time zone, summer time), then F4d.
 
 ## Phase 1: baseline speed
 
@@ -259,7 +261,7 @@ The agent takes the first `TODO` from the top.
   time, and on which disk it goes (disk 3 on 720K, and on 1.44M if it does
   not fit). Until then, a way that works today: `telnet` from Alci to a
   machine on the desk (a Raspberry Pi), and `ssh` from there.
-- [ ] E7 `DOING` (low priority) Clock from the network, time zone from the
+- [ ] E7 `DOING` Clock from the network, time zone from the
   user. The clock is kept in UTC and the time zone is never fixed in the
   sources:
   1. Time zone: asked once (at install or first boot, from a short list of
@@ -342,8 +344,9 @@ Rules for the floppy set (decided 2026-11-19):
   strict checker on the real three-disk set (no timeouts, no "No space
   left"), on every machine, with one drive and with two.
 
-- [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) has 669 of 710
-  data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
+- [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) had 669 of 710
+  data blocks in use, 40 KB free; with compressed programs (F4b) disk 1
+  has 121 KB free (Alci `70b577df`). 720K is the drive of a real T1200.
   List every file with its size and the task it serves, and propose a base
   set (kernel, shell, core tools, networking, the package fetcher) that
   leaves room, with the rest moved to packages. The proposal says, for each
@@ -427,9 +430,10 @@ Rules for the floppy set (decided 2026-11-19):
   project's 8088 decoder, zlib) plus a text cache that keeps exited
   programs in free memory. On by default in `alci/elks.config` since
   `57265faf`, floppy images only: 720K disk 41 -> 123 KB free, faster
-  starts from floppy and repeated starts, 34/34 everywhere. For the
-  maintainer: `grep` +3.2% in `bench2.sh` (first start from a floppy
-  without rotation delay; faster with it) and +1.9 KB of resident kernel.
+  starts from floppy and repeated starts, 34/34 everywhere. Exception
+  approved by the maintainer 2026-11-19: `grep` +3.2% in `bench2.sh`
+  (first start from a floppy without rotation delay; faster with it) and
+  +1.9 KB of resident kernel.
   Follow-ups: file order on the floppy (A3) now that files moved;
   hard disk images later; (`meminfo` shows kept texts as KEPT and
   counts them as free, done 2026-11-19); with the

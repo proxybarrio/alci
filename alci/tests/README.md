@@ -35,6 +35,16 @@ measured separately on MartyPC (`alci/scripts`).
   `alci/scripts/setup.sh`. Build the image with
   `BOOTOPTS_EXTRA='ne0=3,0x300,,0x80'`; use a floppy image, since XT-IDE
   also uses port 300h.
+- Other network cards: `NETCARD=<86Box card>` for `st86.py` (slirp, the
+  card's default settings: `wd8003e` is 300h, IRQ 3, RAM D000h, so boot
+  with `wd0=3,0x300,0xd000,0x80`); `NIC=<QEMU device>` for `sq.py`, e.g.
+  `NIC=ne2k_isa,iobase=0x300,irq=12` (QEMU user networking, host
+  10.0.2.2). The 3C509B of 86Box is not found by the ELKS driver.
+- `lzsa1-model.py <program> [N]`: host model of the kernel's LZSA1
+  decoder; corrupts the compressed text of a program taken from an image
+  N times in five ways and counts accepted, rejected and out-of-segment
+  results (task F4c). Take the program with
+  `elks/tools/bin/mfs <image> cat /bin/<name>`.
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `t86.py` options: `BOOTLOG=word,word` prints boot lines containing the

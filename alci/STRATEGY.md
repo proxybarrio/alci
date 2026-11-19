@@ -1,7 +1,7 @@
 # Alci strategy
 
 Decisions taken so far, and the reasons for them. `TASKS.md` turns them into
-work; this file says what the work must respect. Last updated 2026-11-17.
+work; this file says what the work must respect. Last updated 2026-11-19.
 
 ## Goals, in order
 
@@ -37,11 +37,19 @@ real machine for tests, not the design target.
 ## One image, code only where it is needed
 
 - One system image for every supported machine. Hardware is detected at
-  boot and the code for what is absent is released: EDD support already
-  works this way (task A0); network card drivers are next (A5) and every
-  optional driver follows the same rule.
+  boot and the code for what is absent is released: EDD support (task A0)
+  and the NE2000, WD8003 and 3C509 network drivers (A5) already work this
+  way, and every optional driver follows the same rule.
 - Speed-ups must not cost memory. Every change states its cost in bytes,
   measured against upstream (`RESULTS.md`).
+- Exceptions are decided by the maintainer, case by case, and written
+  down. So far one: compressed programs and the text cache (F4b, +1.9 KB
+  of resident kernel, 82 KB more room on the 720K disk), approved
+  2026-11-19; the same day A5 gave back more than that (3 to 5 KB).
+- Programs on the floppies are LZSA1-compressed and decoded by the kernel
+  at exec; exited programs stay in free memory until it is needed (text
+  cache). A damaged file must never bring the system down: the decoder
+  gets bounds checks (F4c) before anything else.
 
 ## Where the system lives
 
@@ -91,6 +99,26 @@ Alci uses the best path the machine has, in this order:
 
 Network paths: PicoMEM or another NE2000 card (works in emulation with no
 new kernel code, E0b), SLIP over the serial port, or the modem.
+
+## Date, time and time zone (2026-11-19)
+
+- The system clock and the RTC keep UTC. The time zone is the user's,
+  stored as a POSIX `TZ` rule in `/bootopts` (Italy:
+  `CET-1CEST,M3.5.0,M10.5.0/3`); never fixed in the sources.
+- Summer time is computed in one place only (`clock`, at boot and when
+  the time is set); the kernel keeps the resulting offset and the moment
+  of the next change, and every program asks it (E7).
+- Time sources, in order: a working RTC; the network, from NTP servers of
+  time institutes (INRIM, then PTB, then NIST), once the network card is
+  up; the user, asked at boot only when the date is older than the
+  system (no answer in 60 s: the boot goes on).
+- No protocol an 8088 can run authenticates the time (NTS needs TLS), so
+  trust comes from the servers chosen and a plausibility check: a time
+  earlier than the build is refused, a large jump from a working RTC is
+  reported, not applied silently.
+- Floppy systems: the zone is asked once at first boot and saved on disk
+  1; a write-protected disk 1 runs on UTC and says so at boot instead of
+  asking every time. Settings never go on Personal Storage disks.
 
 ## How work is accepted
 

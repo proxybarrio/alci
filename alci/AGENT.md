@@ -70,7 +70,9 @@ previous commit (git worktree), run `alci/tests/functional.txt` with
 hd32 image), on the t1200 with its own disk (hd20t image, see
 `alci/tests/README.md`; a real machine has this disk) and once on
 the xt with the fd720 image, plus `qtest.py` on
-QEMU, and diff the outputs: they must be identical. 86Box uses the real
+QEMU, and diff the outputs: they must be identical. Results count only
+when run with the strict tools (`sq.py`, `st86.py`, then `check.py`: 34/34),
+see `alci/tests/README.md`. 86Box uses the real
 BIOS of each machine; MartyPC stays the reference for speed on the 8088. Add a test line to `functional.txt` for every
 behaviour your patch touches (keep lines under 60 characters: the ELKS
 tty input line is 80). Real hardware (a T1200) is needed only for patches that touch the
