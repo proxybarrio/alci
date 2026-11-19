@@ -65,6 +65,20 @@ void timer_tick(int irq, struct pt_regs *regs)
 
     mark_bh(TIMER_BH);
 
+#if defined(CONFIG_BLK_DEV_BFD) && !defined(CONFIG_ARCH_PC98) && !defined(CONFIG_286_PMODE) \
+    && !defined(CONFIG_TIMER_INT0F) && !defined(CONFIG_TIMER_INT1C)
+    /* Original BIOS IRQ 0 handler every 5th tick, for the floppy motor
+     * timeout, run as a bottom half after the EOI so that IRQ 0 is not
+     * kept in service while it runs (ALCI) */
+    {
+        static unsigned char bios_cnt;
+        if (++bios_cnt >= 5) {
+            bios_cnt = 0;
+            mark_bh(BIOS_BH);
+        }
+    }
+#endif
+
     /***if (!((int) jiffies & 7))
         need_resched = 1;***/       /* how primitive can you get? */
 

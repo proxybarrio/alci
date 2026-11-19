@@ -162,6 +162,9 @@ void INITPROC irq_init(void)
     disable_timer_tick();       /* not needed on IBM PC as IRQ 0 vector untouched */
 #ifndef CONFIG_286_PMODE
     save_timer_irq();           /* save BIOS IRQ 0 vector (reads IVT via ES=0; PM uses IDT) */
+#if defined(CONFIG_BLK_DEV_BFD) && !defined(CONFIG_ARCH_PC98)
+    init_bh(BIOS_BH, bios_timer_tick);  /* BIOS IRQ 0 handler, run after the EOI */
+#endif
 #endif
 
     /* Connect timer interrupt handler to hardware IRQ 0 */

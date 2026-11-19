@@ -45,6 +45,7 @@ enum {
     NETWORK_BH = 0,
     TIMER_BH = 1,
     SERIAL_BH,          /* unused, handled by timer_bh */
+    BIOS_BH,            /* BIOS IRQ 0 handler, floppy motor timeout (ALCI) */
     MAX_SOFTIRQ
 };
 extern unsigned int bh_active;

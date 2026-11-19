@@ -195,6 +195,19 @@ save_regs:
 !       ----------PROCESS INTERRUPT----------
 */
 doirq:
+#if defined(CONFIG_ARCH_IBMPC) && !defined(CONFIG_TIMER_INT0F) && !defined(CONFIG_TIMER_INT1C)
+//
+//      Timer (IRQ 0): EOI before the handler (ALCI). timer_tick() is short and
+//      the next tick is 10 ms away; keeping IRQ 0 in service until the end
+//      delayed COM1 (IRQ 4) by up to a received byte at 19200 baud on an 8088.
+//
+        or      %al,%al
+        jnz     1f
+        mov     $0x20,%al       // EOI
+        out     %al,$PIC1_CMD
+        xor     %al,%al         // AL = IRQ 0 again
+1:
+#endif
 //
 //      Call the C code
 //
@@ -226,18 +239,12 @@ doirq:
         jz      was_trap
 #endif
 
-#if defined(CONFIG_BLK_DEV_BFD) && !defined(CONFIG_ARCH_PC98) && !defined(CONFIG_286_PMODE)
-        or      %ax,%ax         // Is int #0?
-        jnz     do_eoi
-//
-//      Call original BIOS IRQ 0 (timer) ~55ms for floppy motor control
-//
-        decw    bios_call_cnt   // Will call bios int?
-        jne     do_eoi
-        movw    $5,bios_call_cnt
-        pushf
-        lcall   *org_irq0
-        jmp     was_trap        // EOI already sent by bios int
+// The BIOS IRQ 0 handler (floppy motor timeout) runs as bottom half BIOS_BH,
+// after the EOI, not here (ALCI): here it kept IRQ 0 in service for its
+// whole run and delayed COM1 enough to lose a byte.
+#if !defined(CONFIG_TIMER_INT0F) && !defined(CONFIG_TIMER_INT1C) && defined(CONFIG_ARCH_IBMPC)
+        or      %ax,%ax         // IRQ 0: EOI already sent before the handler
+        jz      was_trap
 #endif
 
 do_eoi: cmp     $8,%ax          // Send EOI to interrupt controller(s)
@@ -423,6 +430,20 @@ idle_halt:
 // void save_timer_irq(void)
 //------------------------------------------------------------------------------
 
+#if defined(CONFIG_BLK_DEV_BFD) && !defined(CONFIG_ARCH_PC98) && !defined(CONFIG_286_PMODE)
+//------------------------------------------------------------------------------
+// void bios_timer_tick(void) - run the original BIOS IRQ 0 handler, for the
+// BIOS floppy motor timeout. Bottom half BIOS_BH, every 5th tick, after the
+// EOI. Bottom halves run with no kernel IRQ handler in progress, so the
+// BIOS handler's own EOI finds no IRQ of ours in service.
+//------------------------------------------------------------------------------
+        .global bios_timer_tick
+bios_timer_tick:
+        pushf
+        lcall   *org_irq0
+        ret
+#endif
+
         .global save_timer_irq
 save_timer_irq:
         push    %es
@@ -474,8 +495,6 @@ int_vector_set:
         .extern current
         .extern previous
 
-bios_call_cnt:                  // call BIOS IRQ 0 handler every 5th interrupt
-        .word   5
 org_irq0:                       // original BIOS IRQ 0 vector
         .long   0
 intr_count:                     // stacked interrupts count. Start with 1
