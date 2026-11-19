@@ -58,7 +58,11 @@ endif
 ifdef CONFIG_APPS_COMPRESS
 	awk /`echo ":nocomp" | tr -d ' '`/{print} $(TOPDIR)/elkscmd/Applications | sed '/^#/d' | sed 's#.*/##g' | cut -d" " -f 1 | sed 's#\(^.*\)#/\1/d#' > Nocomp
 	ls $(DESTDIR)/bin | sed -f Nocomp > Filelist
+ifdef CONFIG_APPS_COMPRESS_LZ4
+	cd $(DESTDIR)/bin; xargs python3 $(TOPDIR)/elks/tools/elks-compress/elks-lz4.py < $(TOPDIR)/image/Filelist
+else
 	cd $(DESTDIR)/bin; xargs -P $$(getconf _NPROCESSORS_ONLN) -n1 elks-compress < $(TOPDIR)/image/Filelist
+endif
 	rm -f Nocomp Filelist
 endif
 	$(MAKE) -C $(BOOTBLOCKS_DIR)
