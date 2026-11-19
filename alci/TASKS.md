@@ -289,15 +289,16 @@ Rules for the floppy set (decided 2026-11-19):
   `ftp`, `ftpd` and `miniterm` (communicating is part of the base).
 - Every distribution (720K, 1.44M and any other floppy set) includes the
   installer that puts the whole set on a hard disk (F3 step 1), on disk 1.
-- Proposed split for 720K, agreed in principle (F0 gives the exact list
-  and sizes): disk 1 "System" (kernel, shell, login, file commands, `vi`
-  and `edit`, text tools with `wc` and `head`, `fsck` and process tools,
-  network and communication, the disk swap program, the installer);
-  disk 2 "Tools" (archives, `diff`, `find`, script helpers, disk
-  maintenance); disk 3 "Connections" (`traceroute`, `httpd`, `netcat`,
-  the SSH client); disk 4 "Extra" (games, `basic`, `paint`). Disks 2-4
-  carry a small kit (`ls cat cp more mount umount`, about 25 KB) and a
-  label, not the kernel; a bootable disk 3 with SSH is an option.
+- 720K set: three disks (decided 2026-11-19). Disk 1 "System": kernel,
+  shell, login, file commands, `vi` and `edit`, text tools with `wc` and
+  `head`, `fsck` and process tools, network, `telnet telnetd ftp ftpd
+  miniterm`, the installer, the disk manager (F5); about 90 KB free.
+  Disk 2 "Tools and extras": archives, `diff`, `find`, script helpers,
+  system and disk maintenance, printing, games, `basic`, `paint`, sound
+  (about 560 KB). Disk 3 "Connections": `traceroute httpd netcat` and
+  the SSH client (E8). Disks 2 and 3 carry a small kit (`ls cat cp more
+  mount umount`, about 27 KB) and a label. Sizes in the F0 list.
+- Nothing is split before the disk manager (F5) works.
 
 - [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) has 669 of 710
   data blocks in use, 40 KB free, and 720K is the drive of a real T1200.
@@ -344,6 +345,30 @@ Rules for the floppy set (decided 2026-11-19):
      programs not on the base disk come from a test disk made by
      `mkimg.sh` (`<label>-fd720b.img`), mounted on `/mnt`. `tar-ok` fails
      when the extraction directory cannot be entered.
+- [ ] F5 `TODO` Disk manager (decided 2026-11-19), before the disk split.
+  Design document first (`alci/docs/disks.md`), for the maintainer:
+  1. Every disk has a label: name, kind (system, programs, documents) and
+     a unique number, read to check that the right disk is in the drive
+     (XT drives give no disk-change signal, so the system asks and then
+     checks the label, never trusting the signal).
+  2. A catalogue on disk 1 (and a copy on each program disk) says which
+     disk holds each program. A command that is not on the disk in use
+     gets an answer like "tar is on disk 2 Tools: insert it and press
+     Enter"; the program is loaded, then disk 1 is asked for again.
+  3. Document disks: any blank floppy can become a named document disk
+     ("Letters"). Saving to it must work from every program, not only
+     those with a menu: the plan to evaluate is a path per disk name
+     (for example `/disks/Letters/file.txt`), so that any program (`vi`,
+     `cp`, later the desktop's save dialogs) can save there, and the
+     system asks for that disk when it is needed. Everything pending is
+     written before a swap; disk 1 stays read-only while it is out.
+  4. Two drives: B: holds programs or documents, no swapping. Hard disk:
+     the same names point to folders or to the floppy, nothing to swap.
+  Study first: AmigaOS volume names and "Please insert volume" requests,
+  GEOS disk handling (ideas only, see `RELATED.md` rules). Then the steps
+  in order: labels and the `disk` command, the catalogue and the
+  missing-command message, document disks on two drives, then single
+  drive swaps (kernel work, F3 step 3). Test on 86Box XT, T1200, AT.
 - [ ] F4b `TODO` Faster `exec` decompression: the in-kernel exomizer
   decruncher (`elks/fs/exodecr.c`, C with a far pointer per byte) costs
   about 0.7 s per KB on the 8088 (F4 point 0). Profile it on MartyPC and
