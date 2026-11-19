@@ -41,6 +41,6 @@ Nano-X. This note was first written outside this repository and checked on
 
 Study of os8088's distribution and what Alci takes from it: `docs/os8088-study.md` (2026-11-19).
 
-LZ4 (2026-11-19): the block format is public (BSD-2-Clause reference library); the host packer uses the Python `lz4` module (BSD-3-Clause) and runs outside ELKS; the kernel decoder `elks/fs/lz4dec.S` is our own, no code copied.
+LZ4 (2026-11-19): tried and dropped in favour of LZSA1 (`RESULTS.md`); our own decoder, no code copied, removed in `80cc11ac`.
 
-LZSA (2026-11-19, github.com/emmanuel-marty/lzsa, zlib licence, compatible): `elks/fs/lzsa1dec.S` is an altered copy of `asm/8088/LZSA1FTA.ASM` (Jim Leonard, Emmanuel Marty), notice kept; the `lzsa` compressor runs on the build host.
+LZSA (2026-11-19, github.com/emmanuel-marty/lzsa, zlib licence, compatible): `elks/fs/lzsa1dec.S` is an altered copy of `asm/8088/LZSA1FTA.ASM` (Jim Leonard, Emmanuel Marty), notice kept; the `lzsa` compressor runs on the build host (`elks/tools/elks-compress/elks-pack.py`).

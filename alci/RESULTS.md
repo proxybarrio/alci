@@ -542,6 +542,41 @@ memory while texts are kept).
 Resident kernel cost, against `61835b74` with everything off: text cache
 704 bytes; text cache, LZ4 and LZSA1 together 2208 bytes.
 
+## LZSA1 and text cache turned on, task F4b (2026-11-19)
+
+Alci `57265faf` (`CONFIG_EXEC_LZSA`, `CONFIG_EXEC_TEXT_CACHE`,
+`CONFIG_APPS_COMPRESS_LZSA` on; LZ4 decoder removed) against the same tree
+with the three options off. MartyPC `elks-bench` `d6f5ca8`, `bench.sh`
+and `bench2.sh` (no floppy rotation model), emulated seconds:
+
+| Benchmark | options off | on |
+| --- | --- | --- |
+| `cat` of 200 lines to `/dev/null` | 4.258 | 3.944 |
+| `cat` of 200 lines to screen | 1.509 | 1.509 |
+| `ls -l /bin`, from floppy | 7.860 | 7.496 |
+| `ls -l /bin`, cached | 3.992 | 3.942 |
+| boot to prompt | 14.197 | 14.016 |
+| `cat /bin/sh > /dev/null` | 1.668 | 1.538 |
+| `cat /bin/vi > /dev/null` | 4.707 | 4.116 |
+| 10 runs of `pwd` | 1.585 | 1.526 |
+| three-stage pipe | 4.338 | 4.150 |
+| `sort` on 20 KB | 5.463 | 5.454 |
+| `grep` on 20 KB | 2.490 | 2.570 |
+
+`grep` is 3.2% slower: its first start, which here reads from a floppy
+with no rotation delay, so decoding is not paid back; with the rotation
+model (round 3) the first `grep` is 15% faster. Resident kernel: 476 ->
+474 KB free (+1936 bytes: text cache, LZSA1 decoder, exec). 720K image:
+41 -> 123 KB free with the same programs; the 1.44M image also gets the
+programs upstream adds when compressing (137 KB still free). Hard disk
+images are not compressed.
+
+Checks on `57265faf`: floppy suite 34/34 on QEMU, XT, T1200, PC1512, AT,
+386; hard disk suite 34/34 on QEMU, XT, T1200, PC1512, AT, 386; serial
+stress on the XT: no byte lost, longest wait 386 us (as before); `sleep
+60` takes 60.36 s on the XT (60.37 before); eight background `sh -c` on
+the 512K AT all start.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

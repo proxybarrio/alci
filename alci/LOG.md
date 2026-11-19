@@ -105,4 +105,8 @@
   demand). With LZSA1 it makes repeated starts faster than today's plain
   system; 34/34 on all machines. Off by default until the maintainer
   decides.
+- LZSA1 and the text cache are on in `alci/elks.config` (LZ4 removed).
+  720K: 123 KB free. Suites 34/34 on every machine, serial and clock
+  checks unchanged. Next idea from the maintainer: fewer disks in the
+  720K set, now that there is room.
 

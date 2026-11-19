@@ -390,34 +390,17 @@ Rules for the floppy set (decided 2026-11-19):
   in order: labels and the `disk` command, the catalogue and the
   missing-command message, document disks on two drives, then single
   drive swaps (kernel work, F3 step 3). Test on 86Box XT, T1200, AT.
-- [ ] F4b `DOING` Faster compressed executables. Done (2026-11-19): LZ4
-  in `exec`, experimental and off by default (`CONFIG_EXEC_LZ4`,
-  `CONFIG_APPS_COMPRESS_LZ4`, `elks-lz4.py`): 73 KB freed on the 720K
-  disk, first starts from floppy faster (grep -7% XT, -11% 8086), starts
-  from the cache slower (grep x10 +50%), about 1 KB of kernel when on.
-  Figures in `RESULTS.md`. Not to be dropped without the maintainer.
-  Round 2 (2026-11-19): faster LZ4 decoder and LZSA1 (LZSA project's 8088
-  decoder, zlib): LZSA1 packs best (124 KB free on 720K) and is the
-  fastest from floppy; from the cache both cost the same, about 37
-  cycles per byte against 8-10 for a plain copy (`RESULTS.md`). Decoding
-  program code cannot get near a copy, so the next lever is not to decode
-  again. Next, in order:
-  Round 3 (2026-11-19): text cache done (`CONFIG_EXEC_TEXT_CACHE`, off by
-  default): with LZSA1 it removes the cost of repeated starts, and helps
-  plain programs too (`RESULTS.md`). Waiting for the maintainer:
-  1. Turn on text cache and LZSA1 in `alci/elks.config` and the image
-     builds (cost 2.2 KB of kernel with both decoders; drop the LZ4
-     decoder to save about 0.5 KB if LZSA1 is chosen).
-  2. Full V2 benchmarks (`bench.sh`, `bench2.sh`) and S1/V4 checks on the
-     final configuration, then hard disk images too.
-  3. `meminfo` could show kept texts apart from used memory.
-  3. A rule for what to compress: large programs rarely started in loops
-     (`vi edit ftp ftpd ktcp fsck sed diff find fdisk`: about 40 KB) and
-     not the small tools used in scripts.
-  4. Shrink the cost in `exec` (one helper for the three sections).
-  5. Idea to evaluate, wider: keep the text segment of a program that has
-     just exited in free memory until the memory is needed, so that a
-     repeated start copies nothing at all, compressed or not.
+- [x] F4b `DONE 2026-11-19` Compressed executables that load fast. After
+  trying LZ4 and LZSA1 (three rounds, `RESULTS.md`): LZSA1 (the LZSA
+  project's 8088 decoder, zlib) plus a text cache that keeps exited
+  programs in free memory. On by default in `alci/elks.config` since
+  `57265faf`, floppy images only: 720K disk 41 -> 123 KB free, faster
+  starts from floppy and repeated starts, 34/34 everywhere. For the
+  maintainer: `grep` +3.2% in `bench2.sh` (first start from a floppy
+  without rotation delay; faster with it) and +1.9 KB of resident kernel.
+  Follow-ups: file order on the floppy (A3) now that files moved;
+  `meminfo` could show kept texts apart; hard disk images later; with the
+  space gained, fewer disks in the 720K set (to discuss).
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.
 
