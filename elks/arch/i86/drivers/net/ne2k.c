@@ -55,7 +55,7 @@ extern word_t ne2k_has_data;
  * Read a complete packet from the NIC buffer
  */
 
-static size_t ne2k_read(struct inode *inode, struct file *filp, char *data, size_t len)
+static size_t NE2KPROC ne2k_read(struct inode *inode, struct file *filp, char *data, size_t len)
 {
 	size_t res;
 	word_t nhdr[2];	/* buffer header from the NIC, for debugging */
@@ -126,7 +126,7 @@ static size_t ne2k_read(struct inode *inode, struct file *filp, char *data, size
  * Pass packet to driver for send
  */
 
-static size_t ne2k_write(struct inode *inode, struct file *file, char *data, size_t len)
+static size_t NE2KPROC ne2k_write(struct inode *inode, struct file *file, char *data, size_t len)
 {
 	size_t res;
 
@@ -164,7 +164,7 @@ static size_t ne2k_write(struct inode *inode, struct file *file, char *data, siz
  * Test for readiness
  */
 
-int ne2k_select(struct inode *inode, struct file *filp, int sel_type)
+static int NE2KPROC ne2k_select(struct inode *inode, struct file *filp, int sel_type)
 {
 	int res = 0;
 
@@ -197,7 +197,7 @@ int ne2k_select(struct inode *inode, struct file *filp, int sel_type)
  * Interrupt handler
  */
 
-static void ne2k_int(int irq, struct pt_regs *regs)
+static void NE2KPROC ne2k_int(int irq, struct pt_regs *regs)
 {
 	word_t stat, page;
 
@@ -282,11 +282,17 @@ static void ne2k_int(int irq, struct pt_regs *regs)
 	stat = page;		/* to keep compiler happy */
 }
 
+/* near entry for request_irq, the handler itself is far (ALCI) */
+static void ne2k_irq(int irq, struct pt_regs *regs)
+{
+	ne2k_int(irq, regs);
+}
+
 /*
  * I/O control
  */
 
-static int ne2k_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned int arg)
+static int NE2KPROC ne2k_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned int arg)
 {
 	int err = 0;
 	byte_t *mac_addr = (byte_t *)&netif_stat.mac_addr;
@@ -323,13 +329,13 @@ static int ne2k_ioctl(struct inode *inode, struct file *file, unsigned int cmd, 
  * Device open
  */
 
-static int ne2k_open(struct inode *inode, struct file *file)
+static int NE2KPROC ne2k_open(struct inode *inode, struct file *file)
 {
 	if (!found)
 		return -ENODEV;
 
 	if (usecount++ == 0) {	// Don't initialize if already open
-		int err = request_irq(net_irq, ne2k_int, INT_GENERIC);
+		int err = request_irq(net_irq, ne2k_irq, INT_GENERIC);
 		if (err) {
 			printk(EMSG_IRQERR, dev_name, net_irq, err);
 			return err;
@@ -345,7 +351,7 @@ static int ne2k_open(struct inode *inode, struct file *file)
  * Release (close) device
  */
 
-static void ne2k_release(struct inode *inode, struct file *file)
+static void NE2KPROC ne2k_release(struct inode *inode, struct file *file)
 {
 	if (--usecount == 0) {
 		ne2k_stop();
@@ -357,12 +363,10 @@ static void ne2k_release(struct inode *inode, struct file *file)
  * Ethernet operations
  */
 
-static struct file_operations ne2k_fops =
+static struct eth_farops ne2k_fops =
 {
-    NULL,         /* lseek */
     ne2k_read,
     ne2k_write,
-    NULL,         /* readdir */
     ne2k_select,
     ne2k_ioctl,
     ne2k_open,
@@ -436,8 +440,6 @@ void INITPROC ne2k_drv_init(void)
 				 */
 	byte_t *cprom, *mac_addr;
 
-	eths[ETH_NE0].ops = &ne2k_fops;
-
 	netif_stat.oflow_keep = 0;	/* Default - clear buffer if overflow.
 					 * Testing indicates 0 means faster recovery under heavy
 					 * load if buffer < 16k */
@@ -472,6 +474,7 @@ void INITPROC ne2k_drv_init(void)
 		} 
 #endif
 		found = 1;
+		eths[ETH_NE0].farops = &ne2k_fops;	/* else the code is released */
 		cprom = (byte_t *)prom;
 		ne2k_get_hw_addr(prom);
 

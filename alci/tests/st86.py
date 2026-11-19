@@ -46,6 +46,10 @@ if os.environ.get('PICOMEM'):
     cfg += '\n[Other peripherals]\nisamem0_type = picomem\n\n[PicoMEM #1]\nirq = 7\nirq7 = 1\ndma = 1\nlib = %s\nsd_image = %s\n' % (
         os.environ['PICOMEM'], os.environ.get('PICOMEM_SD', ''))
     cfg += '\n[Network]\nnet_01_card = picomem_ne2k\nnet_01_net_type = slirp\nnet_01_link = 0\n'
+# NETCARD=<86Box card>: a network card with its default settings on slirp,
+# e.g. NETCARD=wd8003e (300h, IRQ 3, RAM D000h) or NETCARD=3c509b
+if os.environ.get('NETCARD'):
+    cfg += '\n[Network]\nnet_01_card = %s\nnet_01_net_type = slirp\nnet_01_link = 0\n' % os.environ['NETCARD']
 open(vm + '/86box.cfg', 'w').write(cfg)
 sock = vm + '/a.sock'
 env = dict(os.environ, SDL_VIDEODRIVER='dummy', SDL_AUDIODRIVER='dummy')

@@ -133,7 +133,13 @@ static void NICPROC ultra_drain_err_counters(void)
 
 static word_t NICPROC ultra_rx_stat(void);
 static word_t NICPROC ultra_tx_stat(void);
-static void ultra_int(int irq, struct pt_regs * regs);
+static void NICPROC ultra_int(int irq, struct pt_regs * regs);
+
+/* near entry for request_irq, the handler itself is far (ALCI) */
+static void ultra_irq(int irq, struct pt_regs *regs)
+{
+	ultra_int(irq, regs);
+}
 static void NICPROC fmemcpy(void *, seg_t, void *, seg_t, size_t, int);
 static void NICPROC ultra_stop(void);
 
@@ -534,7 +540,7 @@ static size_t NICPROC ultra_pack_get(char *data, size_t len)
 	return res;
 }
 
-static size_t ultra_read(struct inode * inode, struct file * filp,
+static size_t NICPROC ultra_read(struct inode * inode, struct file * filp,
 	char * data, size_t len)
 {
 	size_t res = 0;
@@ -594,7 +600,7 @@ static size_t NICPROC ultra_pack_put(char *data, size_t len)
 	return len;
 }
 
-static size_t ultra_write(struct inode * inode, struct file * file,
+static size_t NICPROC ultra_write(struct inode * inode, struct file * file,
 	char * data, size_t len)
 {
 	int res;
@@ -644,7 +650,7 @@ static word_t NICPROC ultra_tx_stat(void)
 		ULTRA_STAT_TX;
 }
 
-static int ultra_select(struct inode * inode, struct file * filp, int sel_type)
+static int NICPROC ultra_select(struct inode * inode, struct file * filp, int sel_type)
 {
 	int res = 0;
 
@@ -676,7 +682,7 @@ static int ultra_net_start(void)
 	if (usecount)
 		return 0;
 
-	err = request_irq(net_irq, ultra_int, INT_GENERIC);
+	err = request_irq(net_irq, ultra_irq, INT_GENERIC);
 	if (err) {
 		printk(EMSG_IRQERR, dev_name, net_irq, err);
 		return err;
@@ -694,7 +700,7 @@ static int ultra_net_start(void)
  * I/O control
  */
 
-static int ultra_ioctl(struct inode *inode, struct file *file,
+static int NICPROC ultra_ioctl(struct inode *inode, struct file *file,
 	unsigned int cmd, unsigned int arg)
 {
 	int err = 0;
@@ -735,7 +741,7 @@ static int ultra_ioctl(struct inode *inode, struct file *file,
  * Device open
  */
 
-static int ultra_open(struct inode *inode, struct file *file)
+static int NICPROC ultra_open(struct inode *inode, struct file *file)
 {
 	int err = 0;
 
@@ -760,7 +766,7 @@ static int ultra_open(struct inode *inode, struct file *file)
  * Release (close) device
  */
 
-static void ultra_release(struct inode *inode, struct file *file)
+static void NICPROC ultra_release(struct inode *inode, struct file *file)
 {
 #if DEBUG
 	printk("ul0: release: usecnt %d\n", usecount);
@@ -776,12 +782,10 @@ static void ultra_release(struct inode *inode, struct file *file)
  * Ethernet operations
  */
 
-static struct file_operations ultra_fops =
+static struct eth_farops ultra_fops =
 {
-	NULL,         /* lseek */
 	ultra_read,
 	ultra_write,
-	NULL,         /* readdir */
 	ultra_select,
 	ultra_ioctl,
 	ultra_open,
@@ -798,7 +802,7 @@ static struct file_operations ultra_fops =
  * next round of the while-loop, thus avoiding an occasional lost interrupt.
  */
 
-static void ultra_int(int irq, struct pt_regs * regs)
+static void NICPROC ultra_int(int irq, struct pt_regs * regs)
 {
 	word_t stat;
 	unsigned int loops;
@@ -890,7 +894,7 @@ void INITPROC ultra_drv_init(void)
 	word_t hw_addr[6];
 	byte_t *mac_addr = (byte_t *)&netif_stat.mac_addr;
 
-	eths[ETH_UL0].ops = &ultra_fops;
+	eths[ETH_UL0].farops = &ultra_fops;
 	printk("eth: %s at 0x%x, irq %d, ram 0x%x",
 		dev_name, net_port, net_irq, net_ram);
 	if (ultra_probe()) {

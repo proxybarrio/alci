@@ -13,6 +13,7 @@
 #ifndef __ASSEMBLER__
 
 #include <arch/ports.h>	/* struct isa_conf */
+#include <linuxmt/init.h>	/* DRVFAR */
 
 /* /bootopts-parsed port, irq, ram and flags */
 /* Should put this into the eths struct */
@@ -22,8 +23,28 @@ extern struct isa_conf el3_conf;
 extern struct isa_conf ul0_conf;
 extern struct isa_conf le0_conf;
 
+struct inode;
+struct file;
+
+/* ALCI: driver operations are far, so that the code of a driver can sit in
+ * its own far section, released at boot when its card is not found */
+typedef size_t DRVFAR eth_rw_fn(struct inode *, struct file *, char *, size_t);
+typedef int DRVFAR eth_select_fn(struct inode *, struct file *, int);
+typedef int DRVFAR eth_ioctl_fn(struct inode *, struct file *, unsigned int, unsigned int);
+typedef int DRVFAR eth_open_fn(struct inode *, struct file *);
+typedef void DRVFAR eth_release_fn(struct inode *, struct file *);
+
+struct eth_farops {
+    eth_rw_fn *read;
+    eth_rw_fn *write;
+    eth_select_fn *select;
+    eth_ioctl_fn *ioctl;
+    eth_open_fn *open;
+    eth_release_fn *release;
+};
+
 struct eth {
-    struct file_operations *ops;
+    struct eth_farops *farops;          /* NULL when no card was found */
 };
 extern struct eth eths[];
 

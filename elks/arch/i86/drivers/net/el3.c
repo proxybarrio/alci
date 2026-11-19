@@ -93,20 +93,26 @@ enum RxFilter {
 
 static int INITPROC el3_isa_probe();
 //static word_t read_eeprom(int, int);
-static word_t id_read_eeprom(int);
-static size_t el3_write(struct inode *, struct file *, char *, size_t);
-static void el3_int(int, struct pt_regs *);
-static size_t el3_read(struct inode *, struct file *, char *, size_t);
-static void el3_release(struct inode *, struct file *);
-static int el3_open(struct inode *, struct file *);
-static int el3_ioctl(struct inode *, struct file *, unsigned int, unsigned int);
-static int el3_select(struct inode *, struct file *, int);
-static void el3_down();
-static void update_stats();
-void el3_sendpk(int, char *, int);
-void el3_insw(int, char *, int);
+static word_t EL3PROC id_read_eeprom(int);
+static size_t EL3PROC el3_write(struct inode *, struct file *, char *, size_t);
+static void EL3PROC el3_int(int, struct pt_regs *);
 
-extern void el3_mdelay(int);
+/* near entry for request_irq, the handler itself is far (ALCI) */
+static void el3_irq(int irq, struct pt_regs *regs)
+{
+	el3_int(irq, regs);
+}
+static size_t EL3PROC el3_read(struct inode *, struct file *, char *, size_t);
+static void EL3PROC el3_release(struct inode *, struct file *);
+static int EL3PROC el3_open(struct inode *, struct file *);
+static int EL3PROC el3_ioctl(struct inode *, struct file *, unsigned int, unsigned int);
+static int EL3PROC el3_select(struct inode *, struct file *, int);
+static void EL3PROC el3_down(void);
+static void EL3PROC update_stats(void);
+void EL3PROC el3_sendpk(int, char *, int);
+void EL3PROC el3_insw(int, char *, int);
+
+extern void EL3PROC el3_mdelay(int);
 
 /* Maximum events (Rx packets, etc.) to handle at each interrupt. */
 static int max_interrupt_work = 5;
@@ -129,12 +135,10 @@ static unsigned char usecount;
 static struct wait_queue rxwait;
 static struct wait_queue txwait;
 
-static struct file_operations el3_fops =
+static struct eth_farops el3_fops =
 {
-    NULL,	 /* lseek */
-    el3_read,
-    el3_write,
-    NULL,	 /* readdir */
+	el3_read,
+	el3_write,
     el3_select,
     el3_ioctl,
     el3_open,
@@ -143,12 +147,11 @@ static struct file_operations el3_fops =
 
 void INITPROC el3_drv_init(void)
 {
-	eths[ETH_EL3].ops = &el3_fops;
-
 	ioaddr = net_port;		// temporary
 	verbose = (net_flags&ETHF_VERBOSE);
 	if (el3_isa_probe() == 0) {
 		found++;
+		eths[ETH_EL3].farops = &el3_fops;	/* else the code is released */
 		/* The EL3 will grab and hold its default IRQ line
 		 * unless we tell it not to. */
 		EL3WINDOW(0);
@@ -229,7 +232,7 @@ static int INITPROC el3_isa_probe( void )
 /* Read a word from the EEPROM using the regular EEPROM access register.
    Assume that we are in register window zero.
  */
-static word_t read_eeprom(int addr, int index)
+static word_t EL3PROC read_eeprom(int addr, int index)
 {
 	outw(EEPROM_READ + index, addr + 10);
 	/* Pause for at least 162 us. for the read to take place.
@@ -240,7 +243,7 @@ static word_t read_eeprom(int addr, int index)
 #endif
 
 /* Read a word from the EEPROM when in the ISA ID probe state. */
-static word_t id_read_eeprom(int index)
+static word_t EL3PROC id_read_eeprom(int index)
 {
 	int bit, word = 0;
 
@@ -260,7 +263,7 @@ static word_t id_read_eeprom(int index)
 	return word;
 }
 
-static size_t el3_write(struct inode *inode, struct file *file, char *data, size_t len)
+static size_t EL3PROC el3_write(struct inode *inode, struct file *file, char *data, size_t len)
 {
 	int res;
 
@@ -342,7 +345,7 @@ static size_t el3_write(struct inode *inode, struct file *file, char *data, size
 	There are definite performance improvements to be gained by tuning this. 
  *******************************************************************************************************/
 
-static void el3_int(int irq, struct pt_regs *regs)
+static void EL3PROC el3_int(int irq, struct pt_regs *regs)
 {
 	unsigned int status;
 	int i = max_interrupt_work;
@@ -471,7 +474,7 @@ el3_get_stats(struct net_device *dev)
 	window 1 is always valid rather than use a special window-state variable.
 	*/
 /* ELKS: Dummy for now */
-static void update_stats( void )
+static void EL3PROC update_stats(void)
 {
 
 	//printk("eth: Updating statistics.\n");
@@ -511,7 +514,7 @@ static void update_stats( void )
  * Release (close) device
  */
 
-static void el3_release(struct inode *inode, struct file *file)
+static void EL3PROC el3_release(struct inode *inode, struct file *file)
 {
 	if (--usecount == 0) {
 		el3_down();
@@ -527,7 +530,7 @@ static void el3_release(struct inode *inode, struct file *file)
 }
 
 
-static size_t el3_read(struct inode *inode, struct file *filp, char *data, size_t len)
+static size_t EL3PROC el3_read(struct inode *inode, struct file *filp, char *data, size_t len)
 {
 	short rx_status;
 	size_t res;
@@ -583,7 +586,7 @@ static size_t el3_read(struct inode *inode, struct file *filp, char *data, size_
 	return res;
 }
 
-static void el3_down( void )
+static void EL3PROC el3_down(void)
 {
 
 	/* Turn off statistics ASAP.  We update lp->stats below. */
@@ -611,7 +614,7 @@ static void el3_down( void )
  * (verify existence) and pulls out the MAC address, that's it.
  */
 
-static int el3_open(struct inode *inode, struct file *file)
+static int EL3PROC el3_open(struct inode *inode, struct file *file)
 {
 	int i, err;
 	char *mac_addr = (char *)&netif_stat.mac_addr;
@@ -622,7 +625,7 @@ static int el3_open(struct inode *inode, struct file *file)
 	if (usecount++ != 0)
 		return 0;		// Already open, success
 
-	err = request_irq(net_irq, el3_int, INT_GENERIC);
+	err = request_irq(net_irq, el3_irq, INT_GENERIC);
 	if (err) {
 		printk(EMSG_IRQERR, model_name, net_irq, err);
 		return err;
@@ -744,7 +747,7 @@ static int el3_open(struct inode *inode, struct file *file)
  * I/O control
  */
 
-static int el3_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned int arg)
+static int EL3PROC el3_ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned int arg)
 {       
 	int err = 0;
 	byte_t *mac_addr = (byte_t *)&netif_stat.mac_addr;
@@ -770,7 +773,7 @@ static int el3_ioctl(struct inode *inode, struct file *file, unsigned int cmd, u
  * Test for readiness
  */
 
-int el3_select(struct inode *inode, struct file *filp, int sel_type)
+int EL3PROC el3_select(struct inode *inode, struct file *filp, int sel_type)
 {       
 	int res = 0;
 	

@@ -30,10 +30,26 @@
 
 //#include <linuxmt/config.h>
 //#include "arch/ports.h"
+#include <autoconf.h>
 #include <arch/asm-offsets.h>
 #include <linuxmt/netstat.h>
 
 	.code16
+
+#ifdef CONFIG_FARTEXT_KERNEL
+// ALCI: the code is far, in its own section, which is released at boot when
+// no card is found. Entry points return far; their arguments start 2 bytes
+// further up; an entry point called from here is called far too.
+#define FARG	2
+#define RETF	lret
+#define CALLF	push %cs; call
+#define NE2K_TEXT .section .fartext.drv.ne2k,"ax",@progbits
+#else
+#define FARG	0
+#define RETF	ret
+#define CALLF	call
+#define NE2K_TEXT .text
+#endif
 
 // register array - offset from base I/O address
 
@@ -111,7 +127,7 @@ ne2k_flags:
 ne2k_rx_last:			// PSTOP - buffer upper bound
 	.byte rx_last_16	// default to 16K
 
-	.text
+	NE2K_TEXT
 
 //-----------------------------------------------------------------------------
 // Set unicast address (aka MAC address)
@@ -126,7 +142,7 @@ ne2k_addr_set:
 	mov     %sp,%bp
 	push    %si 
 
-	mov     4(%bp),%si
+	mov     4+FARG(%bp),%si
 
 	mov	net_port,%dx	// command-register
 	mov	$0x42,%al	// page 1
@@ -152,7 +168,7 @@ ems_loop:
 
 	pop     %si
 	pop     %bp
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // DMA initialization - Prepare for internal NIC DMA transfer
@@ -365,7 +381,7 @@ ne2k_getpage:
 	add	$io_ne2k_rx_get,%dx     // BOUNDARY
 	in      %dx,%al
 
-	ret
+	RETF
 
 
 //-----------------------------------------------------------------------------
@@ -415,7 +431,7 @@ nrs_exit:
 
 	movw	ne2k_has_data,%ax
 #endif
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // Get received packet
@@ -440,7 +456,7 @@ ne2k_pack_get:
 	//mov	%sp,%di
 
 	// get the 4 byte header first -> arg3
-	mov	8(%bp),%di	
+	mov	8+FARG(%bp),%di	
 	mov	ne2k_next_pk,%bh
 	xor	%bl,%bl		// Next pkt to read in BX
 
@@ -456,8 +472,8 @@ ne2k_pack_get:
 	// get the actual data
 
 	//add	$4,%sp
-	mov	4(%bp),%di	// Buffer address to receive data.
-	mov	6(%bp),%dx	// read len
+	mov	4+FARG(%bp),%di	// Buffer address to receive data.
+	mov	6+FARG(%bp),%dx	// read len
 	cmp	%cx,%dx		// choose the shorter
 	jnb	npg_cont0
 	mov	%dx,%cx		
@@ -526,7 +542,7 @@ npg_exit:
 	// clear the has_data flag if ring buffer is empty.
 	cli			// Ensure we don't get a race condition when
 				// updating ne2k_has_data
-	call	ne2k_getpage
+	CALLF	ne2k_getpage
 	cmp	%ah,%bl		// ring buffer empty?
 	jnz	npg_exit_ok
 	movw	$0,ne2k_has_data
@@ -538,7 +554,7 @@ npg_exit_ok:
 	pop     %di
 	//mov	%bp,%sp	// restore stack pointer
 	pop     %bp
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // Get TX status: Read the TXP bit in the command reg, if reset, there is no 
@@ -565,7 +581,7 @@ nts_ready:
 	mov     $2,%ax
 
 nts_exit:
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // Send packet: First transfer packet data to NIC memory, then kick off
@@ -586,10 +602,10 @@ ne2k_pack_put:
 
 	// write packet to chip memory
 
-	mov     6(%bp),%cx	// arg2 - count
+	mov     6+FARG(%bp),%cx	// arg2 - count
 	xor     %bl,%bl
 	mov     $tx_first,%bh
-	mov     4(%bp),%si	// arg1 - buffer
+	mov     4+FARG(%bp),%si	// arg1 - buffer
 	call    dma_write	// copy the data
 
 	// set TX pointer and length
@@ -631,7 +647,7 @@ tx_rdy_wait:
 
 	pop     %si
 	pop     %bp
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // Get NE2K interrupt status
@@ -653,7 +669,7 @@ ne2k_int_stat:
 	add	$io_ne2k_int_stat,%dx
 	in      %dx,%al
 	xor	%ah,%ah
-	ret
+	RETF
 
 //--------------------------------------------------------------
 // Initialization operations common to several internal routines
@@ -758,7 +774,7 @@ ne2k_init:
 	add	$io_ne2k_rx_last,%dx
 	out     %al,%dx
 
-	call	ne2k_rx_init	// initialize receive buffer
+	CALLF	ne2k_rx_init	// initialize receive buffer
 
 	// initialize start of TX buffer
 	mov	net_port,%dx
@@ -791,7 +807,7 @@ ne2k_init:
 	// FIXME: Should move the int mask and status reg clearing to 
 	// the _start routine too to avoid interrupts from a closed device.
 
-	ret
+	RETF
 
 //------------------------------------------------------------------------
 // rx_init
@@ -828,7 +844,7 @@ ne2k_rx_init:
 	mov	net_port,%dx	// command register
 	out	%al,%dx
 	movw	%ax,ne2k_has_data	// ZERO - Insurance, no data available
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // NE2K startup
@@ -853,7 +869,7 @@ ne2k_start:
 
 	// FIXME: Move setting the int mask here (from init)
 
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // NE2K stop
@@ -895,7 +911,7 @@ ne2k_stop:
 
 	// TODO: wait for the chip to get stable????
 
-	ret
+	RETF
 
 #if 0   /* ne2k_probe in ne2k.c */
 //-----------------------------------------------------------------------------
@@ -933,7 +949,7 @@ np_err:
 
 np_exit:
 
-	ret
+	RETF
 #endif
 
 //-----------------------------------------------------------------------------
@@ -970,7 +986,7 @@ nr_loop:
 	mov     $0x21,%al
 	out     %al,%dx
 
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // Get  MAC address from NIC's prom
@@ -987,7 +1003,7 @@ ne2k_get_hw_addr:
 	mov     %sp,%bp
 	push    %di
 
-	mov     4(%bp),%di
+	mov     4+FARG(%bp),%di
 
 	// Effectively a soft reset of the NIC, required in order to get access to the
 	// address PROM. The PROM is 16 bytes, we get 32 back if reading in word mode,
@@ -1028,7 +1044,7 @@ w_reset:
 
 	pop	%di
 	pop     %bp
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------
 // NE2K clear overflow --- respond to an input ring buffer overflow interrupt
@@ -1055,7 +1071,7 @@ ne2k_clr_oflow:
 of_cont_1:
 	sub	$4,%sp		// get temp space on the stack
 	mov	%sp,%di		//   for the dma_read call
-	mov     6(%bp),%bx	// arg1, # of packets to kill
+	mov     6+FARG(%bp),%bx	// arg1, # of packets to kill
 
 	// We have not cleared the OFLW INT bit yet, so NIC 
 	// interrupts are not enabled 
@@ -1106,7 +1122,7 @@ of_drop_packets:
 	jnz	of_drop_loop1
 
 	// Drop count is ZERO, purge the buffer
-	call	ne2k_rx_init
+	CALLF	ne2k_rx_init
 	// EXPERIMENTAL - reset the NIC completely
 	// Need more testing to see if this is useful
 	//call	ne2k_reset		// THE HARD WAY
@@ -1177,7 +1193,7 @@ of_drop_2:
 of_drop_ok:
 	// insurance: check if the ring buffer is empty.
 	// we may have removed all packets in the buffer (if 4k buffer)
-	call	ne2k_getpage
+	CALLF	ne2k_getpage
 	push	%ax			// save for return
 	cmp	ne2k_next_pk,%ah	// next_pk == CURRENT?
 	jz	of_exit0
@@ -1200,7 +1216,7 @@ of_exit:
 	mov	%bp,%sp
 	pop	%bp
 	pop	%di
-	ret
+	RETF
 
 
 //-----------------------------------------------------------------------------
@@ -1217,7 +1233,7 @@ ne2k_rdc:
 	mov     $0x40,%al
 	out     %al,%dx
 
-	ret
+	RETF
 
 
 //-----------------------------------------------------------------------------
@@ -1237,7 +1253,7 @@ ne2k_get_errstat:
 	mov	%si,%bp
 	push	%di
 
-	mov	4(%bp),%di	
+	mov	4+FARG(%bp),%di	
 
 	// assume pg 0
 	mov	net_port,%dx
@@ -1257,7 +1273,7 @@ ne2k_get_errstat:
 	pop	%bp
 #endif
 	xor	%ax,%ax
-	ret
+	RETF
 
 //---------------------------------------------------------------------------
 // Ne2k - get TX error status
@@ -1276,7 +1292,7 @@ ne2k_get_tx_stat:
 	add	$io_ne2k_tx_stat,%dx
 	in	%dx,%al
 	xor	%ah,%ah
-	ret
+	RETF
 
 //---------------------------------------------------------------------------
 // Ne2k - get RX error status
@@ -1297,7 +1313,7 @@ ne2k_get_rx_stat:
 	add	$io_ne2k_rx_stat,%dx
 	in	%dx,%al
 	xor	%ah,%ah
-	ret
+	RETF
 
 //--------------------------------------------------------------------------
 // Ne2k - clear interrupt status reg
@@ -1331,6 +1347,6 @@ ne2k_clr_err_cnt:
 	in	%dx,%al
 	inc	%dx	// Missed packets
 	in	%dx,%al
-	ret
+	RETF
 
 //-----------------------------------------------------------------------------

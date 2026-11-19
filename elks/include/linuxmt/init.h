@@ -10,6 +10,11 @@
 #define INITPROC __far __attribute__ ((far_section, noinline, section (".fartext.init")))
 #define FARPROC  __far __attribute__ ((far_section, noinline, section (".fartext.far")))
 #define NICPROC __far __attribute__ ((far_section, noinline, section (".fartext.nic")))
+/* ALCI: code of a network driver, released at boot when its card is absent */
+#define NE2KPROC __far __attribute__ ((far_section, noinline, section (".fartext.drv.ne2k")))
+#define WDPROC   __far __attribute__ ((far_section, noinline, section (".fartext.drv.wd")))
+#define EL3PROC  __far __attribute__ ((far_section, noinline, section (".fartext.drv.el3")))
+#define DRVFAR  __far
 /* these symbols defined in elks-small.ld linker script */
 extern void INITPROC __start_fartext_init(void);
 extern void INITPROC __end_fartext_init(void);
@@ -17,6 +22,10 @@ extern void INITPROC __end_fartext_init(void);
 #define INITPROC
 #define FARPROC
 #define NICPROC
+#define NE2KPROC
+#define WDPROC
+#define EL3PROC
+#define DRVFAR
 #endif
 
 struct task_struct;

@@ -47,6 +47,12 @@ SECTIONS {
 		 * IA-16 segment start markers.
 		 */
 		*(".fartext!*" ".fartext.*!")
+		"__start_fartext_ne2k!" = .;
+		"__end_fartext_ne2k!" = .;
+		"__start_fartext_wd!" = .;
+		"__end_fartext_wd!" = .;
+		"__start_fartext_el3!" = .;
+		"__end_fartext_el3!" = .;
 		"__start_fartext_edd!" = .;
 		"__start_fartext_init!" = .;
 		"__end_fartext_init!" = .;
@@ -55,8 +61,23 @@ SECTIONS {
 		/* *(.fartext .fartext$* ".fartext.*[^&]") */
 
 		*(.fartext .fartext.
-		".fartext.[^ie]*" ".fartext.i[^n]*" ".fartext.in[^i]*" ".fartext.ini[^t]*"
-		".fartext.e[^d]*" ".fartext.ed[^d]*")
+		".fartext.[^ied]*" ".fartext.i[^n]*" ".fartext.in[^i]*" ".fartext.ini[^t]*"
+		".fartext.e[^d]*" ".fartext.ed[^d]*" ".fartext.d[^r]*" ".fartext.dr[^v]*")
+		/* ALCI: each network driver in its own aligned area, before .fartext.edd,
+		 * released at boot when its card is not found */
+		. = ALIGN(0x10);
+		__start_fartext_ne2k = .;
+		*(.fartext.drv.ne2k)
+		. = ALIGN(0x10);
+		__end_fartext_ne2k = .;
+		__start_fartext_wd = .;
+		*(.fartext.drv.wd)
+		. = ALIGN(0x10);
+		__end_fartext_wd = .;
+		__start_fartext_el3 = .;
+		*(.fartext.drv.el3)
+		. = ALIGN(0x10);
+		__end_fartext_el3 = .;
 		/* ALCI: .fartext.edd sits just before .fartext.init, so that it can be
 		 * released together with it when no disk uses INT 13h extensions */
 		__start_fartext_edd = .;

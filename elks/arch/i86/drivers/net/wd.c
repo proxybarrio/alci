@@ -140,17 +140,23 @@ static unsigned int verbose;
 static unsigned char current_rx_page;
 static struct netif_stat netif_stat;
 
-static word_t NICPROC wd_rx_stat(void);
-static word_t NICPROC wd_tx_stat(void);
-static void wd_int(int irq, struct pt_regs * regs);
-static void NICPROC fmemcpy(void *, seg_t, void *, seg_t, size_t, int);
-static void NICPROC wd_stop(void);
+static word_t WDPROC wd_rx_stat(void);
+static word_t WDPROC wd_tx_stat(void);
+static void WDPROC wd_int(int irq, struct pt_regs * regs);
+
+/* near entry for request_irq, the handler itself is far (ALCI) */
+static void wd_irq(int irq, struct pt_regs *regs)
+{
+	wd_int(irq, regs);
+}
+static void WDPROC fmemcpy(void *, seg_t, void *, seg_t, size_t, int);
+static void WDPROC wd_stop(void);
 
 /*
  * Get MAC
  */
 
-static void NICPROC wd_get_hw_addr(word_t *data)
+static void WDPROC wd_get_hw_addr(word_t *data)
 {
 	unsigned u;
 
@@ -220,7 +226,7 @@ static int INITPROC wd_probe(void) {
  * Reset
  */
 
-static void NICPROC wd_reset(void)
+static void WDPROC wd_reset(void)
 {
 	int asic_reg5 = inb(net_port+WD_CMDREG5);
 
@@ -241,7 +247,7 @@ static void NICPROC wd_reset(void)
  *	  keep 'strategy' # of packets in the buffer.
  */
 
-static void NICPROC wd_init_8390(int strategy)
+static void WDPROC wd_init_8390(int strategy)
 {
 	unsigned u;
 	const e8390_pkt_hdr __far *rxhdr;
@@ -307,7 +313,7 @@ static void NICPROC wd_init_8390(int strategy)
  * Start
  */
 
-static void NICPROC wd_start(void)
+static void WDPROC wd_start(void)
 {
 	outb(((net_ram >> 9U) & 0x3f) | WD_MEMENB, net_port);
 
@@ -326,7 +332,7 @@ static void NICPROC wd_start(void)
  * Stop & terminate
  */
 
-static void NICPROC wd_stop(void)
+static void WDPROC wd_stop(void)
 {
 	outb(((net_ram >> 9) & 0x3f) & ~WD_MEMENB, net_port);	/* turn off shared mem */
 	outb(0, WD_8390_PORT + EN0_IMR);	/* mask all interrupts */
@@ -346,7 +352,7 @@ static void NICPROC wd_stop(void)
  *	recovery (as specified by the parameter to wd_init_8390() ).
  */
 
-static void NICPROC wd_clr_oflow(int keep)
+static void WDPROC wd_clr_oflow(int keep)
 {
 	wd_init_8390(keep);
 	wd_start();
@@ -356,7 +362,7 @@ static void NICPROC wd_clr_oflow(int keep)
  * Get packet
  */
 
-static size_t NICPROC wd_pack_get(char *data, size_t len)
+static size_t WDPROC wd_pack_get(char *data, size_t len)
 {
 	const e8390_pkt_hdr __far *rxhdr;
 	word_t hdr_start;
@@ -426,7 +432,7 @@ static size_t NICPROC wd_pack_get(char *data, size_t len)
 	return res;
 }
 
-static size_t wd_read(struct inode * inode, struct file * filp,
+static size_t WDPROC wd_read(struct inode * inode, struct file * filp,
 	char * data, size_t len)
 {
 	size_t res = 0;
@@ -455,7 +461,7 @@ static size_t wd_read(struct inode * inode, struct file * filp,
  * Pass packet to driver for send
  */
 
-static size_t NICPROC wd_pack_put(char *data, size_t len)
+static size_t WDPROC wd_pack_put(char *data, size_t len)
 {
 	do {
 		if (len > MAX_PACKET_ETH)
@@ -483,7 +489,7 @@ static size_t NICPROC wd_pack_put(char *data, size_t len)
 	return len;
 }
 
-static size_t wd_write(struct inode * inode, struct file * file,
+static size_t WDPROC wd_write(struct inode * inode, struct file * file,
 	char * data, size_t len)
 {
 	int res;
@@ -511,7 +517,7 @@ static size_t wd_write(struct inode * inode, struct file * file,
  * Test for readiness
  */
 
-static word_t NICPROC wd_rx_stat(void)
+static word_t WDPROC wd_rx_stat(void)
 {
 	unsigned char rxing_page;
 	flag_t flags;
@@ -528,13 +534,13 @@ static word_t NICPROC wd_rx_stat(void)
 	return (current_rx_page == rxing_page) ? 0 : WD_STAT_RX;
 }
 
-static word_t NICPROC wd_tx_stat(void)
+static word_t WDPROC wd_tx_stat(void)
 {
 	return (inb(WD_8390_PORT + E8390_CMD) & E8390_TRANS) ? 0 :
 		WD_STAT_TX;
 }
 
-static int wd_select(struct inode * inode, struct file * filp, int sel_type)
+static int WDPROC wd_select(struct inode * inode, struct file * filp, int sel_type)
 {
 	int res = 0;
 
@@ -563,7 +569,7 @@ static int wd_select(struct inode * inode, struct file * filp, int sel_type)
  * I/O control
  */
 
-static int wd_ioctl(struct inode *inode, struct file *file,
+static int WDPROC wd_ioctl(struct inode *inode, struct file *file,
 	unsigned int cmd, unsigned int arg)
 {
 	int err = 0;
@@ -604,7 +610,7 @@ static int wd_ioctl(struct inode *inode, struct file *file,
  * Device open
  */
 
-static int wd_open(struct inode *inode, struct file *file)
+static int WDPROC wd_open(struct inode *inode, struct file *file)
 {
 	int err = 0;
 
@@ -615,7 +621,7 @@ static int wd_open(struct inode *inode, struct file *file)
 		}
 		if (usecount++) 
 			break;
-		err = request_irq(net_irq, wd_int, INT_GENERIC);
+		err = request_irq(net_irq, wd_irq, INT_GENERIC);
 		if (err) {
 			printk(EMSG_IRQERR, dev_name, net_irq, err);
 			break;
@@ -634,7 +640,7 @@ static int wd_open(struct inode *inode, struct file *file)
  * Release (close) device
  */
 
-static void wd_release(struct inode *inode, struct file *file)
+static void WDPROC wd_release(struct inode *inode, struct file *file)
 {
 #if DEBUG
 	printk("wd0: release: usecnt %d\n", usecount);
@@ -649,12 +655,10 @@ static void wd_release(struct inode *inode, struct file *file)
  * Ethernet operations
  */
 
-static struct file_operations wd_fops =
+static struct eth_farops wd_fops =
 {
-	NULL,         /* lseek */
 	wd_read,
 	wd_write,
-	NULL,         /* readdir */
 	wd_select,
 	wd_ioctl,
 	wd_open,
@@ -671,7 +675,7 @@ static struct file_operations wd_fops =
  * next round of the while-loop, thus avoiding an occasional lost interrupt.
  */
 
-static void wd_int(int irq, struct pt_regs * regs)
+static void WDPROC wd_int(int irq, struct pt_regs * regs)
 {
 	word_t stat;
 
@@ -732,12 +736,12 @@ void INITPROC wd_drv_init(void)
 	word_t hw_addr[6];
 	byte_t *mac_addr = (byte_t *)&netif_stat.mac_addr;
 
-	eths[ETH_WD0].ops = &wd_fops;
 	printk("eth: %s at 0x%x, irq %d, ram 0x%x", dev_name, net_port, net_irq, net_ram);
 	if (wd_probe()) {
 		printk(" not found\n");
 	} else {
 		found++;
+		eths[ETH_WD0].farops = &wd_fops;	/* else the code is released */
 		wd_get_hw_addr(hw_addr);
 		for (u = 0; u < 6; u++) 
 			mac_addr[u] = hw_addr[u]&0xff;
@@ -752,7 +756,7 @@ void INITPROC wd_drv_init(void)
 /* Using this wrapper saves 44 bytes of RAM */
 /* Using word transfers when possible improves transfer time ~10%
  * on large packets (measured @ 1200 bytes) */
-static void NICPROC fmemcpy(void *dst_off, seg_t dst_seg, void *src_off, seg_t src_seg,
+static void WDPROC fmemcpy(void *dst_off, seg_t dst_seg, void *src_off, seg_t src_seg,
 	size_t count, int type) {
 
 	if (type == is_8bit)

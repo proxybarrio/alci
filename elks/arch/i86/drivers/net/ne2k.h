@@ -2,6 +2,7 @@
 #define NE2K_H
 
 #include <arch/ports.h>
+#include <linuxmt/init.h>	/* NE2KPROC: the code is far (ALCI) */
 
 /* NE2K interrupt status bits */
 
@@ -29,35 +30,35 @@
 
 /* From low level NE2K MAC */
 
-extern word_t ne2k_int_stat();
+extern word_t NE2KPROC ne2k_int_stat(void);
 
-extern void   ne2k_reset();
+extern void NE2KPROC ne2k_reset(void);
 
-extern void   ne2k_init();
+extern void NE2KPROC ne2k_init(void);
 
-extern void   ne2k_start();
-extern void   ne2k_stop();
+extern void NE2KPROC ne2k_start(void);
+extern void NE2KPROC ne2k_stop(void);
 
-extern void   ne2k_addr_set(byte_t *);
+extern void NE2KPROC ne2k_addr_set(byte_t *);
 
-extern word_t ne2k_rx_stat();
-extern word_t ne2k_tx_stat();
+extern word_t NE2KPROC ne2k_rx_stat(void);
+extern word_t NE2KPROC ne2k_tx_stat(void);
 
-extern word_t ne2k_pack_get(char *, word_t, word_t *);
-extern word_t ne2k_pack_put(char *, word_t);
+extern word_t NE2KPROC ne2k_pack_get(char *, word_t, word_t *);
+extern word_t NE2KPROC ne2k_pack_put(char *, word_t);
 
-extern word_t ne2k_test();
+extern word_t NE2KPROC ne2k_test(void);
 
-extern word_t ne2k_getpage(void);
-extern word_t ne2k_clr_oflow(word_t);
-extern word_t ne2k_get_tx_stat(void);
-extern word_t ne2k_get_rx_stat(void);
+extern word_t NE2KPROC ne2k_getpage(void);
+extern word_t NE2KPROC ne2k_clr_oflow(word_t);
+extern word_t NE2KPROC ne2k_get_tx_stat(void);
+extern word_t NE2KPROC ne2k_get_rx_stat(void);
 
-extern void ne2k_get_addr(byte_t *);
-extern void ne2k_get_hw_addr(word_t *);
-extern void ne2k_rdc(void);
-extern void ne2k_get_errstat(byte_t *);
-extern void ne2k_clr_err_cnt(void);
-extern void ne2k_rx_init(void);
+extern void NE2KPROC ne2k_get_addr(byte_t *);
+extern void NE2KPROC ne2k_get_hw_addr(word_t *);
+extern void NE2KPROC ne2k_rdc(void);
+extern void NE2KPROC ne2k_get_errstat(byte_t *);
+extern void NE2KPROC ne2k_clr_err_cnt(void);
+extern void NE2KPROC ne2k_rx_init(void);
 
 #endif /* !NE2K_H */

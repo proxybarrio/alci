@@ -28,6 +28,16 @@
 #include <arch/irq.h>
 #include <arch/io.h>
 
+#if defined(CONFIG_FARTEXT_KERNEL) && defined(CONFIG_ETH)
+/* ALCI: network driver code areas, defined in elks-small.ld */
+extern void NE2KPROC __start_fartext_ne2k(void);
+extern void NE2KPROC __end_fartext_ne2k(void);
+extern void WDPROC __start_fartext_wd(void);
+extern void WDPROC __end_fartext_wd(void);
+extern void EL3PROC __start_fartext_el3(void);
+extern void EL3PROC __end_fartext_el3(void);
+#endif
+
 /*
  * Device driver options settable via /bootopts
  */
@@ -303,6 +313,30 @@ static void INITPROC kernel_init(void)
         s = init_seg + (((word_t)(void *)__start_fartext_edd + 15) >> 4);
 #endif
     seg_t e = init_seg + (((word_t)(void *)  __end_fartext_init + 15) >> 4);
+#ifdef CONFIG_ETH
+    /* release the code of the network drivers whose card was not found, from
+     * the highest area down, joining areas that touch (ALCI) */
+    seg_t fs = 0, fe = 0;
+#define DRV_FREE(n, start, end) \
+    if (!eths[n].farops) { \
+        seg_t ds = init_seg + ((word_t)(void *)start >> 4); \
+        seg_t de = init_seg + ((word_t)(void *)end >> 4); \
+        if (de == s) s = ds; \
+        else if (de == fs) fs = ds; \
+        else if (de > ds) { if (fe > fs) seg_add(fs, fe); fs = ds; fe = de; } \
+    }
+#ifdef CONFIG_ETH_EL3
+    DRV_FREE(ETH_EL3, __start_fartext_el3, __end_fartext_el3)
+#endif
+#ifdef CONFIG_ETH_WD
+    DRV_FREE(ETH_WD0, __start_fartext_wd, __end_fartext_wd)
+#endif
+#ifdef CONFIG_ETH_NE2K
+    DRV_FREE(ETH_NE0, __start_fartext_ne2k, __end_fartext_ne2k)
+#endif
+    if (fe > fs)
+        seg_add(fs, fe);
+#endif
     debug("init: seg %04x to %04x size %04x (%d)\n", s, e, (e - s) << 4, (e - s) << 4);
     seg_add(s, e);
 #else

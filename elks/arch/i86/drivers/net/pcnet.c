@@ -112,7 +112,13 @@ static struct {
     addr_t lin;                 /* physical address for the descriptor */
 } txbuf[TX_RING_SIZE];
 
-static void pcnet_int(int irq, struct pt_regs *regs);
+static void NICPROC pcnet_int(int irq, struct pt_regs *regs);
+
+/* near entry for request_irq, the handler itself is far (ALCI) */
+static void pcnet_irq(int irq, struct pt_regs *regs)
+{
+	pcnet_int(irq, regs);
+}
 
 /* ------------------------------------------------------------------ */
 /* register access                                                     */
@@ -339,7 +345,7 @@ static size_t NICPROC pcnet_pack_put(char *data, size_t len)
 /* ------------------------------------------------------------------ */
 /* file operations (framework identical to wd.c)                       */
 
-static size_t pcnet_read(struct inode *inode, struct file *filp,
+static size_t NICPROC pcnet_read(struct inode *inode, struct file *filp,
     char *data, size_t len)
 {
     size_t res;
@@ -364,7 +370,7 @@ static size_t pcnet_read(struct inode *inode, struct file *filp,
     return res;
 }
 
-static size_t pcnet_write(struct inode *inode, struct file *file,
+static size_t NICPROC pcnet_write(struct inode *inode, struct file *file,
     char *data, size_t len)
 {
     size_t res;
@@ -389,7 +395,7 @@ static size_t pcnet_write(struct inode *inode, struct file *file,
     return res;
 }
 
-static int pcnet_select(struct inode *inode, struct file *filp, int sel_type)
+static int NICPROC pcnet_select(struct inode *inode, struct file *filp, int sel_type)
 {
     int res = 0;
 
@@ -414,7 +420,7 @@ static int pcnet_select(struct inode *inode, struct file *filp, int sel_type)
     return res;
 }
 
-static int pcnet_ioctl(struct inode *inode, struct file *file,
+static int NICPROC pcnet_ioctl(struct inode *inode, struct file *file,
     unsigned int cmd, unsigned int arg)
 {
     int err = 0;
@@ -432,7 +438,7 @@ static int pcnet_ioctl(struct inode *inode, struct file *file,
     return err;
 }
 
-static int pcnet_open(struct inode *inode, struct file *file)
+static int NICPROC pcnet_open(struct inode *inode, struct file *file)
 {
     int err = 0;
 
@@ -455,7 +461,7 @@ static int pcnet_open(struct inode *inode, struct file *file)
 #else
         dmalin = (addr_t)dmaseg->base << 4;
 #endif
-        err = request_irq(net_irq, pcnet_int, INT_GENERIC);
+        err = request_irq(net_irq, pcnet_irq, INT_GENERIC);
         if (err) {
             printk(EMSG_IRQERR, dev_name, net_irq, err);
             seg_put(dmaseg);
@@ -475,7 +481,7 @@ static int pcnet_open(struct inode *inode, struct file *file)
     return err;
 }
 
-static void pcnet_release(struct inode *inode, struct file *file)
+static void NICPROC pcnet_release(struct inode *inode, struct file *file)
 {
     if (--usecount == 0) {
         unsigned int i;
@@ -493,12 +499,10 @@ static void pcnet_release(struct inode *inode, struct file *file)
     }
 }
 
-static struct file_operations pcnet_fops =
+static struct eth_farops pcnet_fops =
 {
-    NULL,           /* lseek */
-    pcnet_read,
-    pcnet_write,
-    NULL,           /* readdir */
+	pcnet_read,
+	pcnet_write,
     pcnet_select,
     pcnet_ioctl,
     pcnet_open,
@@ -508,7 +512,7 @@ static struct file_operations pcnet_fops =
 /* ------------------------------------------------------------------ */
 /* interrupt                                                           */
 
-static void pcnet_int(int irq, struct pt_regs *regs)
+static void NICPROC pcnet_int(int irq, struct pt_regs *regs)
 {
     word_t csr0;
 
@@ -557,7 +561,7 @@ void INITPROC pcnet_drv_init(void)
     unsigned int u;
     byte_t *mac = netif_stat.mac_addr;
 
-    eths[ETH_LE0].ops = &pcnet_fops;
+    eths[ETH_LE0].farops = &pcnet_fops;
     printk("eth: ");
     if (!net_port && pcnet_pci_find() < 0)
         return;

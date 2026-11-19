@@ -10,11 +10,24 @@
 
 	.code16
 
+#ifdef CONFIG_FARTEXT_KERNEL
+// ALCI: the code is far, in its own section, which is released at boot when
+// no card is found. Functions return far and their arguments start 2 bytes
+// further up.
+#define FARG	2
+#define RETF	lret
+#define EL3_TEXT .section .fartext.drv.el3,"ax",@progbits
+#else
+#define FARG	0
+#define RETF	ret
+#define EL3_TEXT .text
+#endif
+
 	.data
 	.extern current
 
 
-	.text
+	EL3_TEXT
 
 //-----------------------------------------------------------------------------
 // Read data from port
@@ -30,9 +43,9 @@ el3_insw:
 	mov	%sp,%di
 	push	%es
 
-	mov	4(%di),%dx	// Port
-	mov	8(%di),%cx	// length (words)
-	mov	6(%di),%di	// Buffer pointer
+	mov	4+FARG(%di),%dx	// Port
+	mov	8+FARG(%di),%cx	// length (words)
+	mov	6+FARG(%di),%di	// Buffer pointer
 
         mov     current,%bx
         mov     TASK_USER_DS(%bx),%es	// destination segment = user process
@@ -47,7 +60,7 @@ word_loop:
         pop     %es
         pop     %di
 
-        ret
+        RETF
 
 
 //-----------------------------------------------------------------------------
@@ -63,9 +76,9 @@ el3_sendpk:
 	mov	%sp,%si
 	push	%ds
 
-	mov	4(%si),%dx	// Port
-        mov     8(%si),%cx      // byte count
-        mov     6(%si),%si      // buffer addr
+	mov	4+FARG(%si),%dx	// Port
+        mov     8+FARG(%si),%cx      // byte count
+        mov     6+FARG(%si),%si      // buffer addr
 
 	cli
 	mov	%cx,%ax
@@ -88,7 +101,7 @@ wr_loop:
 	pop     %ds
 	pop	%si
 
-	ret
+	RETF
 
 //-------------------------------------------------
 	.global el3_mdelay
@@ -97,11 +110,11 @@ el3_mdelay:
 
 	push	%bp
 	mov	%sp,%bp
-	mov	4(%bp),%cx	// count
+	mov	4+FARG(%bp),%cx	// count
 mdly_loop:
 	outb	$0x80		// presumably approx 1us
 	loop	mdly_loop
 
 	pop	%bp
-	ret
+	RETF
 

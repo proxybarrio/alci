@@ -13,19 +13,19 @@
 
 struct eth eths[MAX_ETHS];
 
-/* return file_operations pointer from minor number */
-static struct file_operations *get_ops(dev_t dev)
+/* return the far operations of a minor number, NULL if no card (ALCI) */
+static struct eth_farops *get_ops(dev_t dev)
 {
     unsigned short minor = MINOR(dev);
 
     if (minor < MAX_ETHS)
-        return eths[MINOR(dev)].ops;
+        return eths[MINOR(dev)].farops;
     return NULL;
 }
 
 static int eth_open(struct inode *inode, struct file *file)
 {
-    struct file_operations *ops = get_ops(inode->i_rdev);
+    struct eth_farops *ops = get_ops(inode->i_rdev);
 
     if (!ops)
         return -ENODEV;
@@ -34,7 +34,7 @@ static int eth_open(struct inode *inode, struct file *file)
 
 static void eth_release(struct inode *inode, struct file *file)
 {
-    struct file_operations *ops = get_ops(inode->i_rdev);
+    struct eth_farops *ops = get_ops(inode->i_rdev);
 
     if (!ops)
         return;
@@ -43,7 +43,7 @@ static void eth_release(struct inode *inode, struct file *file)
 
 static size_t eth_write(struct inode *inode, struct file *file, char *data, size_t len)
 {
-    struct file_operations *ops = get_ops(inode->i_rdev);
+    struct eth_farops *ops = get_ops(inode->i_rdev);
 
     if (!ops)
         return -ENODEV;
@@ -52,7 +52,7 @@ static size_t eth_write(struct inode *inode, struct file *file, char *data, size
 
 static size_t eth_read(struct inode *inode, struct file *file, char *data, size_t len)
 {
-    struct file_operations *ops = get_ops(inode->i_rdev);
+    struct eth_farops *ops = get_ops(inode->i_rdev);
 
     if (!ops)
         return -ENODEV;
@@ -61,16 +61,16 @@ static size_t eth_read(struct inode *inode, struct file *file, char *data, size_
 
 static int eth_ioctl(struct inode *inode, struct file *file, int cmd, char *arg)
 {
-    struct file_operations *ops = get_ops(inode->i_rdev);
+    struct eth_farops *ops = get_ops(inode->i_rdev);
 
     if (!ops)
         return -ENODEV;
-    return ops->ioctl(inode, file, cmd, arg);
+    return ops->ioctl(inode, file, cmd, (unsigned int)arg);
 }
 
 static int eth_select(struct inode *inode, struct file *file, int sel_type)
 {
-    struct file_operations *ops = get_ops(inode->i_rdev);
+    struct eth_farops *ops = get_ops(inode->i_rdev);
 
     if (!ops)
         return -ENODEV;
