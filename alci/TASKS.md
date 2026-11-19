@@ -411,7 +411,8 @@ Rules for the floppy set (decided 2026-11-19):
   maintainer: `grep` +3.2% in `bench2.sh` (first start from a floppy
   without rotation delay; faster with it) and +1.9 KB of resident kernel.
   Follow-ups: file order on the floppy (A3) now that files moved;
-  `meminfo` could show kept texts apart; hard disk images later; with the
+  hard disk images later; (`meminfo` shows kept texts as KEPT and
+  counts them as free, done 2026-11-19); with the
   space gained, fewer disks in the 720K set (to discuss).
 - [ ] F1 `TODO` CPU detection at boot and choice of routines (8088, 186,
   286); 286 extended memory for the disk cache.

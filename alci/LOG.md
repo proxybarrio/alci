@@ -113,4 +113,6 @@
   (new `ELKS_FDTRACE` and `ELKS_BOOT_TEXT` in `elks-bench`). Upstream's
   file order is already good; the time goes to the boot loader re-reading
   the inode block and to waits for sector 1. Plan in `TASKS.md`.
+- `meminfo`: texts kept by the text cache are listed as KEPT and counted as
+  free memory, since they are given back on demand.
 
