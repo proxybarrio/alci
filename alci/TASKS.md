@@ -3,8 +3,8 @@
 Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
 `HUMAN` (needs the maintainer), `BLOCKED` (waiting on something).
 The agent takes the first `TODO` from the top, except for the order
-agreed with the maintainer on 2026-11-19: F4c, then E7 (network time,
-time zone, summer time), then F4d, then D5 (boot logo).
+agreed with the maintainer on 2026-11-19: F4c (done), then E7 (network
+time, time zone, summer time), then F4d, then D5 (boot logo).
 
 ## Phase 1: baseline speed
 
@@ -457,20 +457,18 @@ Rules for the floppy set (decided 2026-11-19):
   hard disk images later; (`meminfo` shows kept texts as KEPT and
   counts them as free, done 2026-11-19); with the
   space gained, fewer disks in the 720K set (to discuss).
-- [ ] F4c `TODO` Robust LZSA1 decoding (from a review of F4b). Today the
-  decoder trusts the block and exec only rejects a result of the wrong
-  length. On QEMU, 7 of 12 hand-corrupted copies of `grep` hung the whole
-  system; a host model of the decoder (`tests/lzsa1-model.py`) shows why:
-  some corruptions (and almost every tail of zeros, as an interrupted
-  write leaves) never reach an end marker and write over the 64 KB above
-  the segment, kernel included. Plan: in `lzsa1dec.S`, before each
-  literal and match copy, stop when the output would pass the allocated
-  size or the input pass its length (both are already passed in), and
-  return an error; measure the cost (expected a few cycles per sequence,
-  about 1% of decoding) and the size. Then the corruption test in
-  emulation: no corrupted file may hang the system. A checksum is not
-  needed for floppies (the controller checks every sector); downloaded
-  packages will carry their own hash (E0c, F5).
+- [x] F4c `DONE 2026-11-20` Robust LZSA1 decoding (from a review of F4b).
+  The decoder trusted the block; on QEMU 7 of 12 damaged copies of `grep`
+  hung the system, and the host model (`tests/lzsa1-model.py`) showed
+  writes over the 64 KB above the segment. Now long copies are checked
+  before they start and the output after each short match; a damaged
+  block returns 0 and exec rejects it. With `9d1b6868`: none of the 12
+  hangs (10 rejected, 1 stopped by `SIGSEGV`, 1 runs), the model finds no
+  write outside the segment in 2500 corruptions. Decoder 74 bytes
+  smaller; starts +0.1% to +1.1%. A damaged block that still decodes to
+  the right length runs with wrong code, as an uncompressed program
+  would; no checksum for floppies, downloaded packages will carry a hash
+  (E0c, F5).
 - [ ] F4d `TODO` Text cache, small fix: a cached program file that is
   unlinked without being opened for writing (`mv` over it) keeps its
   disk blocks until the entry leaves the cache (checked on QEMU: `sed`

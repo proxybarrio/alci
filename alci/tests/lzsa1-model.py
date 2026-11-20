@@ -5,12 +5,13 @@
 # five ways (a tail of zeros is what an interrupted write can leave) and counts what the kernel would do: accept a block of the
 # right length, reject one of the wrong length, or write outside the
 # segment exec allocated (memory of the kernel or of other programs).
-# usage: lzsa1-model.py <LZSA1 executable taken from an image> [N]
+# usage: lzsa1-model.py <LZSA1 executable taken from an image> [N] [checked]
+# "checked" models the bounds checks of lzsa1dec.S since task F4c.
 import random, struct, sys, collections
 
 def ceil16(x): return (x + 15) & ~15
 
-def decode(stream, dlen, maxout=0x10000):
+def decode(stream, dlen, maxout=0x10000, checked=False):
     clen = len(stream); margin = (clen >> 8) + 32
     sp = ceil16(dlen + margin - clen)       # source offset in the segment
     alloc = sp + ceil16(clen)               # bytes exec allocated
@@ -32,31 +33,40 @@ def decode(stream, dlen, maxout=0x10000):
         if n == 7:
             a = rb() + 7
             n = a if a < 256 else rw() if a == 256 else 256 + rb()
+            if checked and st['di'] + n > dlen:
+                return 0, st['out'], False
         for _ in range(n):
             wr(rb())
         off = rw() if t & 0x80 else 0xff00 | rb()
         n = t & 0x0f
         if n != 15:
             n += 3
+            short = True
         else:
+            short = False
             a = rb() + 0x12
             if a < 256: n = a
             elif a == 256:
                 n = rw()
                 if n == 0: return st['di'], st['out'], False
             else: n = 256 + rb()
+        if checked and not short and st['di'] + n > dlen:
+            return 0, st['out'], False
         src = (st['di'] + off) & 0xffff
         for _ in range(n):
             wr(mem[src]); src = (src + 1) & 0xffff
+        if checked and short and st['di'] > dlen:
+            return 0, st['out'], False
     return st['di'], True, True             # 64 KB written, no end marker yet
 
 d = open(sys.argv[1], 'rb').read()
 N = int(sys.argv[2]) if len(sys.argv) > 2 else 300
+CHK = len(sys.argv) > 3 and sys.argv[3] == 'checked'
 hlen = d[4]; tseg = struct.unpack('<I', d[8:12])[0]
 ctseg, cdseg, cftseg, fmt = struct.unpack('<4H', d[56:64])
 assert fmt == 0x3153 and ctseg, 'not an LZSA1 executable'
 base = d[hlen:hlen + ctseg]
-assert decode(base, tseg) == (tseg, False, False), 'model does not decode the original'
+assert decode(base, tseg, checked=CHK) == (tseg, False, False), 'model does not decode the original'
 
 def mutate(rr, kind):
     b = bytearray(base); L = len(b)
@@ -73,11 +83,11 @@ def mutate(rr, kind):
         i = rr.randrange(L); b[i:] = bytes(L - i)
     return bytes(b)
 
-print('%s: text %d bytes, %d compressed' % (sys.argv[1], tseg, ctseg))
+print('%s: text %d bytes, %d compressed%s' % (sys.argv[1], tseg, ctseg, ', bounds checks' if CHK else ''))
 for kind in ['bit flip', 'random byte', '16 random bytes', 'tail garbage', 'tail zeros']:
     rr = random.Random(kind); c = collections.Counter()
     for _ in range(N):
-        di, out, runaway = decode(mutate(rr, kind), tseg)
+        di, out, runaway = decode(mutate(rr, kind), tseg, checked=CHK)
         c['accepted' if di == tseg and not runaway else 'rejected'] += 1
         c['wrote outside the segment'] += out
         c['64 KB written, no end'] += runaway

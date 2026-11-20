@@ -697,6 +697,49 @@ them wrote 64 KB without reaching an end marker. A file cut short is
 rejected before decoding (exec checks the bytes read); a file of the right
 size with a damaged tail is not. Plan: task F4c.
 
+## Bounds checks in the LZSA1 decoder, task F4c (2026-11-20)
+
+Alci `9d1b6868` against `40dc2a7d`, same toolchain and configuration.
+Decoder 333 -> 259 bytes (the 128-byte table is gone), kernel code
+55728 -> 55664 bytes, data unchanged.
+
+The same twelve damaged copies of `grep` as on 2026-11-19, QEMU 486,
+720K image, one fresh boot each:
+
+| Outcome | before | after |
+| --- | --- | --- |
+| whole system hung | 7 | 0 |
+| rejected by exec (shell then tried it as a script) | 3 | 10 |
+| stopped by `SIGSEGV`, system fine | 1 | 1 |
+| ran normally (byte in the data section) | 1 | 1 |
+
+Host model with the checks (`lzsa1-model.py grep 500 checked`): 2500
+corruptions, none writes outside the segment, none runs without end;
+accepted and rejected counts as before.
+
+MartyPC `elks-bench` `e1c5187`, 720K images of the two kernels, emulated
+seconds. `bench5` commands with the floppy rotation model:
+
+| Command | XT before | XT after | 8086 before | 8086 after |
+| --- | --- | --- | --- | --- |
+| `grep`, first run | 3.521 | 3.525 | 3.266 | 3.266 |
+| `grep` x10 | 1.870 | 1.878 | 0.878 | 0.880 |
+| `sort`, first run | 2.158 | 2.163 | 1.956 | 1.953 |
+| `sort` x10 | 2.201 | 2.205 | 1.042 | 1.045 |
+| `vi -r`, first run | 3.391 | 3.429 | 2.473 | 2.490 |
+| `vi -r`, second run | 0.252 | 0.260 | 0.123 | 0.126 |
+| `sed`, first run | 3.101 | 3.051 | 2.582 | 2.760 |
+| `sed` x10 | 2.633 | 2.641 | 1.224 | 1.227 |
+
+The 8086 `sed` first run (+0.18 s, one floppy revolution) is the rotation
+model: without it the same two runs give `sed` 2.858 -> 2.861 and `vi -r`
+3.275 -> 3.291. Decoding itself is about 9% slower (3 cycles more per
+byte produced, out of about 37); `vi`'s second start decodes only its
+data. `bench.sh` and `bench2.sh`: every line within 0.5% (`cat /bin/sh`
+1.501 -> 1.509, the rest equal).
+
+Suites 34/34: floppy on QEMU, 86Box XT, AT, 386; hard disk on QEMU.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

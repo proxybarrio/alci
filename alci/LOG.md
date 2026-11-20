@@ -134,3 +134,11 @@
   one place, time from NTP servers of time institutes, the question at
   boot as the last resort; floppy rules for saving the zone. Order agreed:
   F4c, E7, F4d. Documents brought up to date.
+
+## 2026-11-20
+
+- F4c done: the LZSA1 decoder stops on a damaged block and exec rejects
+  it. Of the twelve damaged `grep` copies that hung the system in 7
+  cases, none does now. Decoder 74 bytes smaller, program starts up to
+  1.1% slower.
+- Boot logo task D5 written; the Alci logo is on the README.

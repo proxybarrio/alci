@@ -49,7 +49,7 @@ real machine for tests, not the design target.
 - Programs on the floppies are LZSA1-compressed and decoded by the kernel
   at exec; exited programs stay in free memory until it is needed (text
   cache). A damaged file must never bring the system down: the decoder
-  gets bounds checks (F4c) before anything else.
+  checks its bounds and a damaged program is rejected (F4c).
 
 ## Where the system lives
 
