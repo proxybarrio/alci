@@ -200,9 +200,11 @@ time, time zone, summer time), then F4d, then D5 (boot logo).
      its screens pixel by pixel. Say "inspired by GEOS".
   Depends on D1 and D2.
 - [ ] D5 `TODO` Boot logo (decided 2026-11-20). Image: the maintainer's
-  320x200 drawing (two moose, penguin, sun, ALCI, a PC with `#`), CGA
-  graphics with the cyan/red/white palette (version "B": green shown as
-  cyan). Off at first boot; `logo on` / `logo off` turn it on and off
+  320x200 drawing (two moose, a penguin wearing antlers, sun, ALCI, a PC
+  with `#`), CGA mode 5, ready as `alci/img/alci-logo-cga5.bin` (16 KB,
+  2.4 KB with LZSA1). After the BIOS mode set, port 3D9h = 10h for the
+  bright palette (and bit 2 of 3D8h, as mode 5 already sets it). On a
+  composite monitor mode 5 shows in shades of grey. Off at first boot; `logo on` / `logo off` turn it on and off
   (a line in `/bootopts`; on a write-protected disk 1 the command says
   so). When on, `rc.sys` runs its work through a small `bootlogo`
   program: it saves the text screen, shows the logo until the end of

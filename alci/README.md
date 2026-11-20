@@ -24,7 +24,10 @@ repository.
 - `tests/`: functional and speed tests on QEMU and 86Box (see `tests/README.md`).
 - `upstream/`: patches prepared for ELKS, sent by the maintainer.
 - `docs/`: studies (`os8088-study.md`).
-- `img/`: the Alci logo (CGA colours, 320x200 shown at 4:3).
+- `img/`: the Alci logo. `alci-logo-320x200.png` is the original, CGA
+  mode 5 (black, light cyan, light red, white); `alci-logo.png` is the same
+  shown at 4:3; `alci-logo-cga5.bin` is the 16 KB CGA screen for the boot
+  logo (task D5).
 
 Every change on branch `alci` is a separate commit, so that any of them can
 be offered upstream on its own. Changes are developed with the help of Claude

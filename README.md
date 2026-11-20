@@ -1,7 +1,7 @@
 # ALCI: Asymmetric Linux Compact Initiative
 
 <p align="center">
-  <img alt="Alci logo: two moose and a penguin under a rising sun, the word ALCI and a small PC, in CGA colours" src="alci/img/alci-logo-cga.png" width="480">
+  <img alt="Alci logo: two moose and a penguin wearing antlers under a rising sun, the word ALCI and a small PC, in CGA colours" src="alci/img/alci-logo.png" width="480">
 </p>
 
 **Alci** is an experimental branch of [ELKS](https://github.com/ghaerr/elks),
