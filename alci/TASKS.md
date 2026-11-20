@@ -333,14 +333,25 @@ time, time zone, summer time), then F4d, then D5 (boot logo).
   NIST), passed by `/bin/net`: IP addresses, since names cannot be looked
   up before `ktcp` runs; check them on a real network.
   Still to do, in this order:
+  Decided 2026-11-20:
+  - Server order: the `-t` list (INRIM, PTB, NIST) first; only if none
+    answers, the local network's server (DHCP option 42, else the
+    gateway). Today DHCP's server goes first: change it in E7b.
+  - The first boot on a real network prints which servers answered, so
+    the addresses are checked there.
+  - A large jump from a clock that was valid is applied and printed
+    (point 3 closed).
+  - The two floppy benchmarks moved by the layout shift are accepted;
+    the layout is left to A3 and F0.
   - E7b: `clock -c` runs right after `net start`, before the answer can
     arrive (up to 12 s with three silent servers). Make the boot wait for
     the network time (or for `ktcp` to give up) before asking, and write
-    the RTC after a network time is set (`clock -w`).
+    the RTC after a network time is set (`clock -w`). While it waits, a
+    message says which key combination skips the wait, for when it takes
+    too long; the key must work on the console and on a serial terminal.
+    Include the server order and the per-server report above.
   - E7c: time zone and summer time (point 1 and the `TZ` decisions
     above): measure the kernel and `libc` cost first.
-  - Plausibility against a working RTC (point 3): today a large jump is
-    applied and printed; decide whether to refuse it instead.
 
 ## Phase 6: universal image
 

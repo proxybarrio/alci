@@ -149,3 +149,7 @@
   floppy benchmarks move by a two-block layout shift (control run with
   padded files shows the same). Next: E7b, the boot waits for network
   time before asking.
+- E7 decisions: institute servers first, the local network's server only
+  as a fallback; first real boot reports which servers answer; large
+  jumps applied and printed; the layout effect on two floppy benchmarks
+  accepted. E7b adds a key to skip the wait for network time at boot.
