@@ -458,7 +458,8 @@ Rules for the floppy set (decided 2026-11-19):
   Follow-ups: file order on the floppy (A3) now that files moved;
   hard disk images later; (`meminfo` shows kept texts as KEPT and
   counts them as free, done 2026-11-19); with the
-  space gained, fewer disks in the 720K set (to discuss).
+  space gained, fewer disks in the 720K set (decided 2026-11-20: yes;
+  F0 fixes the number).
 - [x] F4c `DONE 2026-11-20` Robust LZSA1 decoding (from a review of F4b).
   The decoder trusted the block; on QEMU 7 of 12 damaged copies of `grep`
   hung the system, and the host model (`tests/lzsa1-model.py`) showed

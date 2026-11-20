@@ -14,10 +14,10 @@ if [ ! -x $ELKS/elks/tools/bin/lzsa ] && mkdir -p $ELKS/elks/tools/bin; then
   (rm -rf $ROOT/work/lzsa && git clone -q --depth 1 https://github.com/emmanuel-marty/lzsa $ROOT/work/lzsa && \
    make -C $ROOT/work/lzsa > /dev/null 2>&1 && cp $ROOT/work/lzsa/lzsa $ELKS/elks/tools/bin/) || true
 fi
-# toolchain (prebuilt, branch 'toolchain' of the fork)
+# toolchain (prebuilt, branch 'toolchain')
 if [ ! -x $ELKS/cross/bin/ia16-elf-gcc ]; then
   rm -rf $ROOT/work/tc
-  git clone -q --depth 1 -b toolchain https://github.com/proxybarrio/elks $ROOT/work/tc
+  git clone -q --depth 1 -b toolchain https://github.com/proxybarrio/alci $ROOT/work/tc
   mkdir -p $ELKS/cross && tar -C $ELKS/cross -xJf $ROOT/work/tc/ia16-toolchain.tar.xz
   [ -f $ELKS/.config ] || cp $ROOT/work/tc/elks.config $ELKS/.config
 fi
