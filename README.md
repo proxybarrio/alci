@@ -1,5 +1,9 @@
 # ALCI: Asymmetric Linux Compact Initiative
 
+<p align="center">
+  <img alt="Alci logo: two moose and a penguin under a rising sun, the word ALCI and a small PC, in CGA colours" src="alci/img/alci-logo-cga.png" width="480">
+</p>
+
 **Alci** is an experimental branch of [ELKS](https://github.com/ghaerr/elks),
 the Embeddable Linux Kernel Subset by Alan Cox, Greg Haerr and the ELKS team.
 *Alci* is Italian for "elks". "Asymmetric" names the idea behind it: a
@@ -55,6 +59,28 @@ is complete on the screen. Other rows: serial console, output discarded.
 On MartyPC (8088 4.77 MHz, CGA, 720K floppy) boot to the prompt with the
 floppy rotation model takes 21.02 s on ELKS and 18.36 s on Alci. Full tables in
 [`alci/RESULTS.md`](alci/RESULTS.md).
+
+Since then (2026-11-19, Alci up to
+[`70b577df`](https://github.com/proxybarrio/elks/commit/70b577df), each
+change measured against the commit before it; details in
+[`alci/RESULTS.md`](alci/RESULTS.md)):
+
+- Programs on the floppies are compressed (LZSA1) and decoded by the
+  kernel, and programs that exit stay in free memory until it is needed:
+  the 720K system disk goes from 41 to 121 KB free, the first start of a
+  program from the floppy is faster (`sed` 4.76 -> 3.19 s on the XT) and
+  a second start is almost free (`vi` 4.75 -> 0.25 s). Cost: 1.9 KB of
+  kernel memory.
+- Network card drivers that find no card give their code back at boot:
+  4.9 KB more free memory with no card, 3 KB with one.
+- Serial input on the XT no longer loses characters (longest wait of a
+  received byte about 640 -> 380 us); `clock -w` writes a valid year to
+  the AT's CMOS after 1999; programs no longer fail for lack of memory
+  when several start at once on a 512K AT.
+- Floppy boot to `login:` 22.81 -> 22.21 s on the XT (the boot loader no
+  longer reads the same block twice).
+- When the date is older than the system (an XT with no clock), it is
+  asked at boot; no answer, and the boot goes on after 60 s.
 
 Every change is a separate commit on branch `alci`, measured on the
 cycle-accurate MartyPC emulator and checked for identical behaviour on six

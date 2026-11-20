@@ -212,8 +212,11 @@ time zone, summer time), then F4d, then D5 (boot logo).
   (`clock -c`) and `login:` always come in text. Skipped without CGA,
   EGA or VGA. Image 16 KB, 2.6 KB compressed with LZSA1; expected cost
   about 0.7 s on the XT floppy boot, 0 bytes of memory after the boot.
-  Kernel messages printed while the logo is up land on the graphics
-  screen; they stay in `dmesg`. Measure on MartyPC (XT) and check on
+  A kernel message printed while the logo is up ends the logo as a key
+  would (decided 2026-11-20): `bootlogo` watches the kernel message
+  queue (the one `dmesg` reads) and on a new message brings back the
+  text screen, the boot output and the message. No kernel code; the
+  message may draw a few wrong pixels for a moment before that. Measure on MartyPC (XT) and check on
   86Box XT, AT, 386 and QEMU.
 
 ## Phase 5: Claude terminal

@@ -24,6 +24,7 @@ repository.
 - `tests/`: functional and speed tests on QEMU and 86Box (see `tests/README.md`).
 - `upstream/`: patches prepared for ELKS, sent by the maintainer.
 - `docs/`: studies (`os8088-study.md`).
+- `img/`: the Alci logo (CGA colours, 320x200 shown at 4:3).
 
 Every change on branch `alci` is a separate commit, so that any of them can
 be offered upstream on its own. Changes are developed with the help of Claude
