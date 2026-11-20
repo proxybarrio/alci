@@ -142,3 +142,10 @@
   cases, none does now. Decoder 74 bytes smaller, program starts up to
   1.1% slower.
 - Boot logo task D5 written; the Alci logo is on the README.
+- E7 point 2: SNTP client in `ktcp` (`-t` list, DHCP option 42 first),
+  answers checked, times before the build refused; default servers of
+  INRIM, PTB and NIST in `/etc/net.cfg`. `ktcp` +1.2 KB, kernel and libc
+  unchanged; tested on QEMU and the 86Box XT with a test server. Two
+  floppy benchmarks move by a two-block layout shift (control run with
+  padded files shows the same). Next: E7b, the boot waits for network
+  time before asking.

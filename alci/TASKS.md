@@ -320,6 +320,27 @@ time, time zone, summer time), then F4d, then D5 (boot logo).
   cost first. Floppy systems: the zone is asked once and saved in
   `/bootopts` on disk 1; on a write-protected disk 1 it stays UTC and a
   line at boot says so, without asking each time.
+  Point 2, the client, done 2026-11-20: `ktcp -t ip,ip,...` sends an
+  SNTP request once the address is known (static, or DHCP bound), to the
+  server from DHCP option 42 first, then the `-t` list; two tries 2 s
+  apart per server. Answers are taken only from the server asked, in
+  server mode, synchronised, stratum 1-15, echoing our request; a time
+  before the build of `ktcp` is refused. The clock is set in UTC with
+  half the round trip added; a correction above 1000 s of a clock that
+  was valid is printed. `ktcp` +1136 bytes code, +112 data, +32 bss; no
+  resident cost (only while `ktcp` runs). `/etc/net.cfg` gets
+  `ntp="-t 193.204.114.232,192.53.103.108,129.6.15.28"` (INRIM, PTB,
+  NIST), passed by `/bin/net`: IP addresses, since names cannot be looked
+  up before `ktcp` runs; check them on a real network.
+  Still to do, in this order:
+  - E7b: `clock -c` runs right after `net start`, before the answer can
+    arrive (up to 12 s with three silent servers). Make the boot wait for
+    the network time (or for `ktcp` to give up) before asking, and write
+    the RTC after a network time is set (`clock -w`).
+  - E7c: time zone and summer time (point 1 and the `TZ` decisions
+    above): measure the kernel and `libc` cost first.
+  - Plausibility against a working RTC (point 3): today a large jump is
+    applied and printed; decide whether to refuse it instead.
 
 ## Phase 6: universal image
 

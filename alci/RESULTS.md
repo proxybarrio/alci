@@ -740,6 +740,64 @@ data. `bench.sh` and `bench2.sh`: every line within 0.5% (`cat /bin/sh`
 
 Suites 34/34: floppy on QEMU, 86Box XT, AT, 386; hard disk on QEMU.
 
+## Network time, task E7 point 2: SNTP client in ktcp (2026-11-20)
+
+Alci `57c23dd6` (upstream ELKS `df2a61c5` merged) against the same tree
+with the SNTP client, same configuration (`alci/elks.config`) and
+toolchain.
+
+Size (`ia16-elf-size`, a.out header of `ktcp`):
+
+| | text | data | bss | file |
+| --- | --- | --- | --- | --- |
+| `ktcp` before | 22960 | 2752 | 20336 | 25744 |
+| `ktcp` with SNTP | 24096 | 2864 | 20368 | 26976 |
+| difference | +1136 | +112 | +32 | +1232 |
+
+`sntp.o` 1087 bytes of text, `dhcp.o` +106 (option 42), `ktcp.o` +100
+(`-t`). Kernel and `libc` unchanged: no resident cost, the code is in
+memory only while `ktcp` runs.
+
+Behaviour, QEMU 8.2.2 (`486`, 640K, NE2000 at 300h, slirp) with a test
+SNTP server on the host (10.0.2.2) that answers the first request with a
+wrong origin timestamp, then correctly with host time plus one day:
+
+| Case | result |
+| --- | --- |
+| static address, `-t 10.0.2.9,10.0.2.2` (first silent) | after 4 s moves on; wrong-origin answer ignored; retry sets the clock, `corrected by 86400 s` |
+| DHCP (`-d`), `-t 10.0.2.2` | DHCP bound, then clock set |
+| server sends 1999 | `time too old` twice, `no answer`, clock unchanged |
+| no server (ICMP port unreachable) | `no answer` after two tries |
+| `net start ne0` with the default `net.cfg` | `ktcp -t 193.204.114.232,...` started; no UDP to the internet here, so `no answer` after 12 s; daemons up |
+
+86Box IBM XT (8088 4.77 MHz, real BIOS, WD8003E, 720K): clock set from the
+test server.
+
+Functional suite: 34/34 on QEMU (hd32) and 86Box XT (hd32), output
+identical to `57c23dd6`.
+
+MartyPC `elks-bench` `e1c5187`, `bench.sh` (no rotation model), emulated
+seconds:
+
+| Benchmark | `57c23dd6` | with SNTP | `57c23dd6`, net.cfg and ktcp padded to the same sizes |
+| --- | --- | --- | --- |
+| `cat` to `/dev/null`, from floppy | 4.174 | 4.380 | 4.090 |
+| `cat` of 200 lines to screen | 1.509 | 1.509 | 1.505 |
+| `cat` of 200 lines, again | 1.514 | 1.514 | 1.509 |
+| `ls -l /bin`, from floppy | 7.697 | 7.974 | 8.082 |
+| `ls -l /bin`, cached | 3.946 | 3.942 | 3.942 |
+
+No benchmark runs `ktcp`. The two first-from-floppy lines move because
+`net.cfg` (1007 -> 1323 bytes) and `ktcp` each take one more block, so
+`cat`, `ls` and `b.txt` sit two blocks further on the disk (`cat` 550 ->
+552). The control column, upstream code with only the two files padded,
+moves the same lines by -2% and +5%: a layout effect, left to the floppy
+layout work (A3, F0). Vetoes: V1 identical; V2 no code in the measured
+path, layout effect above; V3 no resident change, `ktcp` +1.2 KB; V4 the
+clock is set only from a valid answer, timer code unchanged; V5 not
+touched; V6 no BIOS dependency. A feature, not a speed change: no gain
+threshold.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
@@ -751,6 +809,7 @@ PicoMEM patch.
 
 | Date | Emulator | from -> to | what changed for us | timings |
 | --- | --- | --- | --- | --- |
+| 2026-11-20 | both | none | MartyPC `main` has nothing new after `05c0d08`; 86Box upstream has one commit after `proxybarrio/86box` master `48b41fd` (`f24f956`, UMC 866x parallel port ECP), not merged | - |
 | 2026-11-19 | 86Box | `960d6b7` -> `d4f9a04` | `proxybarrio/86box` has no `alci` branch yet (A6), so `setup.sh` built upstream master plus the PicoMEM patch; needs `libarchive-dev` | functional tests only, no timings compared |
 
 ## Merges to review
