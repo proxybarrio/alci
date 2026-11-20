@@ -4,7 +4,7 @@ Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
 `HUMAN` (needs the maintainer), `BLOCKED` (waiting on something).
 The agent takes the first `TODO` from the top, except for the order
 agreed with the maintainer on 2026-11-19: F4c, then E7 (network time,
-time zone, summer time), then F4d.
+time zone, summer time), then F4d, then D5 (boot logo).
 
 ## Phase 1: baseline speed
 
@@ -199,6 +199,22 @@ time zone, summer time), then F4d.
   4. "GEOS" is a trademark: never name the Alci desktop GEOS, and never copy
      its screens pixel by pixel. Say "inspired by GEOS".
   Depends on D1 and D2.
+- [ ] D5 `TODO` Boot logo (decided 2026-11-20). Image: the maintainer's
+  320x200 drawing (two moose, penguin, sun, ALCI, a PC with `#`), CGA
+  graphics with the cyan/red/white palette (version "B": green shown as
+  cyan). Off at first boot; `logo on` / `logo off` turn it on and off
+  (a line in `/bootopts`; on a write-protected disk 1 the command says
+  so). When on, `rc.sys` runs its work through a small `bootlogo`
+  program: it saves the text screen, shows the logo until the end of
+  the boot and keeps the boot output; a key pressed at any time brings
+  back the text screen with everything written so far (before the logo
+  and during it) and the boot goes on in text. The date question
+  (`clock -c`) and `login:` always come in text. Skipped without CGA,
+  EGA or VGA. Image 16 KB, 2.6 KB compressed with LZSA1; expected cost
+  about 0.7 s on the XT floppy boot, 0 bytes of memory after the boot.
+  Kernel messages printed while the logo is up land on the graphics
+  screen; they stay in `dmesg`. Measure on MartyPC (XT) and check on
+  86Box XT, AT, 386 and QEMU.
 
 ## Phase 5: Claude terminal
 
