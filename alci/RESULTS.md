@@ -5,7 +5,7 @@
 Every comparison must name both versions. This one compares:
 
 - **ELKS**: 0.9.2, ghaerr/elks commit `22a4c5d` (master of 2026-11-15).
-- **Alci**: 0.1, proxybarrio/elks branch `alci`, commit `3ecae5b`.
+- **Alci**: 0.1, proxybarrio/alci branch `alci`, commit `3ecae5b`.
 
 Same configuration (`alci/elks.config`) and toolchain (branch `toolchain`).
 Each image reports its commit with `uname -a`. Results for later commits of
@@ -756,7 +756,8 @@ PicoMEM patch.
 ## Merges to review
 
 Commits whose merge into `alci` changed one of our measurements (see
-AGENT.md). Usually this means Alci needs adapting; the maintainer decides how.
+`ACCEPTANCE.md`, checks V1 to V5). Usually this means Alci needs
+adapting; the maintainer decides how.
 
 | sha | title | check | numbers | decision |
 | --- | --- | --- | --- | --- |

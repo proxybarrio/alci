@@ -149,9 +149,9 @@ time, time zone, summer time), then F4d, then D5 (boot logo).
   agent creates branch `alci` from the fork's `master`, commits os8088's PicoMEM
   patch (`tools/86box/patches/07-picomem.patch`, MIT, credited in the
   commit and in `RELATED.md`), checks that `setup.sh` builds from it, and
-  from then on follows the emulator watch in `AGENT.md`. Later changes of
-  ours to 86Box (for example serial measurements for S1) go on that
-  branch.
+  from then on follows the emulator watch (`RESULTS.md` "Emulator
+  updates"). Later changes of ours to 86Box (for example serial
+  measurements for S1) go on that branch.
 
 ## Phase 2: memory
 

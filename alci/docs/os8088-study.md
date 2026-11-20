@@ -79,7 +79,7 @@ build fails if a memory budget is exceeded.
 | On-demand kernel modules, with a swap prompt | Same idea as tasks D3 and A5 (code released when unused); F5 must ask for the system disk the same way. |
 | Unique serial per disk | F5: every Alci disk gets a unique number in its label; never trust a pinned serial. |
 | Installer and live images | F3 step 1; live images for later. |
-| Build fails on a memory budget | Alci measures by hand (`AGENT.md` V3); a build-time check is worth adding. |
+| Build fails on a memory budget | Alci measures by hand (`ACCEPTANCE.md` V3); a build-time check is worth adding. |
 
 What differs, and stays different: os8088 is its own kernel in assembly
 with a Macintosh-style desktop built in. Alci is ELKS, a small Unix in C,

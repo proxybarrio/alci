@@ -122,7 +122,7 @@ new kernel code, E0b), SLIP over the serial port, or the modem.
 
 ## How work is accepted
 
-- Every change passes the vetoes and the gain threshold in `AGENT.md`:
+- Every change passes the vetoes and the gain threshold in `ACCEPTANCE.md`:
   identical behaviour, no slower benchmark, no extra resident memory, no
   clock drift, no lost characters, no new BIOS dependency without a
   fallback.
