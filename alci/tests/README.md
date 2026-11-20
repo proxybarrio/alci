@@ -45,6 +45,10 @@ measured separately on MartyPC (`alci/scripts`).
   N times in five ways and counts accepted, rejected and out-of-segment
   results (task F4c). Take the program with
   `elks/tools/bin/mfs <image> cat /bin/<name>`.
+- `lzsa1-corrupt.py <fd720 image> [program] [workdir]`: writes twelve
+  damaged copies of an LZSA1 program into a copy of the image and starts
+  each in a fresh QEMU boot; reports exit, rejection, `SIGSEGV` or a hung
+  system (task F4c: none may hang).
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `t86.py` options: `BOOTLOG=word,word` prints boot lines containing the
