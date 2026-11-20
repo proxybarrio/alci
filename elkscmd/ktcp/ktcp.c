@@ -34,6 +34,7 @@
 #include "deveth.h"
 #include "arp.h"
 #include "dhcp.h"
+#include "sntp.h"
 
 /* defaults*/
 #define DEFAULT_GATEWAY		"10.0.2.2"
@@ -84,7 +85,8 @@ void ktcp_run(void)
 	recheck = 0;
 
 	if (tcp_timeruse > 0 || tcpcb_need_push > 0 || loopagain ||
-	    cbs_in_time_wait > 0 || cbs_in_user_timeout > 0 || dhcp_timer_active) {
+	    cbs_in_time_wait > 0 || cbs_in_user_timeout > 0 || dhcp_timer_active ||
+	    sntp_timer_active) {
 
 	    //printf("tcp: timer %d needpush %d timewait %d usertime %d\n", tcp_timeruse,
 		//tcpcb_need_push, cbs_in_time_wait, cbs_in_user_timeout);
@@ -161,6 +163,10 @@ void ktcp_run(void)
 	if (dhcp_timer_active)
 		dhcp_timer();
 
+	/* check for SNTP retry */
+	if (sntp_timer_active)
+		sntp_timer();
+
 	/* read all packets and sockets before handling retransmits*/
 	if (loopagain)
 		continue;
@@ -203,7 +209,7 @@ void catch(int sig)
 
 static void usage(void)
 {
-    printf("Usage: ktcp [-b] [-d] [-m MTU] [-p <ethdev>|slip|cslip] [-s baud] [-l device] [local_ip] [gateway] [netmask]\n");
+    printf("Usage: ktcp [-b] [-d] [-m MTU] [-p <ethdev>|slip|cslip] [-s baud] [-l device] [-t ntp_ip,...] [local_ip] [gateway] [netmask]\n");
     exit(1);
 }
 
@@ -212,11 +218,11 @@ int main(int argc,char **argv)
     int ch;
     int bflag = 0;
     int mtu = 0;
-    char *p;
+    char *p, *q;
     char *default_ip, *default_gateway, *default_netmask;
     static char *linknames[3] = { "", "slip", "cslip" };
 
-    while ((ch = getopt(argc, argv, "bdm:p:s:l:")) != -1) {
+    while ((ch = getopt(argc, argv, "bdm:p:s:l:t:")) != -1) {
 	switch (ch) {
 	case 'b':		/* background daemon*/
 	    bflag = 1;
@@ -239,6 +245,13 @@ int main(int argc,char **argv)
 	    break;
 	case 'l':		/* serial device*/
 	    serdev = optarg;
+	    break;
+	case 't':		/* SNTP servers, comma separated*/
+	    for (p = optarg; p; p = q) {
+		if ((q = strchr(p, ',')) != NULL)
+		    *q++ = 0;
+		sntp_add_server(in_aton(p), 0);
+	    }
 	    break;
 	case 'h':		/* help*/
 	default:
@@ -323,6 +336,8 @@ int main(int argc,char **argv)
     tcp_init();
     netconf_init();
     dhcp_init();
+    if (!dhcp_enabled)
+	sntp_start();
 
     ktcp_run();
 

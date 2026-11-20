@@ -27,6 +27,7 @@
 #define DHCP_OPT_ROUTER		3
 #define DHCP_OPT_DNS		6
 #define DHCP_OPT_HOST_NAME	12
+#define DHCP_OPT_NTP		42
 #define DHCP_OPT_REQ_IP		50
 #define DHCP_OPT_LEASE_TIME	51
 #define DHCP_OPT_MSG_TYPE	53

@@ -36,10 +36,10 @@ start_network()
 	case "$link" in
 	slip|cslip)
 		getty_off
-		ktcp="ktcp -b -p $link -s $baud -l $device $localip $gateway $netmask"
+		ktcp="ktcp -b -p $link -s $baud -l $device $ntp $localip $gateway $netmask"
 		;;
 	*)
-		ktcp="ktcp -b -p $link $mtu $localip $gateway $netmask"
+		ktcp="ktcp -b -p $link $mtu $ntp $localip $gateway $netmask"
 		;;
 	esac
 	# run ktcp as background daemon if successful starting networking

@@ -8,6 +8,7 @@
 #include "ip.h"
 #include "udp.h"
 #include "dhcp.h"
+#include "sntp.h"
 #include "deveth.h"
 #include "timer.h"
 
@@ -29,6 +30,7 @@ static __u32 dhcp_yiaddr;
 static __u32 dhcp_server_ip;
 static __u32 dhcp_netmask_val;
 static __u32 dhcp_gateway_val;
+static __u32 dhcp_ntp_val;
 
 static unsigned char dhcp_buf[DHCP_MSG_LEN];
 
@@ -56,11 +58,12 @@ static void dhcp_send_discover(void)
     *opts++ = DHCP_DISCOVER;
 
     *opts++ = DHCP_OPT_PARAM_REQ;
-    *opts++ = 4;
+    *opts++ = 5;
     *opts++ = DHCP_OPT_SUBNET_MASK;
     *opts++ = DHCP_OPT_ROUTER;
     *opts++ = DHCP_OPT_DNS;
     *opts++ = DHCP_OPT_LEASE_TIME;
+    *opts++ = DHCP_OPT_NTP;
 
     *opts++ = DHCP_OPT_END;
 
@@ -180,6 +183,10 @@ static void dhcp_parse_options_full(unsigned char *opts, int optlen)
 		memcpy(&dhcp_gateway_val, opts, 4);
 	    break;
 	case DHCP_OPT_DNS:
+	    break;
+	case DHCP_OPT_NTP:
+	    if (len >= 4)
+		memcpy(&dhcp_ntp_val, opts, 4);
 	    break;
 	case DHCP_OPT_SERVER_ID:
 	    if (len >= 4)
@@ -318,6 +325,10 @@ void dhcp_input(struct iphdr_s *iph, __u16 src_port, unsigned char *data, int le
 		gateway_ip = dhcp_gateway_val;
 	    dhcp_state = DHCP_STATE_BOUND;
 	    dhcp_timer_active = 0;		/* stop retry timer */
+	    if (sntp_nservers || dhcp_ntp_val) {
+		sntp_add_server(dhcp_ntp_val, 1);
+		sntp_start();
+	    }
 	} else if (msg_type == DHCP_NAK) {
 	    /* NAK — start over with a new transaction */
 	    debug("dhcp: received NAK, restarting\n");
