@@ -27,28 +27,38 @@
 //                                unsigned int src_len, unsigned int dst_len)
 //
 //  Decodes the raw LZSA1 block at src_seg:0 to dst_seg:0 and returns the
-//  number of bytes written. Like the original it trusts the block (an
-//  executable is trusted code in real mode anyway); the caller rejects a
-//  result of the wrong length. src_len and dst_len are not used.
+//  number of bytes written, or 0 when the block is damaged; the caller
+//  rejects any result but dst_len. src_len is not used.
+//
+//  Bounds (ALCI): a damaged block must not write outside the segment exec
+//  allocated. Every sequence ends with a match of at least 3 bytes, so the
+//  output grows at each one and the decoder always stops. Copies that can
+//  be long (literals from 7 bytes, matches from 18) are checked against
+//  dst_len (BX) before they start; after a short match the output is
+//  checked. Short copies can pass dst_len by at most 6 + 17 bytes before
+//  that check, inside the 32-byte minimum margin that exec allocates above
+//  the output (FAST_MARGIN in exec.c). Reading past the
+//  input is harmless and ends the same way. The original's table for
+//  LLL >> 4 is replaced by a shift, which frees BX.
 
 #define ARG0	2
 #define ARG1	4
+#define ARG3	8
+
+// fail unless the CX bytes about to be written end at or before dst_len
+.macro CHECKLEN
+	mov	%di,%ax
+	add	%cx,%ax
+	jc	damaged
+	cmp	%bx,%ax
+	ja	damaged
+.endm
 
 	.arch	i8086, nojumps
 	.code16
 	.text
 
 	.global	lzsa1_decompress
-
-shr4table:
-	.byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-	.byte 1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
-	.byte 2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2
-	.byte 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3
-	.byte 4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4
-	.byte 5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5
-	.byte 6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6
-	.byte 7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7
 
 lzsa1_decompress:
 	push	%bp
@@ -58,11 +68,11 @@ lzsa1_decompress:
 	push	%ds
 	mov	%sp,%bp
 	mov	10+ARG1(%bp),%es	// dst_seg
+	mov	10+ARG3(%bp),%bx	// dst_len
 	mov	10+ARG0(%bp),%ds	// src_seg
 	xor	%si,%si
 	xor	%di,%di
 	cld
-	mov	$shr4table,%bx
 	xor	%cx,%cx
 
 decode_token:
@@ -77,13 +87,20 @@ decode_token:
 
 	lodsb				// extra length byte
 	add	$7,%al
-	jnc	got_literals_exact
-	je	big_literals
+	jc	long_literals
+	xchg	%cx,%ax			// 7 to 255 literals
+	CHECKLEN
+	rep
+	movsb
+	jmp	check_offset_size
 
+long_literals:
+	je	big_literals
 mid_literals:
 	lodsb				// 256 + one more byte
 	inc	%ah
 	xchg	%cx,%ax
+	CHECKLEN
 	shr	$1,%cx
 	rep
 	movsw
@@ -95,6 +112,7 @@ mid_literals:
 big_literals:
 	lodsw				// 16-bit length
 	xchg	%cx,%ax
+	CHECKLEN
 	shr	$1,%cx
 	rep
 	movsw
@@ -104,9 +122,8 @@ big_literals:
 	jmp	check_offset_size
 
 got_literals:
-	.byte	0x2e			// CS: segment prefix
-	xlat				// LLL >> 4 (table in CS)
-got_literals_exact:
+	mov	$4,%cl			// 1 to 6 literals: LLL >> 4
+	shr	%cl,%al
 	xchg	%cx,%ax
 	rep
 	movsb
@@ -150,8 +167,12 @@ got_matchlen_short:
 	movsb
 	xchg	%ax,%si
 	mov	%bp,%ds
+	cmp	%bx,%di			// output past dst_len: damaged block
+	ja	damaged
 	jmp	decode_token
 
+damaged:
+	xor	%di,%di			// returns 0
 done_decompressing:
 	mov	%di,%ax			// bytes written (output started at 0)
 	pop	%ds
@@ -167,6 +188,7 @@ mid_matchlen:
 do_long_copy:
 	xchg	%cx,%ax
 copy_len_preset:
+	CHECKLEN
 	push	%ds
 	mov	%es,%bp
 	mov	%bp,%ds
