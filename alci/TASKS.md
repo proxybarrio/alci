@@ -211,8 +211,9 @@ then D5 (boot logo), then I1 to I4 (integrations, added 2026-11-21).
   much memory stays free. Compression: GEOS programs and its data files
   (fonts, resources, geodes) compressed with the most efficient method
   under `ACCEPTANCE.md` (LZSA1 as today, or another codec if measured
-  better on the 8088), decoded by GEOS's own loader or a small shared
-  library, never by the kernel. Output: `alci/docs/pcgeos-port.md` with
+  better on the 8088), decoded by GEOS's own loader, a small shared
+  library, or the kernel's LZSA1 decoder through one small whole-file
+  call (see `STRATEGY.md`); compare their cost. Output: `alci/docs/pcgeos-port.md` with
   the work needed, for the maintainer's decision; if feasible, D6 runs
   the D2 benchmark.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:

@@ -59,8 +59,12 @@ real machine for tests, not the design target.
   by itself) stay uncompressed for now, except the files of graphical
   environments (fonts, icons, resources), studied in D2, I2 and D6: there
   they may be compressed with the most efficient method measured on the
-  8088, and decoded by the environment itself or a small shared library,
-  never by the kernel. Alci runs both kinds, so ELKS programs keep
+  8088. Who decodes them is chosen by measurement (code bytes, resident
+  RAM, speed): the environment itself, a small shared library, or the
+  LZSA1 decoder already in the kernel, reused through one small call that
+  reads a whole compressed file into a buffer the program provides. The
+  licence of the environment does not matter here: the kernel decoding a
+  file of an Apache 2.0 program mixes no code, as when it starts one. Alci runs both kinds, so ELKS programs keep
   working unchanged.
 - The Alci package repository is made for Alci. An ELKS system that adds
   it must first install support for compressed programs (the LZSA1 exec
