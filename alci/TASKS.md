@@ -182,11 +182,43 @@ then D5 (boot logo), then I1 to I4 (integrations, added 2026-11-21).
   `alci/docs/gui-study.md`, with what can be reused and under which terms.
   Also study Gem-elks (GEM desktop on ELKS, GPLv2) and elks-w16 (Win16
   programs on Nano-X, MIT): see `RELATED.md`.
-- [ ] D2 `TODO` Measure Nano-X on an 8088 with CGA in MartyPC as a drawing
-  engine (memory, time per window and per text line).
+- [ ] D2 `TODO` GUI benchmark (decided 2026-11-21): the base of the desktop
+  is chosen on measurements, not impressions. Write the benchmark once
+  (`alci/tests/guibench/`) and run it on Nano-X first; I2 (Gem-elks) and
+  D6 (PC/GEOS, if feasible) run the same one. Machines: MartyPC XT 8088
+  CGA 640x200 (reference), 86Box PC1512 and AT with EGA. For each
+  candidate, with its files compressed and uncompressed:
+  1. Disk space of everything it needs (programs, fonts, icons,
+     resources).
+  2. Memory: resident while the desktop is open and idle, and what is left
+     for one program (a terminal or an editor).
+  3. Start time of the desktop from a 720K floppy, a 1.44M floppy and the
+     hard disk.
+  4. Drawing: full-screen redraw, opening and closing a window, moving a
+     window, opening a menu, a line of text and a full window of text.
+  5. Response: time from a key or mouse click to the screen changing.
+  6. Screenshots of the same screens on each machine, for the look.
+  Output: a table in `RESULTS.md` and the screenshots in
+  `alci/docs/gui-study.md`, for the maintainer's choice of base.
+- [ ] D6 `TODO` PC/GEOS on Alci as a separate program: feasibility study,
+  no code (decided 2026-11-21; after D1, before I2). Licence rules in
+  `STRATEGY.md` (Apache 2.0, separate program, no GPL code linked).
+  Questions: which DOS calls and direct hardware accesses the GEOS kernel
+  makes; a DOS-to-ELKS layer (the Gem-elks port did the same for GEM;
+  look for existing DOS-call bridges first, `RELATED.md`); how GEOS gets
+  its own heap of several hundred KB (`fmemalloc`); which toolchain
+  builds it and whether ELKS can load the result or needs a loader; how
+  much memory stays free. Compression: GEOS programs and its data files
+  (fonts, resources, geodes) compressed with the most efficient method
+  under `ACCEPTANCE.md` (LZSA1 as today, or another codec if measured
+  better on the 8088), decoded by GEOS's own loader or a small shared
+  library, never by the kernel. Output: `alci/docs/pcgeos-port.md` with
+  the work needed, for the maintainer's decision; if feasible, D6 runs
+  the D2 benchmark.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
-- [ ] D4 `TODO` Alci desktop: improve Nano-X (look and behaviour) in the
+- [ ] D4 `TODO` Alci desktop: improve the base chosen after D2 and I2 (Nano-X or
+  Gem-elks; look and behaviour) in the
   spirit of GEOS, the way Haiku follows BeOS. GEOS existed on the Commodore
   64 (Berkeley Softworks, 1986) and later on the PC as PC/GEOS; today only
   the PC/GEOS source (FreeGEOS, Apache 2.0) is available to study. Rules:
@@ -201,7 +233,7 @@ then D5 (boot logo), then I1 to I4 (integrations, added 2026-11-21).
      file taken and a line in `RELATED.md`.
   4. "GEOS" is a trademark: never name the Alci desktop GEOS, and never copy
      its screens pixel by pixel. Say "inspired by GEOS".
-  Depends on D1 and D2.
+  Depends on D1, D2 and I2.
 - [ ] D5 `TODO` Boot logo (decided 2026-11-20). Image: the maintainer's
   320x200 drawing (two moose, a penguin wearing antlers, sun, ALCI, a PC
   with `#`), CGA mode 5, ready as `alci/img/alci-logo-cga5.bin` (16 KB,
@@ -529,10 +561,10 @@ Rules for the floppy set (decided 2026-11-19):
   Checks V1-V6, memory and speed on an 8088 with CGA. Replaces the text
   browser plan of E6 if it fits; HTTPS from E5.
 - [ ] I2 `TODO` Gem-elks as a desktop candidate (after F4e, with D1 and
-  D2): run it on MartyPC and 86Box (XT CGA, PC1512, AT EGA), measure
-  memory, redraw time and disk space against Nano-X. Output in
-  `alci/docs/gui-study.md`; the choice of base for D4 is the
-  maintainer's.
+  D2): run the D2 benchmark on it, with its programs and its resource
+  files (`.rsc`, `.icn`, fonts) compressed and uncompressed. Output in
+  `RESULTS.md` and `alci/docs/gui-study.md`; the choice of base for D4 is
+  the maintainer's.
 - [ ] I3 `TODO` Alci package repository for ept (after F4e and F5 design):
   layout, which programs it carries (disk 2 and 3 programs first),
   compressed or not per F4e, a hash per file, the prerequisite check for

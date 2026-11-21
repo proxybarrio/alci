@@ -56,8 +56,12 @@ real machine for tests, not the design target.
   repository, is shipped compressed when that works better (disk space,
   start time, transfer time, memory) and uncompressed when it does not.
   Data files (fonts, icons, resources, executables that a program loads
-  by itself) stay uncompressed for now. Alci runs both kinds, so ELKS
-  programs keep working unchanged.
+  by itself) stay uncompressed for now, except the files of graphical
+  environments (fonts, icons, resources), studied in D2, I2 and D6: there
+  they may be compressed with the most efficient method measured on the
+  8088, and decoded by the environment itself or a small shared library,
+  never by the kernel. Alci runs both kinds, so ELKS programs keep
+  working unchanged.
 - The Alci package repository is made for Alci. An ELKS system that adds
   it must first install support for compressed programs (the LZSA1 exec
   decoder) as a prerequisite, like a dependency; packages that need it
@@ -160,7 +164,10 @@ new kernel code, E0b), SLIP over the serial port, or the modem.
   travel with it, and no GEOS code goes into the kernel. Programs that run
   outside ELKS (modem firmware, relays) are used as they are. See
   `RELATED.md`.
-- The Alci desktop is Nano-X, improved in look and behaviour in the spirit
+- The base of the Alci desktop (Nano-X or Gem-elks; PC/GEOS only as a
+  separate program) is chosen after the GUI benchmark of D2, I2 and D6
+  (decided 2026-11-21). Whatever the base, it is improved in look and
+  behaviour in the spirit
   of GEOS (Commodore 64 first, then PC/GEOS), the way Haiku follows BeOS.
   Ideas and style are free to follow; GEOS code, icons and fonts stay out of
   GPL code, os8088 code (MIT) may be adapted with its notice kept, and the
