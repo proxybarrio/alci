@@ -20,6 +20,12 @@ learn from them and avoid duplicating them.
 | [SymbOS](https://en.wikipedia.org/wiki/SymbOS) 4.0 (2025) | Pre-emptive multitasking OS with a Windows-like GUI for Z80 computers, in assembly | Not x86, but its memory-saving GUI design (windows redrawn on demand instead of keeping hidden areas in memory) is directly useful for D3. |
 | [FUZIX](https://github.com/EtchedPixels/FUZIX) | Small Unix-like system for 8-bit and other CPUs; the 8086 port is only sketches | A peer, not a rival on PCs today. |
 | RetroCampus BBS | ChatGPT for the Commodore 64 through a Wi-Fi modem and a BBS that relays requests | Another example of the "modem plus relay" pattern. |
+| [ept](https://github.com/sammothxc/ept) (2026) | Package tool for ELKS: downloads programs over plain HTTP from a repository, checks size and MD5 of each file, upgrades; packages have no dependencies; a download-only build is about 8.5 KB | Close to F5 and the 720K set: with a network, programs of disk 2 can be fetched instead of swapping floppies. Planned for inclusion in ELKS, so it may arrive through the upstream merge: check before building anything similar. |
+| [Gem-elks](https://github.com/parabyte/Gem-elks) (2026) | The GEM desktop ported to ELKS; uses the ELKS timer and processes instead of GEM's own; tested on an Amstrad PC1640 | The nearest existing desktop to Alci's interface (phase 4). To compare with PC/GEOS and Nano-X in D1/D2 before choosing the base for D4. |
+| [elks-w16](https://github.com/astrobleem/elks-w16) (2026) | Loader for Windows 3.0 (Win16, NE format) programs on ELKS, with USER and GDI translated to Nano-X calls; one task at a time; needs patches to ELKS and Microwindows; tried on emulated Tandy and PCjr | A way to give the desktop existing programs later; heavy in memory. Not before D2 and D4. |
+| [ELKSWeb](https://github.com/l00nix/ELKSWeb) (2026) | Graphical web browser for ELKS, drawing directly on CGA, EGA and VGA; HTTP only; version 0.5 of 2026-11-18, early beta; installable with ept | Changes E6: measure it before porting a text browser; HTTPS would come from E5. |
+| [picomem-elks](https://github.com/l00nix/picomem-elks) (2026) | Configuration tools for the PicoMEM card on ELKS (network IRQ, fast boot), with backup and rollback; kept outside the ELKS tree | Useful with E0b on real hardware (PicoMEM on an XT). |
+| [8086tiny on ELKS](https://github.com/tyama501/8086tinyFile) (2026) | The 8086tiny emulator running on ELKS, to run DOS programs such as FreeDOS; experimental and very slow | Not for Alci now; DOS programs on ELKS would belong to phase 7 (frozen). |
 
 ## What can be reused, and how
 
@@ -33,11 +39,30 @@ learn from them and avoid duplicating them.
 | PC/GEOS (FreeGEOS) | Apache 2.0 | Cannot go into the GPLv2 kernel or be linked with GPL code. Can ship as a separate program under Apache 2.0 (see `STRATEGY.md`, working with others): a port is legally possible, with a libc audit first. |
 | SymbOS | freeware | Ideas only (redraw windows on demand instead of storing hidden areas). |
 | UnoDOS | MPL 2.0 | Phase 7 only (frozen): how one image boots on legacy BIOS and UEFI. |
+| ept | MIT (checked 2026-11-21) | Compatible. Prefer the version included in ELKS, if it is merged upstream, to a copy of our own. |
+| Gem-elks | GPLv2 (checked 2026-11-21) | Compatible: code may be adapted with its notices kept. |
+| elks-w16 | MIT (checked 2026-11-21) | Compatible: code may be adapted with its notice kept. |
+| ELKSWeb | GPL-2.0-or-later (checked 2026-11-21); font data public domain; one test fixture GPL-3.0 | Compatible, except the GPL-3.0 test fixture, which must not be copied into GPLv2 code. |
+| picomem-elks | GPL-2.0-or-later (checked 2026-11-21) | Compatible; used as it is, outside the ELKS tree. |
+| 8086tiny on ELKS | MIT (8086tiny, checked 2026-11-21) | Compatible; not needed now (phase 7). |
 
 Sources: the project pages linked above; Ars Technica, March 2023, on
 doschgpt; ghaerr/elks issue #2630; a video demonstration of ELKS with
 Nano-X. This note was first written outside this repository and checked on
 2026-11-16, with further projects found by web search the same day; details of other projects may change.
+
+Technical points from the ELKS project that bear on Alci (2026-11-21):
+the ELKS kernel is near its size limits (near code above 63 KB, far code
+above 36 KB), so features that can live in an application, without kernel
+changes or new system calls, are preferred; UDP exists only for DHCP; new
+tools under active development are kept outside the ELKS tree and built
+with `buildext.sh`; video mode switching for graphical programs goes
+through a console driver `ioctl`, not new kernel code. On 286 boards with
+a NEC D80C42C keyboard controller, and on the EC1842, the A20 code that
+reads and writes back the 8042 output port hangs the keyboard;
+`USE_HIMEM_AT` avoids the read. ELKS supports a PS/2 mouse on the IBM PC.
+MFM, SMC Ultra and PEGA drivers derived from Linux 2.x exist outside the
+ELKS tree, tested on an Amstrad PC1640 (source and licence to locate).
 
 Study of os8088's distribution and what Alci takes from it: `docs/os8088-study.md` (2026-11-19).
 

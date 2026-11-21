@@ -179,6 +179,8 @@ time, time zone, summer time), then F4d, then D5 (boot logo).
   inside the kernel or linked with GPL code (see `STRATEGY.md`); os8088 is MIT, so its code may be adapted with its notice kept,
   except `reference/` and fonts of unclear origin. Output:
   `alci/docs/gui-study.md`, with what can be reused and under which terms.
+  Also study Gem-elks (GEM desktop on ELKS, GPLv2) and elks-w16 (Win16
+  programs on Nano-X, MIT): see `RELATED.md`.
 - [ ] D2 `TODO` Measure Nano-X on an 8088 with CGA in MartyPC as a drawing
   engine (memory, time per window and per text line).
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
@@ -272,7 +274,9 @@ time, time zone, summer time), then F4d, then D5 (boot logo).
 - [ ] E6 `TODO` Text web browser on top of E5. Current Lynx needs a 386 (DJGPP
   port); Bobcat, a Lynx derivative, ran on the 8088 under DOS. Check
   Bobcat's sources and licence, and the effort to port it, against writing
-  a small browser for ELKS.
+  a small browser for ELKS. First measure ELKSWeb (graphical, CGA/EGA/VGA,
+  HTTP only, GPL-2.0-or-later, see `RELATED.md`): memory, speed on an
+  8088 with CGA, and what HTTPS from E5 would need to work with it.
 
 - [ ] E8 `TODO` SSH client (decided 2026-11-19: wanted). ELKS has none.
   First a study, no code: existing small clients and their licences, the
@@ -474,7 +478,9 @@ Rules for the floppy set (decided 2026-11-19):
      case needs no kernel work. One drive: every swap happens in drive A.
      Hard disk: the same names point to folders, nothing to swap.
   Study first: AmigaOS volume names and "Please insert volume" requests,
-  GEOS disk handling (ideas only, see `RELATED.md` rules). Then the steps
+  GEOS disk handling (ideas only, see `RELATED.md` rules), and ept (MIT,
+  see `RELATED.md`): with a network, a program missing from disk 1 could
+  be downloaded instead of asking for disk 2. Then the steps
   in order: labels and the `disk` command, the catalogue and the
   missing-command message, document disks on two drives, then single
   drive swaps (kernel work, F3 step 3). Test on 86Box XT, T1200, AT.
