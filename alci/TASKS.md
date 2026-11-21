@@ -556,7 +556,11 @@ Rules for the floppy set (decided 2026-11-19):
   propose a header marker that makes it refuse. Output: the per-program
   rule in `RESULTS.md`, and a design note for the prerequisite an ELKS
   system installs before using the Alci repository (the kernel decoder,
-  as a patch or package), with its cost in bytes.
+  as a patch or package), with its cost in bytes. Codecs to compare on
+  the same programs: LZSA1 (today), LZPACK's 8 KB-window LZ (ratio and
+  decode speed on the 8088), and self-extracting ELKS programs (UPX, when
+  its ELKS support exists), which would run on an unmodified ELKS at the
+  cost of a stub and a decode at every start (see `RELATED.md`).
 - [ ] I1 `TODO` ELKSWeb in Alci (after F4e; see `RELATED.md`). Built
   outside the tree with `buildext.sh`, compressed or not as F4e decides,
   on the 1.44M set and the hard disk install (not the 720K disk 1).
