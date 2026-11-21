@@ -165,6 +165,12 @@ new kernel code, E0b), SLIP over the serial port, or the modem.
   Ideas and style are free to follow; GEOS code, icons and fonts stay out of
   GPL code, os8088 code (MIT) may be adapted with its notice kept, and the
   GEOS name is not used for our desktop. Details in task D4.
+- Several graphical environments may be installed side by side as
+  separate packages, each under its own licence, the way a Linux
+  distribution carries software under many licences (decided 2026-11-21):
+  Alci's own desktop, Gem-elks, a port of PC/GEOS as a separate program,
+  and programs such as ELKSWeb. One runs at a time, chosen by the user;
+  none of them is resident when not in use.
 - Changes useful to ELKS in general are offered to the ELKS project
   regularly, with measurements, for its maintainers to consider. The first,
   the fsck fix for inodes above 1024, was merged as ghaerr/elks #2853 on

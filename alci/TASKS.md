@@ -537,7 +537,16 @@ Rules for the floppy set (decided 2026-11-19):
   layout, which programs it carries (disk 2 and 3 programs first),
   compressed or not per F4e, a hash per file, the prerequisite check for
   ELKS systems (`STRATEGY.md`), and where the sources of GPL programs are
-  published. Hosting is decided by the maintainer.
+  published. Hosting is decided by the maintainer. Repository order on
+  Alci (decided 2026-11-21): the Alci repository comes first (last `REPO=`
+  line in `/etc/ept.cfg`), the ELKS repository second. The installer
+  records which repository each package came from; every upgrade checks
+  the order again, so a package taken from ELKS moves to the Alci build as
+  soon as Alci publishes one. When ELKS has a newer version than Alci, the
+  Alci version stays until the new one is rebuilt, measured and published
+  in the Alci repository. The
+  user can pin a package to the ELKS repository by hand. Check whether ept
+  already records the origin of a package; if not, add it (MIT).
 - [ ] I4 `TODO` picomem-elks tools (after E0b on real hardware): build
   with `buildext.sh`, on the 1.44M set and the hard disk install.
 - [ ] F4d `TODO` Text cache, small fix: a cached program file that is
