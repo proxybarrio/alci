@@ -4,7 +4,8 @@ Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
 `HUMAN` (needs the maintainer), `BLOCKED` (waiting on something).
 The agent takes the first `TODO` from the top, except for the order
 agreed with the maintainer on 2026-11-19: F4c (done), then E7 (network
-time, time zone, summer time), then F4d, then D5 (boot logo).
+time, time zone, summer time), then F4e (added 2026-11-21), then F4d,
+then D5 (boot logo), then I1 to I4 (integrations, added 2026-11-21).
 
 ## Phase 1: baseline speed
 
@@ -510,6 +511,35 @@ Rules for the floppy set (decided 2026-11-19):
   the right length runs with wrong code, as an uncompressed program
   would; no checksum for floppies, downloaded packages will carry a hash
   (E0c, F5).
+- [ ] F4e `TODO` Compression for programs from other projects (decided
+  2026-11-21, see `STRATEGY.md`). Build ELKSWeb and Gem-elks, the largest
+  candidates, with `buildext.sh`, and measure each compressed
+  (`elks-pack.py`) and uncompressed: disk space, start time from a 720K
+  and a 1.44M floppy and from the hard disk (MartyPC 8088, 86Box XT and
+  AT), peak memory while running, and package size for transfer over a
+  slow link. Check what an unmodified ELKS kernel does with a compressed
+  program: it must refuse it cleanly, never run it; if it does not,
+  propose a header marker that makes it refuse. Output: the per-program
+  rule in `RESULTS.md`, and a design note for the prerequisite an ELKS
+  system installs before using the Alci repository (the kernel decoder,
+  as a patch or package), with its cost in bytes.
+- [ ] I1 `TODO` ELKSWeb in Alci (after F4e; see `RELATED.md`). Built
+  outside the tree with `buildext.sh`, compressed or not as F4e decides,
+  on the 1.44M set and the hard disk install (not the 720K disk 1).
+  Checks V1-V6, memory and speed on an 8088 with CGA. Replaces the text
+  browser plan of E6 if it fits; HTTPS from E5.
+- [ ] I2 `TODO` Gem-elks as a desktop candidate (after F4e, with D1 and
+  D2): run it on MartyPC and 86Box (XT CGA, PC1512, AT EGA), measure
+  memory, redraw time and disk space against Nano-X. Output in
+  `alci/docs/gui-study.md`; the choice of base for D4 is the
+  maintainer's.
+- [ ] I3 `TODO` Alci package repository for ept (after F4e and F5 design):
+  layout, which programs it carries (disk 2 and 3 programs first),
+  compressed or not per F4e, a hash per file, the prerequisite check for
+  ELKS systems (`STRATEGY.md`), and where the sources of GPL programs are
+  published. Hosting is decided by the maintainer.
+- [ ] I4 `TODO` picomem-elks tools (after E0b on real hardware): build
+  with `buildext.sh`, on the 1.44M set and the hard disk install.
 - [ ] F4d `TODO` Text cache, small fix: a cached program file that is
   unlinked without being opened for writing (`mv` over it) keeps its
   disk blocks until the entry leaves the cache (checked on QEMU: `sed`

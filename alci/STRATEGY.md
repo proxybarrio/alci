@@ -50,6 +50,18 @@ real machine for tests, not the design target.
   at exec; exited programs stay in free memory until it is needed (text
   cache). A damaged file must never bring the system down: the decoder
   checks its bounds and a damaged program is rejected (F4c).
+- Compression is decided per program, by measurement under the rules of
+  `ACCEPTANCE.md` (decided 2026-11-21): every program Alci distributes,
+  its own or another project's, on floppy or in the Alci package
+  repository, is shipped compressed when that works better (disk space,
+  start time, transfer time, memory) and uncompressed when it does not.
+  Data files (fonts, icons, resources, executables that a program loads
+  by itself) stay uncompressed for now. Alci runs both kinds, so ELKS
+  programs keep working unchanged.
+- The Alci package repository is made for Alci. An ELKS system that adds
+  it must first install support for compressed programs (the LZSA1 exec
+  decoder) as a prerequisite, like a dependency; packages that need it
+  say so, and the installer checks it before installing them.
 
 ## Where the system lives
 
