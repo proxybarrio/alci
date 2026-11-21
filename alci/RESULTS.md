@@ -865,6 +865,10 @@ and tty code not touched; V6 no BIOS dependency. A robustness fix, not a
 speed change: no gain threshold. Patch for ELKS master:
 `alci/upstream/exec-check-header-relocs.patch`.
 
+Decision (2026-11-21): reverted in Alci for now (`d6e95bd1`). No program
+Alci ships today has relocations, so the 80 resident bytes buy nothing
+yet; the patch comes back with the first medium-model program (task S4).
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

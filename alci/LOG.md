@@ -162,3 +162,6 @@
   system dead on the IBM XT, T1200, PC1512 and AT (86Box) and on MartyPC.
   +84 bytes of far kernel code, timings unchanged. New test
   `alci/tests/exec-corrupt.py`; `st86.py` gains `CMD_MS` and `INTR`.
+- S4 parked: the exec checks are reverted until the first medium-model
+  program enters Alci (no program with relocations today, so 80 resident
+  bytes for nothing). Test tool, results and the ELKS patch stay.

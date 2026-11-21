@@ -86,7 +86,7 @@ then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
   rounds the data segment to 256 bytes: 6 failures -> 0, hard disk still
   34/34. Cost +17 bytes of code, +16 bytes resident, about 128 bytes per
   process. Also applies to ELKS (`alci/upstream/`).
-- [x] S4 `DONE 2026-11-21` Damaged plain (uncompressed) programs: `exec`
+- [ ] S4 `PARKED 2026-11-21` Damaged plain (uncompressed) programs: `exec`
   checked the file length and the relocation type, but not the entry point,
   the high words of the segment sizes, nor where a relocation writes. A
   relocation past its segment wrote into other memory and left the system
@@ -96,7 +96,12 @@ then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
   `alci/tests/exec-corrupt.py`; ELKS patch in `alci/upstream/`. Random
   bytes inside a valid program are not caught (only a whole-file checksum
   would, at a cost on every start); package hashes at install time (I3)
-  cover downloads.
+  cover downloads. Parked (decided 2026-11-21): today no Alci program has
+  relocations, so the patch (commit `79c7bc34`, reverted) costs 80 bytes
+  of resident kernel memory for nothing yet. Apply it again, with the
+  `exec-corrupt.py` check, in the same change that brings the first
+  medium-model program into Alci (for example elks-w16, a medium-model
+  Nano-X build, 8086tiny or the PicoMEM tools: I2, I4, D6).
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser
@@ -578,7 +583,8 @@ Rules for the floppy set (decided 2026-11-19):
   Checks V1-V6, memory and speed on an 8088 with CGA. Replaces the text
   browser plan of E6 if it fits; HTTPS from E5.
 - [ ] I2 `TODO` Gem-elks as a desktop candidate (after F4e, with D1 and
-  D2): run the D2 benchmark on it, with its programs and its resource
+  D2; if any candidate is a medium-model program, apply S4 first): run
+  the D2 benchmark on it, with its programs and its resource
   files (`.rsc`, `.icn`, fonts) compressed and uncompressed. Output in
   `RESULTS.md` and `alci/docs/gui-study.md`; the choice of base for D4 is
   the maintainer's.
@@ -598,6 +604,7 @@ Rules for the floppy set (decided 2026-11-19):
   already records the origin of a package; if not, add it (MIT).
 - [ ] I4 `TODO` picomem-elks tools (after E0b on real hardware): build
   with `buildext.sh`, on the 1.44M set and the hard disk install.
+  These tools are medium model: apply S4 first.
 - [ ] F4d `TODO` Text cache, small fix: a cached program file that is
   unlinked without being opened for writing (`mv` over it) keeps its
   disk blocks until the entry leaves the cache (checked on QEMU: `sed`
