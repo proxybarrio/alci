@@ -5,7 +5,8 @@ Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
 The agent takes the first `TODO` from the top, except for the order
 agreed with the maintainer on 2026-11-19: F4c (done), then E7 (network
 time, time zone, summer time), then F4e (added 2026-11-21), then F4d,
-then D5 (boot logo), then I1 to I4 (integrations, added 2026-11-21).
+then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
+2026-11-21), then D5 (boot logo), then I1, I3 and I4 (integrations).
 
 ## Phase 1: baseline speed
 
