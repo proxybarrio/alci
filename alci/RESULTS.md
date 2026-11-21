@@ -798,6 +798,73 @@ clock is set only from a valid answer, timer code unchanged; V5 not
 touched; V6 no BIOS dependency. A feature, not a speed change: no gain
 threshold.
 
+## Damaged plain programs, exec header and relocation checks, task S4 (2026-11-21)
+
+ELKS `df2a61c5` (upstream master), Alci `0249a736` and Alci with the
+patch, same configuration and toolchain. `alci/tests/exec-corrupt.py`
+writes 17 damaged copies of two uncompressed programs into the hd32
+image: `grep` (small model) and a medium-model test program with text,
+far text and data relocations. Each case is a fresh boot; after it the
+shell must answer and both intact programs must give their normal
+output. 86Box upstream `fbf5b94` plus the PicoMEM patch, with the real BIOS of each machine
+(`st86.py` with `INTR=1`: Ctrl-C after a timeout), QEMU 486, MartyPC
+`elks-bench` `e1c5187` (8088 4.77 MHz, fd720).
+
+Before the patch (ELKS and Alci behave alike; "dead" = the shell never
+answers again, Ctrl-C included):
+
+| Damage | QEMU | 86Box xt, t1200, pc1512, at | MartyPC 8088 |
+| --- | --- | --- | --- |
+| entry point past the text | program hangs | program hangs (all four) | system blocked |
+| entry point 0xFFFE | hangs or SIGSEGV | runs by chance | - |
+| text or far text size with a high word | accepted, runs | accepted, runs | - |
+| text relocations past the text | wrong output, or system dead | system dead on 7 of 8 runs | system blocked |
+| far text relocations past the far text | system dead (Alci), hang (ELKS) | system dead on 4 of 8 runs, hang on the others | system blocked |
+| data relocations past the data | system dead (Alci), hang (ELKS) | system dead on 2 of 8 runs, hang on the others | system blocked |
+
+Already rejected cleanly before the patch: files cut short, data size
+larger than the file, bss overflow, unknown header length, bad
+relocation type or size, relocations cut short.
+
+The patch (`elks/fs/exec.c`): text, data, bss and entry must have a zero
+high word and the entry point must lie inside the text; the far text
+size must have a zero high word; every relocation must patch a word
+inside the segment it relocates (text, far text or initialized data).
+A failed check returns `ENOEXEC` or `EINVAL` before the program runs.
+
+After the patch every header and relocation case above is rejected on
+QEMU, on the four 86Box machines and on MartyPC, and the shell and the
+intact programs work afterwards. The intact medium-model program still
+runs. Random bytes inside the text with a valid header still run and may
+hang or crash, on both systems: only a checksum of the whole file would
+catch that, at a cost on every start, so it is left to the package
+installer (per-file hashes at install time).
+
+Cost: `exec.o` far text +84 bytes in Alci (+90 against ELKS master),
+near kernel text unchanged; resident kernel `init 16dd -> 16e2` (+80
+bytes), free memory unchanged at 473 KB (QEMU). Speed, MartyPC, Alci
+`0249a736` / patched, emulated seconds:
+
+| Operation | before | after |
+| --- | --- | --- |
+| boot to prompt | 13.849 | 13.849 |
+| `cat /b.txt > /dev/null` | 4.380 | 4.380 |
+| `ls -l /bin`, from floppy | 7.974 | 7.974 |
+| `ls -l /bin`, cached | 3.942 | 3.942 |
+| `cat /bin/vi > /dev/null` | 5.172 | 5.172 |
+| 10 runs of `pwd` | 1.467 | 1.463 |
+| three-stage pipe | 2.100 | 2.096 |
+| `sort` on 20 KB | 1.107 | 1.111 |
+| `grep` on 20 KB | 1.136 | 1.136 |
+
+Vetoes: V1 functional suites identical before and after, 34/34 with the
+strict tools on QEMU (hd32, fd720) and on 86Box xt, t1200, pc1512, at
+(hd32), t1200 with its own disk (hd20t) and xt with the fd720 image; V2 all timings within 0.4%, none slower beyond noise; V3 +80
+bytes resident, justified by the system-dead cases above; V4 and V5 timer
+and tty code not touched; V6 no BIOS dependency. A robustness fix, not a
+speed change: no gain threshold. Patch for ELKS master:
+`alci/upstream/exec-check-header-relocs.patch`.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

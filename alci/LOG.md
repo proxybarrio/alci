@@ -153,3 +153,12 @@
   as a fallback; first real boot reports which servers answer; large
   jumps applied and printed; the layout effect on two floppy benchmarks
   accepted. E7b adds a key to skip the wait for network time at boot.
+
+## 2026-11-21
+
+- S4 done: `exec` rejects programs whose header points the entry outside
+  the text, whose segment sizes do not fit 64K, or whose relocations write
+  outside their segment. Before, such a program could leave the whole
+  system dead on the IBM XT, T1200, PC1512 and AT (86Box) and on MartyPC.
+  +84 bytes of far kernel code, timings unchanged. New test
+  `alci/tests/exec-corrupt.py`; `st86.py` gains `CMD_MS` and `INTR`.

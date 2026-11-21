@@ -147,7 +147,13 @@ for n, c in enumerate(cmds):
         print('=== %s\nLINE TOO LONG (ELKS tty input is 80 chars)' % c); bad += 1; continue
     t0 = q('status')['ms']
     q('serial write 1 ' + (line + '\r').encode().hex())
-    out, ms = wait(mark, 600000)
+    out, ms = wait(mark, int(os.environ.get('CMD_MS', 600000)))
+    if out is None and os.environ.get('INTR'):
+        # INTR=1: after a timeout send Ctrl-C and see whether the shell comes back
+        q('serial write 1 03'); pr, _ = wait('# ', 20000)
+        print('=== %s\nTIMEOUT, %s' % (c, 'Ctrl-C helped' if pr is not None else 'no answer to Ctrl-C')); bad += 1
+        if pr is None: stop = n; break
+        continue
     if out is None:
         print('=== %s\nTIMEOUT' % c); bad += 1; stop = n; break
     body = out.replace('\r', '').split('\n', 1)

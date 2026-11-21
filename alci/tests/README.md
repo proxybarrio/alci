@@ -49,8 +49,18 @@ measured separately on MartyPC (`alci/scripts`).
   damaged copies of an LZSA1 program into a copy of the image and starts
   each in a fresh QEMU boot; reports exit, rejection, `SIGSEGV` or a hung
   system (task F4c: none may hang).
+- `exec-corrupt.py <image> <small prog> <medium prog> <workdir> [qemu|86box:<machine>] [cases]`:
+  17 damaged copies of a plain small-model program (for example `grep`
+  from an ELKS tree's `target/bin`) and of a medium-model program with
+  relocations (`exec-rel.c`, build line at its top): header sizes, entry
+  point, relocation targets, cut files. Each case in a fresh boot; reports
+  how the program ended, whether the shell still answers and whether the
+  intact programs still work (task S4).
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
+- `st86.py` options: `CMD_MS` emulated milliseconds to wait for each
+  command (default 600000); `INTR=1` sends Ctrl-C after a timeout and goes
+  on if the shell comes back.
 - `t86.py` options: `BOOTLOG=word,word` prints boot lines containing the
   words; `BOOT_MS` boot timeout. `qtest.py`: `EXTRA_HD` second disk,
   `NOSNAP=1` keeps writes.

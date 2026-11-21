@@ -86,6 +86,17 @@ then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
   rounds the data segment to 256 bytes: 6 failures -> 0, hard disk still
   34/34. Cost +17 bytes of code, +16 bytes resident, about 128 bytes per
   process. Also applies to ELKS (`alci/upstream/`).
+- [x] S4 `DONE 2026-11-21` Damaged plain (uncompressed) programs: `exec`
+  checked the file length and the relocation type, but not the entry point,
+  the high words of the segment sizes, nor where a relocation writes. A
+  relocation past its segment wrote into other memory and left the system
+  dead on most runs (86Box xt, t1200, pc1512, at; MartyPC 8088); a bad
+  entry point hung the program. Now rejected before the program runs.
+  +84 bytes of far kernel code, no speed change. Test:
+  `alci/tests/exec-corrupt.py`; ELKS patch in `alci/upstream/`. Random
+  bytes inside a valid program are not caught (only a whole-file checksum
+  would, at a cost on every start); package hashes at install time (I3)
+  cover downloads.
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser
