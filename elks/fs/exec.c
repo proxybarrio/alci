@@ -169,9 +169,9 @@ int sys_execve(const char *filename, char *sptr, size_t slen)
  * which is extremely slow on 8088 systems for binaries with thousands of
  * relocations. The scratch area is overwritten later by bss clearing and argv.
  */
-static int FARPROC relocate(seg_t place_base, size_t place_size, unsigned long rsize,
-    segment_s *seg_code, segment_s *seg_data, struct inode *inode, struct file *filp,
-    size_t tseg, size_t scratch_off, size_t scratch_size)
+static int FARPROC relocate(seg_t place_base, unsigned long rsize, segment_s *seg_code,
+    segment_s *seg_data, struct inode *inode, struct file *filp, size_t tseg,
+    size_t scratch_off, size_t scratch_size)
 {
     int retval = 0;
     seg_t save_ds = current->t_regs.ds;
@@ -198,11 +198,6 @@ static int FARPROC relocate(seg_t place_base, size_t place_size, unsigned long r
             r_type = peekw(off + offsetof(struct minix_reloc, r_type), seg_data->base);
             if (r_type != R_SEGWORD) {
                 debug_reloc("EXEC: bad relocation type 0x%x\n", r_type);
-                goto error;
-            }
-            /* the word to patch must lie inside the segment being relocated */
-            if (r_vaddr >= place_size || place_size - r_vaddr < 2) {
-                debug_reloc("EXEC: relocation outside the segment 0x%x\n", r_vaddr);
                 goto error;
             }
             switch (r_symndx) {
@@ -266,14 +261,6 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
         debug("EXEC: bad header, result %d\n", retval);
         goto error_exec3;
     }
-    /* Segment sizes must fit 64K and the entry point must be inside the text,
-     * or a damaged header would start the program at a random address */
-    if ((((unsigned int)(mh.tseg >> 16)) | (unsigned int)(mh.dseg >> 16) |
-         (unsigned int)(mh.bseg >> 16) | (unsigned int)(mh.entry >> 16)) ||
-        (size_t)mh.entry >= (size_t)mh.tseg) {
-        debug("EXEC: bad segment sizes or entry point\n");
-        goto error_exec3;
-    }
 
     /* Look for the binary in memory */
     seg_code = 0;
@@ -325,7 +312,7 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
             goto error_exec3;
 #endif
         retval = -EINVAL;
-        if (esuph.msh_tbase != 0 || (unsigned int)(esuph.esh_ftseg >> 16))
+        if (esuph.msh_tbase != 0)
             goto error_exec3;
         base_data = esuph.msh_dbase;
         if (base_data != 0)
@@ -631,13 +618,13 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
     scratch_off = ((size_t)mh.dseg + 1) & ~1;
     if (need_reloc_code) {
         /* Read and apply text segment relocations */
-        retval = relocate(seg_code->base, (size_t)mh.tseg, esuph.msh_trsize, seg_code, seg_data,
+        retval = relocate(seg_code->base, esuph.msh_trsize, seg_code, seg_data,
                           inode, filp, mh.tseg, scratch_off, len - scratch_off);
         if (retval != 0)
             goto error_exec5;
         /* Read and apply far text segment relocations */
         retval = relocate(seg_code->base + bytes_to_paras((size_t)mh.tseg),
-                          (size_t)esuph.esh_ftseg, esuph.esh_ftrsize, seg_code, seg_data,
+                          esuph.esh_ftrsize, seg_code, seg_data,
                           inode, filp, mh.tseg, scratch_off, len - scratch_off);
         if (retval != 0)
             goto error_exec5;
@@ -647,7 +634,7 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
         filp->f_pos += esuph.esh_ftrsize;
     }
     /* Read and apply data relocations */
-    retval = relocate(seg_data->base, (size_t)mh.dseg, esuph.msh_drsize, seg_code, seg_data,
+    retval = relocate(seg_data->base, esuph.msh_drsize, seg_code, seg_data,
                       inode, filp, mh.tseg, scratch_off, len - scratch_off);
     if (retval != 0)
         goto error_exec5;
