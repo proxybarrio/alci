@@ -57,9 +57,7 @@ $MFS $H cp extapps/bobcat/src/bobcat /bin/bobcat > /dev/null
 $MFS $H cp extapps/bobcat/lynx.cfg /etc/lynx.cfg > /dev/null
 $MFS $H cat /bootopts > /tmp/alci-bootopts
 cat >> /tmp/alci-bootopts <<'EOF'
-# bobcat (web browser) with the network on: uncomment the next line, it
-# frees 48 KB of disk cache (16 buffers instead of 64)
-#buf=16
+#buf=16 for bobcat with network: 48K less disk cache
 EOF
 $MFS $H rm /bootopts > /dev/null
 $MFS $H cp /tmp/alci-bootopts /bootopts > /dev/null
