@@ -353,6 +353,17 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   layer in C after the C64 hires driver, keyboard; 13,328-byte program,
   no kernel change; desktop, menus, dialogs and calculator work on QEMU.
   Next: timings on MartyPC and 86Box, editor, file manager, mouse.
+  Look and screens (decided 2026-11-22): one program and one CTK core, a
+  drawing layer per adapter chosen at start, each with its own theme drawn
+  for its pixel shape: CGA 640x200 on a CRT and on the Toshiba T1200 LCD
+  (pixels of a different shape: check on the real machine), CGA 320x200
+  four colours, EGA 640x350, VGA 640x480 (16 colours). Themes are 8-byte
+  cell patterns as today, so a better look costs no memory or speed. First
+  step: a CGA theme of our own (thin borders, striped title bars, rounded
+  buttons, shadows), icons for the CGA pixel shape, a finer 8x8 font.
+  Later, on modern PCs (phase 7, frozen), the same desktop in a richer
+  form that keeps visible traces of the 8088 one (the family of programs
+  from the smallest machine to the largest).
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
 - [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7
