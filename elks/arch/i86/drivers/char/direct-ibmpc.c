@@ -11,6 +11,24 @@ static void SetDisplayPage(Console * C)
     pokew(0x4E, 0x40, C->crtc_offset << 1);
 }
 
+static void PositionCursor(Console * C);
+
+/* A program that sets a video mode through the BIOS (graphics programs do,
+ * also when they go back to text) resets the CRTC start address to 0, and the
+ * BIOS copy at 0040:004E with it. With hardware scrolling the console may be
+ * using a later start, and its output would land outside the visible page.
+ * Called before each console write: if the BIOS copy no longer matches,
+ * go back to the start of this console's region. */
+static void CheckDisplayStart(Console * C)
+{
+    if (*(unsigned short __far *)_MK_FP(0x40, 0x4E) != (C->crtc_offset << 1)) {
+        C->crtc_offset = C->crtc_home;
+        C->vseg_offset = C->crtc_home << 1;
+        SetDisplayPage(C);
+        PositionCursor(C);
+    }
+}
+
 static void PositionCursor(Console * C)
 {
     unsigned int Pos = C->cx + C->Width * C->cy + C->crtc_offset;

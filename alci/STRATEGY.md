@@ -51,6 +51,8 @@ real machine for tests, not the design target.
   Bobcat web browser; floppy images keep the plain kernel. Temporary:
   the aim is a Bobcat that needs no extra kernel code and runs with the
   default 64-buffer disk cache and the network on (task E6).
+  Third (2026-11-22): +80 bytes of near kernel code so that the console
+  recovers after any program sets a video mode through the BIOS (S9).
 - Programs on the floppies are LZSA1-compressed and decoded by the kernel
   at exec; exited programs stay in free memory until it is needed (text
   cache). A damaged file must never bring the system down: the decoder

@@ -123,6 +123,20 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   `exec-corrupt.py` check, in the same change that brings the first
   medium-model program into Alci (for example elks-w16, a medium-model
   Nano-X build, 8086tiny or the PicoMEM tools: I2, I4, D6).
+- [x] S9 `DONE 2026-11-22` Console output invisible after a graphics program
+  (Alci regression from hardware scrolling, c1ea1006): a program that sets a
+  video mode through the BIOS (going back to text too) resets the CRTC start
+  to 0 and the BIOS copy at 0040:004E, while the console kept writing at its
+  scrolled start, outside the visible page, until the next scroll. Seen on
+  MartyPC with the Contiki prototype (D7): the shell prompt never appeared;
+  affects every graphics program (`paint` in 0.1, Nano-X, ELKSWeb,
+  Gem-elks). Now each console write first compares 0040:004E with its own
+  start and, if they differ, goes back to the start of its region. +80 bytes
+  of near kernel code (approved 2026-11-22: covers all programs, including
+  ones that end badly). MartyPC: `cat` of 200 lines 1.509 -> 1.522 s warm,
+  4.887 -> 4.913 s first, `ls -l /bin` 7.756 -> 7.760 s; strict suites
+  34/34 on QEMU hd32 and fd720. Not an ELKS bug (ELKS has no hardware
+  scrolling).
 - [ ] S7 `TODO` `ftpd` after an upload closes the data connection
   normally; another ELKS fork changes it to a reset, to stop control
   blocks piling up in `ktcp` during many uploads. Not proven: in an

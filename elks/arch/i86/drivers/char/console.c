@@ -443,6 +443,10 @@ static int Console_write(struct tty *tty)
     Console *C = &Con[tty->minor];
     int cnt = 0;
 
+#ifdef CONSOLE_FAST_WRITE
+    if (C == Visible[C->display])
+        CheckDisplayStart(C);
+#endif
     while ((tty->outq.len > 0) && !glock) {
 #ifdef CONSOLE_FAST_WRITE
         /* Fast path for runs of ordinary characters: same result as tty_outproc()
