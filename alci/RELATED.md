@@ -28,6 +28,9 @@ learn from them and avoid duplicating them.
 | [unzx0_x86](https://github.com/emmanuel-marty/unzx0_x86) | ZX0 decompressors for x86, including an 8088-tuned one, by Emmanuel Marty (also the author of LZSA) | ZX0 compresses better than LZSA1; whether it decodes fast enough on the 8088 is to be measured in F4e on the same programs. |
 | [LZPACK](https://github.com/johnsonjh/lzpack) (2026) | Executable compressor for CP/M-80 (self-extracting `.COM`, PopCom!-compatible format), portable C89; on ELKS (8086/8088, a 16 KB binary) it compresses and restores files, with a hand-written 8086 decoder; LZ with an 8 KB window and a bit-oriented stream | Not an ELKS executable packer, so no replacement for the kernel's LZSA1 path. Useful as a compressor that runs on Alci itself (LZSA's compressor does not) and as one more codec to measure in F4e. Its author is also adding ELKS executables to UPX: self-extracting programs that would need no kernel support, to compare in F4e when available. |
 | [8086tiny on ELKS](https://github.com/tyama501/8086tinyFile) (2026) | The 8086tiny emulator running on ELKS, to run DOS programs such as FreeDOS; experimental and very slow | Not for Alci now; DOS programs on ELKS would belong to phase 7 (frozen). |
+| [Contiki 1.x](https://github.com/adamdunkels/contiki-1.x) | Adam Dunkels' small operating system of 2002-2004, with the CTK graphical desktop (windows, menus, icons, mouse) on the Commodore 64 and other 8-bit machines; also ports to Win32 and GTK; applications: editor, web browser, e-mail, FTP, IRC, calculator | Desktop candidate D7: the C core of CTK and the applications on top of ELKS files and sockets, with a new CGA drawing layer. Contiki 2.x (`contiki-os/contiki`, `core/ctk`) is the fallback base. |
+| [Bobcat](https://github.com/rafael2k/bobcat) | Text web browser derived from Lynx, from 16-bit DOS; ELKS port built by `buildext.sh` since January 2026 | E6: build and measure before anything else. |
+| [astrobleem/elks](https://github.com/astrobleem/elks) (2026) | ELKS fork with experimental branches: a `/dev/ems` storage device for EMS boards (Lo-tech, PicoMEM), a loader for character-device modules, Tandy and PCjr support | EMS studied in B3; the module loader is research only (loading code into a kernel with no memory protection is riskier than freeing unused code, as A0 and A5 do). |
 
 ## What can be reused, and how
 
@@ -49,6 +52,9 @@ learn from them and avoid duplicating them.
 | unzx0_x86 | zlib (checked 2026-11-22) | Compatible, notice kept. |
 | LZPACK | MIT-0 (checked 2026-11-21) | Compatible, no notice required. |
 | 8086tiny on ELKS | MIT (8086tiny, checked 2026-11-21) | Compatible; not needed now (phase 7). |
+| Contiki 1.x and 2.x | BSD 3-clause in the CTK sources (checked 2026-11-22); each application and data file to be checked on its own | Compatible with GPLv2 and usable in a separate program: notices kept in every file taken. |
+| Bobcat | GPL for the Lynx base; other parts under their own licences (README, checked 2026-11-22) | Compatible as a separate program; list the licences of its parts before shipping binaries. |
+| astrobleem/elks | GPLv2 (ELKS fork) | Compatible, notices kept. |
 
 Sources: the project pages linked above; Ars Technica, March 2023, on
 doschgpt; ghaerr/elks issue #2630; a video demonstration of ELKS with

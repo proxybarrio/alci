@@ -70,6 +70,16 @@ real machine for tests, not the design target.
   it must first install support for compressed programs (the LZSA1 exec
   decoder) as a prerequisite, like a dependency; packages that need it
   say so, and the installer checks it before installing them.
+- Memory beyond 640 KB (open, raised 2026-11-22, study in B3): Alci must
+  also serve machines with more memory, extended (XMS, 286 and later) or
+  expanded (EMS boards, on any CPU, the 8088 included), without costing
+  the machines that have none. ELKS's XMS support adds 3856 resident bytes
+  when compiled in. Two ways, to be decided on the B3 figures: keep one
+  image and make the extra-memory code free itself when the memory is
+  absent, as A0 and A5 do; or one kernel per machine class (8088/8086,
+  with EMS, 286 and later) with the same programs, the installer picking
+  the kernel. Programs may later come in per-CPU variants through the
+  package repository (I3), always with an 8086 baseline.
 
 ## Where the system lives
 

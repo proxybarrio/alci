@@ -6,8 +6,9 @@ The agent takes the first `TODO` from the top, except for the order
 agreed with the maintainer on 2026-11-19: F4c (done), then E7 (network
 time, time zone, summer time), then F4e (added 2026-11-21), then F4d,
 then B1 (memory survey, block cache first: 64 KB of buffers in main
-memory, added 2026-11-22), then D2 and I2 (GUI benchmark on Nano-X and
-Gem-elks, moved forward 2026-11-21), then D5 (boot logo), then I1, I3 and I4 (integrations).
+memory, added 2026-11-22), then D2, I2 and D7 (GUI benchmark on Nano-X,
+Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
+2026-11-22), then D5 (boot logo), then I1, I3 and I4 (integrations).
 
 ## Phase 1: baseline speed
 
@@ -122,6 +123,16 @@ Gem-elks, moved forward 2026-11-21), then D5 (boot logo), then I1, I3 and I4 (in
   `exec-corrupt.py` check, in the same change that brings the first
   medium-model program into Alci (for example elks-w16, a medium-model
   Nano-X build, 8086tiny or the PicoMEM tools: I2, I4, D6).
+- [ ] S7 `TODO` `ftpd` after an upload closes the data connection
+  normally; another ELKS fork changes it to a reset, to stop control
+  blocks piling up in `ktcp` during many uploads. Not proven: in an
+  upload the client closes first, so the server should not wait long,
+  and a reset changes what clients see. First the test only: 100
+  uploads in a row from the host on QEMU, `netstat` and the `ktcp` heap
+  before and after. Fix only if blocks are really left behind (as an
+  integrity fix if `ktcp` runs out of memory). The TCP accept and
+  `SYN_RECV` fixes of the same fork are already in Alci (ELKS, August
+  2026).
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser
@@ -207,6 +218,23 @@ Gem-elks, moved forward 2026-11-21), then D5 (boot logo), then I1, I3 and I4 (in
   memory and given back to programs on demand; in EMS or extended memory
   when present. First a design document in `alci/docs/`, then the
   implementation in steps.
+- [ ] B3 `TODO` Memory beyond 640 KB (added 2026-11-22, after B1, with B2).
+  Two kinds: extended memory (XMS, above 1 MB, 286 and later only) and
+  expanded memory (EMS, a bank-switched board, which works on an 8088 too:
+  Lo-tech EMS, Intel Above Board, AST, and PicoMEM, which emulates one).
+  ELKS already has XMS support (`CONFIG_FS_XMS`: block cache and RAM disk
+  above 1 MB, through unreal mode, INT 15h or LOADALL, detected at boot);
+  Alci has it off. Measured 2026-11-22 on Alci `acf26ba9`: turning on the
+  XMS block cache adds 3856 bytes to the kernel (2496 near code, 1008 far
+  code, 240 data, 112 bss), resident on every machine, XT included. EMS:
+  nothing in ELKS; another fork has a `/dev/ems` storage device
+  (`RELATED.md`). Study, no code: what each kind would give (block cache,
+  RAM disk, text cache, `/tmp`, program data), on which machines, how the
+  code can cost nothing where the memory is absent (freed after detection
+  as in A0 and A5, which today works for far code only), and the cost of
+  the alternative, one kernel per machine class. Output for the
+  maintainer: `alci/docs/extra-memory.md`. Strategy decision pending
+  (`STRATEGY.md`).
 
 ## Phase 3: tests on varied hardware
 
@@ -228,8 +256,9 @@ Gem-elks, moved forward 2026-11-21), then D5 (boot logo), then I1, I3 and I4 (in
   programs on Nano-X, MIT): see `RELATED.md`.
 - [ ] D2 `TODO` GUI benchmark (decided 2026-11-21): the base of the desktop
   is chosen on measurements, not impressions. Write the benchmark once
-  (`alci/tests/guibench/`) and run it on Nano-X first; I2 (Gem-elks) and
-  D6 (PC/GEOS, if feasible) run the same one. Machines: MartyPC XT 8088
+  (`alci/tests/guibench/`) and run it on Nano-X first; I2 (Gem-elks), D7
+  (Contiki CTK, a full candidate) and D6 (PC/GEOS, if feasible) run the
+  same one. Machines: MartyPC XT 8088
   CGA 640x200 (reference), 86Box PC1512 and AT with EGA. For each
   candidate, with its files compressed and uncompressed:
   1. Disk space of everything it needs (programs, fonts, icons,
@@ -260,10 +289,40 @@ Gem-elks, moved forward 2026-11-21), then D5 (boot logo), then I1, I3 and I4 (in
   call (see `STRATEGY.md`); compare their cost. Output: `alci/docs/pcgeos-port.md` with
   the work needed, for the maintainer's decision; if feasible, D6 runs
   the D2 benchmark.
+- [ ] D7 `TODO` Contiki CTK desktop on Alci, a full candidate for the base
+  (decided 2026-11-22, with D2 and I2). Contiki 1.x (Adam Dunkels,
+  BSD 3-clause, `RELATED.md`) ran a graphical desktop with windows,
+  menus, icons and a mouse on the Commodore 64: 64 KB of RAM, a 1 MHz
+  6502, 320x200 bitmap. An 8088 at 4.77 MHz has a similar raw speed and
+  runs C code far better than a 6502; against it, a CGA screen is 16 KB
+  to the C64's 9 KB and the C64 had video help (sprites, colour memory).
+  It may beat Nano-X and Gem-elks; only D2 can say. Plan:
+  1. One user-space program, the same for ELKS and Alci, no kernel patch.
+     Take from 1.x the C parts: `contiki/ctk/ctk.c` (windows, menus,
+     focus), the event kernel and the applications; write the drawing
+     layer behind `ctk-draw.h` for CGA, since the C64 one (`ctk-hires`) is
+     6502 assembly. Keep the look of the 1.x desktop; `contiki-win32` and
+     `contiki-gtk` show how a non-C64 port was done. Contiki 2.x `core/ctk`
+     is a fallback if 1.x proves hard to build; the two APIs differ.
+  2. Screen: CGA 640x200 two colours first (80 columns, all CGA, EGA and
+     VGA), then 320x200 four colours; EGA later. Video mode set the way the
+     ELKS console allows, screen restored on exit and on errors.
+  3. Input: keyboard first, then the ELKS mouse driver. No busy loop when
+     idle.
+  4. Network and files: the applications go through ELKS files and
+     sockets, never a second TCP/IP stack (no uIP). Order: about and
+     calculator (first build), editor (first real test), then the web
+     browser, compared with ELKSWeb and Bobcat (E6), then FTP, IRC, e-mail.
+  5. First milestone: two overlapping windows, a menu, an icon, a working
+     button, redraw after a move, return to the console; then the D2
+     benchmark, files compressed and uncompressed.
+  Licence: BSD keeps the notices in every file taken; each application and
+  data file checked on its own. Output: the program under `alci/contiki/`,
+  results in `RESULTS.md`, the look in `alci/docs/gui-study.md`.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
-- [ ] D4 `TODO` Alci desktop: improve the base chosen after D2 and I2 (Nano-X or
-  Gem-elks; look and behaviour) in the
+- [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7
+  (Nano-X, Gem-elks or Contiki CTK; look and behaviour) in the
   spirit of GEOS, the way Haiku follows BeOS. GEOS existed on the Commodore
   64 (Berkeley Softworks, 1986) and later on the PC as PC/GEOS; today only
   the PC/GEOS source (FreeGEOS, Apache 2.0) is available to study. Rules:
@@ -350,9 +409,13 @@ Gem-elks, moved forward 2026-11-21), then D5 (boot logo), then I1, I3 and I4 (in
   the expected wait scaled to the detected CPU. First step: build BearSSL's
   X25519 and RSA/ECDSA verify for ia16 and time them on MartyPC.
 - [ ] E6 `TODO` Text web browser on top of E5. Current Lynx needs a 386 (DJGPP
-  port); Bobcat, a Lynx derivative, ran on the 8088 under DOS. Check
-  Bobcat's sources and licence, and the effort to port it, against writing
-  a small browser for ELKS. First measure ELKSWeb (graphical, CGA/EGA/VGA,
+  port); Bobcat, a Lynx derivative, ran on the 8088 under DOS. Bobcat is
+  already ported: an ELKS external application since January 2026
+  (`buildext.sh bobcat`, OpenWatcom, large model, Lynx base under the GPL;
+  found 2026-11-22). First step: build it, check whether it is
+  large-model in the a.out sense (if it has relocations, apply S4 first),
+  and measure disk space, memory, start time and page load on an 8088.
+  Then measure ELKSWeb (graphical, CGA/EGA/VGA,
   HTTP only, GPL-2.0-or-later, see `RELATED.md`): memory, speed on an
   8088 with CGA, and what HTTPS from E5 would need to work with it.
 
@@ -667,9 +730,15 @@ Rules for the floppy set (decided 2026-11-19):
   in the Alci repository. The
   user can pin a package to the ELKS repository by hand. Check whether ept
   already records the origin of a package; if not, add it (MIT).
+  Later (not in the first version): variants of one package per CPU class
+  (8086 baseline always present, 186 or 286 builds only where measured
+  faster), the installer picking one and falling back to the baseline when
+  the disk moves to a smaller machine; see F1 and B3.
 - [ ] I4 `TODO` picomem-elks tools (after E0b on real hardware): build
   with `buildext.sh`, on the 1.44M set and the hard disk install.
-  These tools are medium model: apply S4 first.
+  These tools are medium model: apply S4 first. PicoMEM can also act as
+  an EMS board: the EMS storage device of another ELKS fork (`RELATED.md`)
+  is studied in B3, measured in kernel bytes first.
 - [ ] F4d `TODO` Text cache, small fix: a cached program file that is
   unlinked without being opened for writing (`mv` over it) keeps its
   disk blocks until the entry leaves the cache (checked on QEMU: `sed`
