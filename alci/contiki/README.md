@@ -58,6 +58,10 @@ back to the text console.
   `program-handler-conf.h` from the Contiki 1.x GTK port) and
   `font8x8.h`, a public-domain 8x8 font (Daniel Hepper's font8x8, after
   the IBM public-domain VGA fonts) with its bits reversed for CGA.
+- `icons/`: the Alci icon sets, one per screen family, ready to build in
+  (`icons/out/<set>.h`) or to install as a file (`icons/out/<set>.ais`);
+  see `icons/README.md`. The prototype still draws the original 3x3-cell
+  Contiki icons; using the new 10x4-cell CGA set is the next step.
 
 ## Licences
 

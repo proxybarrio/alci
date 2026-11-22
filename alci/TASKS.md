@@ -372,6 +372,11 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   ept installs on request, like the display drivers of old Windows.
   Contiki 1.x has only 5 distinct icon drawings for its 16 programs (and
   an empty one for the shell): every program gets its own.
+  Icon sets done (2026-11-22), in `alci/contiki/icons/`: CGA 640x200
+  (80x32, drawn by hand), CGA 320x200 four colours (40x32, by hand),
+  640x400 (96x64), VGA 16 colours (104x80), modern 64 and 128 (PNG), each
+  as C arrays and as one `.ais` file. Next: the CTK icon widget draws the
+  10x4-cell CGA icons; Hercules, EGA 640x350 and T1200 LCD sets to draw.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
 - [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7
