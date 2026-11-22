@@ -377,7 +377,9 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   640x400 (96x64), VGA 16 colours (104x80), modern 64 and 128 (PNG), each
   as C arrays and as one `.ais` file. The CGA desktop draws the new
   10x4-cell icons (checked on QEMU: drawing, focus, opening a program).
-  Next: Hercules, EGA 640x350 and T1200 LCD sets; choose the set from the
+  T1200 LCD (56x32), Hercules (80x42) and EGA 640x350 (72x42, 16 of the
+  64 EGA colours) sets added the same day. Next: the desktop theme
+  (windows, menus, buttons) per screen family; choose the icon set from the
   screen family once the other drawing layers exist.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.

@@ -11,6 +11,9 @@ NAMES = ['about', 'calculator', 'dhcp', 'directory', 'editor', 'email', 'ftp', '
 # set, title, horizontal and vertical scale (pixel shape), background
 ROWS = [
     ('cga640-mono', 'CGA 640x200, 2 colours, 80x32', 1, 2.4, (255, 255, 255)),
+    ('t1200-lcd-mono', 'Toshiba T1200 LCD 640x200, 2 colours, 56x32', 1, 1/0.68, (255, 255, 255)),
+    ('hercules-mono', 'Hercules 720x348, 2 colours, 80x42', 1, 1/0.64, (0, 0, 0)),
+    ('ega640x350-16col', 'EGA 640x350, 16 of 64 colours, 72x42', 1, 1/0.73, (255, 255, 255)),
     ('cga320-4col', 'CGA 320x200, 4 colours, 40x32', 2, 2.4, (0, 0, 0)),
     ('hires640x400-mono', '640x400, 2 colours, 96x64', 1, 1.2, (255, 255, 255)),
     ('vga640-16col', 'VGA 640x480, 16 colours, 104x80', 1, 1, (255, 255, 255)),
