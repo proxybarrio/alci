@@ -364,6 +364,14 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Later, on modern PCs (phase 7, frozen), the same desktop in a richer
   form that keeps visible traces of the 8088 one (the family of programs
   from the smallest machine to the largest).
+  Icons (decided 2026-11-22): on the 8088 the Contiki icons keep their
+  shape and idea, only a little cleaner; the stronger the machine, the more
+  refined, same idea. A set per screen profile (P1-P13, private brief in
+  alci-private/icone/), drawn for each pixel shape and colour count; the
+  disks carry only the family defaults, the other sets are packages that
+  ept installs on request, like the display drivers of old Windows.
+  Contiki 1.x has only 5 distinct icon drawings for its 16 programs (and
+  an empty one for the shell): every program gets its own.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
 - [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7
@@ -472,6 +480,15 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   layer; check its licence file); DOSLynx and Arachne (older DOS browsers,
   check licence and CPU needs). The fork census (104 of 168 forks) found
   no other browser; the weekly reading of the ELKS discussions continues.
+  HTTPS and images (decided 2026-11-22): all these browsers speak HTTP
+  only. Two modes, both offered: text through a public service such as
+  FrogFind (its address set in a configuration line, not in the program,
+  in case the service changes or closes), and full pages through a proxy
+  of the user's own (WebOne or similar on a PC, or a ready-made Raspberry
+  Pi image prepared by us), which also shrinks pictures to what the
+  screen can show: a small preview by default, the full picture on
+  request (maps), or the whole page as one picture (Browservice style).
+  The relay planned for E0c can be the same box.
   First results (2026-11-22, OpenWatcom snapshot, Bobcat 0.8): builds
   (243 KB, OS/2 NE format, not convertible by `os2toelks`: too many
   segments), so it needs `CONFIG_EXEC_OS2` in the kernel: +1696 resident
