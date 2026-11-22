@@ -1,0 +1,7 @@
+Alci 0.1 preview, 720K set, disk 2 of 2.
+The programs of the 1.44M image that do not fit on disk 1
+(72 programs, plus uptime as a link to ps, and their data files).
+This disk does not boot.
+With two drives: mount -o ro /dev/fd1 /mnt   then   . /mnt/setup
+With a hard disk: mount -o ro /dev/fd0 /mnt   then   sh /mnt/install-hd
+With one drive only: not yet (safe disk swapping comes in a later release).

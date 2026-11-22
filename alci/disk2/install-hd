@@ -1,0 +1,11 @@
+# Alci 0.1 disk 2: copy its programs to a system installed on a hard disk.
+# Boot Alci from the hard disk, disk 2 in a floppy drive, then:
+#   mount -o ro /dev/fd0 /mnt      (or /dev/fd1 for drive B)
+#   sh /mnt/install-hd
+cp /mnt/bin/* /bin
+ln -s ps /bin/uptime 2>/dev/null
+cp /mnt/lib/advent.db /lib
+mkdir /lib/paint 2>/dev/null
+cp /mnt/lib/paint/* /lib/paint
+sync
+echo "Disk 2 programs installed in /bin and /lib."

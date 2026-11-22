@@ -416,6 +416,15 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   found 2026-11-22). First step: build it, check whether it is
   large-model in the a.out sense (if it has relocations, apply S4 first),
   and measure disk space, memory, start time and page load on an 8088.
+  First results (2026-11-22, OpenWatcom snapshot, Bobcat 0.8): builds
+  (243 KB, OS/2 NE format, not convertible by `os2toelks`: too many
+  segments), so it needs `CONFIG_EXEC_OS2` in the kernel: +1696 resident
+  bytes on every machine (48 near code, 1312 far code, 144 data, 192
+  bss). On QEMU 640 KB it shows a local page; with the network up (`ktcp`
+  alone) exec fails for lack of memory with 64 buffers and works with
+  `buf=16`, which leaves 296 KB free; it completed an HTTP exchange. With
+  `-dump` it clears the screen on exit. Not in the 0.1 images; the
+  kernel cost needs the maintainer's approval.
   Then measure ELKSWeb (graphical, CGA/EGA/VGA,
   HTTP only, GPL-2.0-or-later, see `RELATED.md`): memory, speed on an
   8088 with CGA, and what HTTPS from E5 would need to work with it.
@@ -543,6 +552,15 @@ Rules for the floppy set (decided 2026-11-19):
   strict checker on the real three-disk set (no timeouts, no "No space
   left"), on every machine, with one drive and with two.
 
+- [x] F0a `DONE 2026-11-22` Disk 2 of the 720K set, first version, for
+  the 0.1 preview: every file of the 1.44M image that is not on disk 1
+  (72 programs, about 620 KB, already compressed; 19 KB free), built by
+  `alci/scripts/mkdisk2.sh`, with `alci/disk2/` (README, `setup` for a
+  second drive: PATH and links for `/lib`; `install-hd` to copy it onto a
+  hard-disk system). Disk 1 unchanged. Not bootable: usable with two
+  drives or for a hard disk; with one drive only after F5 (safe swap).
+  Checked on QEMU, two drives and hard disk: `bc cal tr md5sum tar head
+  uptime advent`, data files found.
 - [ ] F0 `TODO` Floppy budget. The 720K image (Alci 3ecae5b) had 669 of 710
   data blocks in use, 40 KB free; with compressed programs (F4b) disk 1
   has 121 KB free (Alci `70b577df`). 720K is the drive of a real T1200.

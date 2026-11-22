@@ -1,0 +1,15 @@
+# Alci 0.1 disk 2: use its programs from the second floppy drive.
+# Disk 1 in drive A (booted), disk 2 in drive B, then:
+#   mount -o ro /dev/fd1 /mnt
+#   . /mnt/setup
+# The leading dot matters: it adds /mnt/bin to the PATH of this shell.
+PATH=$PATH:/mnt/bin
+export PATH
+# data files the programs look for in /lib
+if ln -s /mnt/lib /lib 2>/dev/null; then :; else
+  ln -s /mnt/lib/advent.db /lib/advent.db 2>/dev/null
+  ln -s /mnt/lib/paint /lib/paint 2>/dev/null
+fi
+ln -s ps /bin/uptime 2>/dev/null
+echo "Disk 2 programs are now on the PATH (ls /mnt/bin)."
+echo "Do not take disk 2 out while one of its programs is running."

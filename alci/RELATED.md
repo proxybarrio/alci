@@ -71,8 +71,9 @@ through a console driver `ioctl`, not new kernel code. On 286 boards with
 a NEC D80C42C keyboard controller, and on the EC1842, the A20 code that
 reads and writes back the 8042 output port hangs the keyboard;
 `USE_HIMEM_AT` avoids the read. ELKS supports a PS/2 mouse on the IBM PC.
-MFM, SMC Ultra and PEGA drivers derived from Linux 2.x exist outside the
-ELKS tree, tested on an Amstrad PC1640 (source and licence to locate).
+MFM, SMC Ultra and PEGA drivers derived from Linux 2.x, tested on an
+Amstrad PC1640, are now in the ELKS tree and in Alci (`mfmhd.c`,
+`ultra.c`, `direct-amstrad.c`; upstream since August 2026).
 
 Study of os8088's distribution and what Alci takes from it: `docs/os8088-study.md` (2026-11-19).
 
