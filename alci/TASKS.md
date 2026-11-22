@@ -356,7 +356,7 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Look and screens (decided 2026-11-22): one program and one CTK core, a
   drawing layer per adapter chosen at start, each with its own theme drawn
   for its pixel shape: CGA 640x200 on a CRT and on the Toshiba T1200 LCD
-  (pixels of a different shape: check on the real machine), CGA 320x200
+  (pixels of a different shape: see `alci/docs/screens.md`), CGA 320x200
   four colours, EGA 640x350, VGA 640x480 (16 colours). Themes are 8-byte
   cell patterns as today, so a better look costs no memory or speed. First
   step: a CGA theme of our own (thin borders, striped title bars, rounded
@@ -460,6 +460,9 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   found 2026-11-22). First step: build it, check whether it is
   large-model in the a.out sense (if it has relocations, apply S4 first),
   and measure disk space, memory, start time and page load on an 8088.
+  Priority (decided 2026-11-22): before compressing Bobcat or adding
+  kernel code for it, look for a text browser that is already built for
+  ELKS, faster or lighter, and use that if it does the same job.
   First results (2026-11-22, OpenWatcom snapshot, Bobcat 0.8): builds
   (243 KB, OS/2 NE format, not convertible by `os2toelks`: too many
   segments), so it needs `CONFIG_EXEC_OS2` in the kernel: +1696 resident
