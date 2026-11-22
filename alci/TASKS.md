@@ -375,8 +375,10 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Icon sets done (2026-11-22), in `alci/contiki/icons/`: CGA 640x200
   (80x32, drawn by hand), CGA 320x200 four colours (40x32, by hand),
   640x400 (96x64), VGA 16 colours (104x80), modern 64 and 128 (PNG), each
-  as C arrays and as one `.ais` file. Next: the CTK icon widget draws the
-  10x4-cell CGA icons; Hercules, EGA 640x350 and T1200 LCD sets to draw.
+  as C arrays and as one `.ais` file. The CGA desktop draws the new
+  10x4-cell icons (checked on QEMU: drawing, focus, opening a program).
+  Next: Hercules, EGA 640x350 and T1200 LCD sets; choose the set from the
+  screen family once the other drawing layers exist.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
 - [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7

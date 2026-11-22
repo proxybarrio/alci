@@ -806,3 +806,41 @@ static const unsigned char icon_hires640x400_mono_webserver[768] = {
   0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0x01,0xff,0xff,0xff,0x00,0x00,0x00,0x00,
   0xe0,0xe0,0xe0,0xe0,0xe0,0xe0,0xe0,0xe0,0xe0,0xe0,0xe0,0xe0,0x00,0x00,0x00,0x00,
 };
+
+#define ICONS_HIRES640X400_MONO_COUNT  16
+static const char * const icons_hires640x400_mono_names[16] = {
+  "about",
+  "calculator",
+  "dhcp",
+  "directory",
+  "editor",
+  "email",
+  "ftp",
+  "irc",
+  "netconf",
+  "processes",
+  "shell",
+  "telnet",
+  "telnetd",
+  "vnc",
+  "www",
+  "webserver",
+};
+static const unsigned char * const icons_hires640x400_mono_bitmaps[16] = {
+  icon_hires640x400_mono_about,
+  icon_hires640x400_mono_calculator,
+  icon_hires640x400_mono_dhcp,
+  icon_hires640x400_mono_directory,
+  icon_hires640x400_mono_editor,
+  icon_hires640x400_mono_email,
+  icon_hires640x400_mono_ftp,
+  icon_hires640x400_mono_irc,
+  icon_hires640x400_mono_netconf,
+  icon_hires640x400_mono_processes,
+  icon_hires640x400_mono_shell,
+  icon_hires640x400_mono_telnet,
+  icon_hires640x400_mono_telnetd,
+  icon_hires640x400_mono_vnc,
+  icon_hires640x400_mono_www,
+  icon_hires640x400_mono_webserver,
+};

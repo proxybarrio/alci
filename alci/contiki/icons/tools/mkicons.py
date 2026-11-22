@@ -122,6 +122,11 @@ def build(pngdir, outdir, name):
         for i in range(0, len(data), 16):
             lines.append('  ' + ','.join(f'0x{b:02x}' for b in data[i:i + 16]) + ',')
         lines.append('};')
+    lines += ['', f'#define ICONS_{up}_COUNT  {len(icons)}',
+              f'static const char * const icons_{cname}_names[{len(icons)}] = {{']
+    lines += [f'  "{n}",' for n, _ in icons] + ['};',
+              f'static const unsigned char * const icons_{cname}_bitmaps[{len(icons)}] = {{']
+    lines += [f'  icon_{cname}_{n},' for n, _ in icons] + ['};']
     with open(os.path.join(outdir, name + '.h'), 'w') as f:
         f.write('\n'.join(lines) + '\n')
     return len(blob)

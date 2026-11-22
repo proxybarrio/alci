@@ -358,3 +358,41 @@ static const unsigned char icon_cga640_mono_webserver[320] = {
   0xc0,0xc0,0xc0,0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xff,0xff,0x00,0x00,0x00,
   0x00,0x00,0x00,0xff,0xff,0x00,0x00,0x00,0x3c,0x3c,0x3c,0xfc,0xfc,0x00,0x00,0x00,
 };
+
+#define ICONS_CGA640_MONO_COUNT  16
+static const char * const icons_cga640_mono_names[16] = {
+  "about",
+  "calculator",
+  "dhcp",
+  "directory",
+  "editor",
+  "email",
+  "ftp",
+  "irc",
+  "netconf",
+  "processes",
+  "shell",
+  "telnet",
+  "telnetd",
+  "vnc",
+  "www",
+  "webserver",
+};
+static const unsigned char * const icons_cga640_mono_bitmaps[16] = {
+  icon_cga640_mono_about,
+  icon_cga640_mono_calculator,
+  icon_cga640_mono_dhcp,
+  icon_cga640_mono_directory,
+  icon_cga640_mono_editor,
+  icon_cga640_mono_email,
+  icon_cga640_mono_ftp,
+  icon_cga640_mono_irc,
+  icon_cga640_mono_netconf,
+  icon_cga640_mono_processes,
+  icon_cga640_mono_shell,
+  icon_cga640_mono_telnet,
+  icon_cga640_mono_telnetd,
+  icon_cga640_mono_vnc,
+  icon_cga640_mono_www,
+  icon_cga640_mono_webserver,
+};

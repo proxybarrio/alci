@@ -4203,3 +4203,41 @@ static const unsigned char icon_vga640_16col_webserver[4160] = {
   0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,
   0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,0x11,
 };
+
+#define ICONS_VGA640_16COL_COUNT  16
+static const char * const icons_vga640_16col_names[16] = {
+  "about",
+  "calculator",
+  "dhcp",
+  "directory",
+  "editor",
+  "email",
+  "ftp",
+  "irc",
+  "netconf",
+  "processes",
+  "shell",
+  "telnet",
+  "telnetd",
+  "vnc",
+  "www",
+  "webserver",
+};
+static const unsigned char * const icons_vga640_16col_bitmaps[16] = {
+  icon_vga640_16col_about,
+  icon_vga640_16col_calculator,
+  icon_vga640_16col_dhcp,
+  icon_vga640_16col_directory,
+  icon_vga640_16col_editor,
+  icon_vga640_16col_email,
+  icon_vga640_16col_ftp,
+  icon_vga640_16col_irc,
+  icon_vga640_16col_netconf,
+  icon_vga640_16col_processes,
+  icon_vga640_16col_shell,
+  icon_vga640_16col_telnet,
+  icon_vga640_16col_telnetd,
+  icon_vga640_16col_vnc,
+  icon_vga640_16col_www,
+  icon_vga640_16col_webserver,
+};

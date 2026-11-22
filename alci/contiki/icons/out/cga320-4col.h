@@ -358,3 +358,41 @@ static const unsigned char icon_cga320_4col_webserver[320] = {
   0xc2,0x80,0xc0,0x00,0xc0,0x00,0xff,0xff,0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,
   0x00,0x0f,0x00,0x0f,0x00,0x0f,0xff,0xff,0xff,0xff,0x00,0x00,0x00,0x00,0x00,0x00,
 };
+
+#define ICONS_CGA320_4COL_COUNT  16
+static const char * const icons_cga320_4col_names[16] = {
+  "about",
+  "calculator",
+  "dhcp",
+  "directory",
+  "editor",
+  "email",
+  "ftp",
+  "irc",
+  "netconf",
+  "processes",
+  "shell",
+  "telnet",
+  "telnetd",
+  "vnc",
+  "www",
+  "webserver",
+};
+static const unsigned char * const icons_cga320_4col_bitmaps[16] = {
+  icon_cga320_4col_about,
+  icon_cga320_4col_calculator,
+  icon_cga320_4col_dhcp,
+  icon_cga320_4col_directory,
+  icon_cga320_4col_editor,
+  icon_cga320_4col_email,
+  icon_cga320_4col_ftp,
+  icon_cga320_4col_irc,
+  icon_cga320_4col_netconf,
+  icon_cga320_4col_processes,
+  icon_cga320_4col_shell,
+  icon_cga320_4col_telnet,
+  icon_cga320_4col_telnetd,
+  icon_cga320_4col_vnc,
+  icon_cga320_4col_www,
+  icon_cga320_4col_webserver,
+};

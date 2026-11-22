@@ -8,7 +8,7 @@ No kernel change: the same program runs on ELKS and on Alci.
 State (2026-11-22): desktop, menus, dialogs, icons, keyboard focus, the
 About dialog and the calculator work on QEMU and on MartyPC (8088). Program
 size 13,328 bytes without the benchmark code, 15.8 KB with it (stdio for
-the report).
+the report); the Alci icons add 5 KB (21,776 bytes in all).
 
 First timings, MartyPC 8088 4.77 MHz CGA, 720K floppy, 2026-11-22
 (`ctk -q` draws the desktop and quits; `ctk -b` prints timings in ms after
@@ -60,8 +60,11 @@ back to the text console.
   the IBM public-domain VGA fonts) with its bits reversed for CGA.
 - `icons/`: the Alci icon sets, one per screen family, ready to build in
   (`icons/out/<set>.h`) or to install as a file (`icons/out/<set>.ais`);
-  see `icons/README.md`. The prototype still draws the original 3x3-cell
-  Contiki icons; using the new 10x4-cell CGA set is the next step.
+  see `icons/README.md`. The desktop draws the CGA 640x200 set
+  (`icons/out/cga640-mono.h`, 10x4 cells per icon): `main.c` gives each
+  program's icon the drawing of the same name, `ctk-cga.c` draws it with
+  the title centred below. All 16 icons are built in (5 KB); `make fetch`
+  also moves the icon column of `ctk.c` for the wider icons.
 
 ## Licences
 

@@ -19,10 +19,26 @@
 
 #include "about-dsc.h"
 #include "calc-dsc.h"
+#include "cga640-mono.h"          /* Alci icons, icons/out/ */
 
 void ctk_cga_exit(void);
 void calc_init(char *arg);
 void about_init(char *arg);
+extern struct ctk_icon about_icon, calc_icon;
+
+/* Give a program's desktop icon the Alci drawing of the same name. */
+static void
+set_icon(struct ctk_icon *icon, const char *name)
+{
+  unsigned char i;
+  for(i = 0; i < ICONS_CGA640_MONO_COUNT; ++i) {
+    if(strcmp(icons_cga640_mono_names[i], name) == 0) {
+      icon->bitmap = (unsigned char *)icons_cga640_mono_bitmaps[i];
+      return;
+    }
+  }
+  icon->bitmap = NULL;                  /* title only */
+}
 
 static struct termios saved;
 static unsigned char keybuf[16];
@@ -143,6 +159,8 @@ main(int argc, char **argv)
   ek_init();
   ctk_init();
   program_handler_init();
+  set_icon(&about_icon, "about");
+  set_icon(&calc_icon, "calculator");
   program_handler_add(&about_dsc, "About", 1);
   program_handler_add(&calc_dsc, "Calculator", 1);
 

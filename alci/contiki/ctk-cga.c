@@ -24,6 +24,9 @@
 #include <string.h>
 
 #define SCREEN_WIDTH  80
+/* Desktop icons: the Alci CGA 640x200 set, 10x4 cells of 8x8 (icons/out/cga640-mono.h) */
+#define ICON_W 10
+#define ICON_H 4
 #define SCREEN_HEIGHT 25
 
 unsigned char ctk_draw_windowborder_height = 1;
@@ -398,7 +401,10 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
       if(x + len >= SCREEN_WIDTH) {
         x = SCREEN_WIDTH - len;
       }
-      tmp = ypos + 3;
+      if(len < ICON_W) {
+        x = xpos + (ICON_W - len) / 2;  /* title centred under the icon */
+      }
+      tmp = ypos + ICON_H;
       if(tmp < clipy2) {
         gotoxy(x, tmp);
         cputsn(w->widget.icon.title, len);
@@ -406,12 +412,12 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
 #if CTK_CONF_ICON_BITMAPS
       if(w->widget.icon.bitmap != NULL) {
         bitmapptr = w->widget.icon.bitmap;
-        for(i = 0; i < 3; ++i) {
+        for(i = 0; i < ICON_H; ++i) {
           if(ypos >= clipy1 && ypos < clipy2) {
             gotoxy(xpos, ypos);
-            draw_bitmapline(3);
+            draw_bitmapline(ICON_W);
           } else {
-            bitmapptr += 3 * 8;
+            bitmapptr += ICON_W * 8;
           }
           ++ypos;
         }
