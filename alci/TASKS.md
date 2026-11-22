@@ -133,6 +133,14 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   integrity fix if `ktcp` runs out of memory). The TCP accept and
   `SYN_RECV` fixes of the same fork are already in Alci (ELKS, August
   2026).
+  Same test, from the fork census (2026-11-22): connections never
+  accepted or stuck in `SYN_RECEIVED` have no timeout of their own; and
+  the `ftp` client, while still open, may get 426 replies from some
+  servers (a 13-line change in another fork, not in ELKS).
+- [ ] S8 `TODO` Kernel stack overflow (`KSTACK`) seen in another ELKS
+  fork on a real IBM PS/2 with asynchronous I/O and 700-byte kernel
+  stacks, the Alci configuration; cause not isolated. Try to reproduce
+  on 86Box (heavy disk and serial I/O together) before anything else.
 - [ ] A2d `TODO` `sed` and `uniq` line reading: read whole lines (`fgets` or
   the A2b scan) instead of one `getchar()`/`getc()` per character. In
   `sed` the current character is a global look-ahead used by the parser
@@ -213,6 +221,10 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   program, `ls -l`, a file copy, an editor save) with 16, 32 and 64
   buffers, on floppy and hard disk. Output: a table and a proposal for
   the default per machine, for the maintainer; no change before that.
+  Also `ktcp`: three static buffers of about 4.4 KB sized on the receive
+  window instead of the MTU (another fork recovers about 9 KB with a few
+  lines); measure with the network up, since Bobcat (E6) and the GUI
+  candidates need that memory.
 - [ ] B2 `TODO` Elastic disk cache: reads only, writes go to disk at once,
   flushed on mount/umount and media change, at most 64 KB of conventional
   memory and given back to programs on demand; in EMS or extended memory
