@@ -503,6 +503,9 @@ Rules for the floppy set (decided 2026-11-19):
      memory before asking for disk 1 back) and XT drives give no
      disk-change signal. Test on 86Box and on a real T1200 before use.
   Rule: every program fits on one disk (RAM is the stricter limit anyway).
+  Placement decided 2026-11-22: `kilo` (compressed, about 20 KB) goes on
+  disk 2 of the 720K set and stays on disk 1 of the 1.44M image; it is not
+  added to the 720K disk 1.
 - [x] F4 `DONE 2026-11-19` The functional suite on the 720K floppy, with the
   strict checker. Done:
   0. Compressed programs (`CONFIG_APPS_COMPRESS`) measured on MartyPC and
@@ -574,6 +577,19 @@ Rules for the floppy set (decided 2026-11-19):
   pending writes, a missing or write-protected disk, the root disk taken
   out; after each, reboot and compare checksums of both disks to prove no
   block went to the wrong one.
+  Approved design (2026-11-22), the same principle MS-DOS used on drives
+  without a change line, for every machine and the only protection on an
+  XT: (a) no pending writes for a floppy once its motor stops: everything
+  for that drive is written before the motor-off timeout, so a disk that
+  can be taken out (light off) never has data waiting; (b) after every
+  motor-off period, before any cached block of that drive is used or
+  written, read the identity of the disk (FAT volume serial; for MINIX
+  disks a serial number written with the F5 label) and compare it with
+  the one recorded at mount; if it differs, drop the cache for the drive
+  and ask for the right disk. Cost: one sector read only when the drive
+  was idle (the motor already needs about half a second to start), plus
+  some hundred bytes in the floppy driver, to be measured. Not covered: a
+  disk pulled out while the light is on, which no system can protect.
 - [x] F4b `DONE 2026-11-19` Compressed executables that load fast. After
   trying LZ4 and LZSA1 (three rounds, `RESULTS.md`): LZSA1 (the LZSA
   project's 8088 decoder, zlib) plus a text cache that keeps exited
