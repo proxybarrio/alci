@@ -68,6 +68,46 @@ cell(unsigned char cx, unsigned char cy, const unsigned char *pat,
   p[0x20f0]   = pat[7] ^ x;
 }
 /*---------------------------------------------------------------------------*/
+/* Alci CGA theme: drawn for 640x200, whose pixels are about 2.4 times taller
+   than wide. Vertical strokes are two pixels wide, horizontal ones one pixel
+   tall. Windows: thin left and top edges, a thick right and lower edge that
+   reads as a shadow, a striped title bar when focused. Buttons are rounded
+   "pills". 1 = black ink on white paper. */
+static const unsigned char cga_ul[8]  = {0x3f,0x7f,0xff,0xff,0xff,0xff,0xff,0xff};
+static const unsigned char cga_tb[8]  = {0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
+static const unsigned char cga_tbi[8] = {0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xff};
+static const unsigned char cga_uli[8] = {0x3f,0x60,0xc0,0xc0,0xc0,0xc0,0xc0,0xff};
+static const unsigned char cga_ur[8]  = {0xf0,0xf8,0xfc,0xfc,0xff,0xff,0xff,0xff};
+static const unsigned char cga_uri[8] = {0xf0,0x18,0x0c,0x0c,0x0f,0x0f,0x0f,0xff};
+static const unsigned char cga_r[8]   = {0x0c,0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0x0f};
+static const unsigned char cga_lr[8]  = {0x0f,0x0f,0x0f,0x0f,0x0f,0x1f,0xf3,0xff};
+static const unsigned char cga_lo[8]  = {0x00,0x00,0x00,0x00,0x00,0x00,0xff,0xff};
+static const unsigned char cga_ll[8]  = {0xc0,0xc0,0xc0,0xc0,0xc0,0x60,0x3f,0x0f};
+static const unsigned char cga_l[8]   = {0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0};
+static const unsigned char cga_bl[8]  = {0x07,0x0c,0x18,0x18,0x18,0x18,0x0c,0x07};
+static const unsigned char cga_br[8]  = {0xe0,0x30,0x18,0x18,0x18,0x18,0x30,0xe0};
+static const unsigned char cga_desk[8]= {0x88,0x00,0x22,0x00,0x88,0x00,0x22,0x00};
+
+static void
+cga_theme(void)
+{
+  struct ctk_hires_theme *t = &ctk_hires_theme;
+  memcpy(t->ulcorner, cga_ul, 8);
+  memcpy(t->titlebar, cga_tb, 8);
+  memcpy(t->urcorner, cga_ur, 8);
+  memcpy(t->rightborder, cga_r, 8);
+  memcpy(t->lrcorner, cga_lr, 8);
+  memcpy(t->lowerborder, cga_lo, 8);
+  memcpy(t->llcorner, cga_ll, 8);
+  memcpy(t->leftborder, cga_l, 8);
+  memcpy(t->buttonleftpattern, cga_bl, 8);
+  memcpy(t->buttonrightpattern, cga_br, 8);
+}
+/*---------------------------------------------------------------------------*/
+/* Extra lines added to text cells: top and bottom rows, for title bars,
+   buttons and the menu bar. */
+static unsigned char deco_top, deco_bot;
+/*---------------------------------------------------------------------------*/
 /* Is the current colour drawn with black ink on white paper? */
 static unsigned char
 paper(void)
@@ -87,9 +127,13 @@ putc_cell(unsigned char c)
     c = '?';
   }
   f = font8x8[c];
-  if(underline) {
+  if(underline || deco_top || deco_bot) {
     memcpy(g, f, 8);
-    g[7] = 0xff;
+    if(underline) {
+      g[7] = 0xff;
+    }
+    g[0] |= deco_top;
+    g[7] |= deco_bot;
     f = g;
   }
   cell(cursx, cursy, f, paper());
@@ -107,8 +151,10 @@ cputsn(const char *s, unsigned char len)
 static void
 cclear(unsigned char len)
 {
-  static const unsigned char blank[8] = {0,0,0,0,0,0,0,0};
+  unsigned char blank[8] = {0,0,0,0,0,0,0,0};
   unsigned char inv = paper();
+  blank[0] = deco_top;
+  blank[7] = deco_bot;
   while(len--) {
     cell(cursx++, cursy, blank, inv);
   }
@@ -155,41 +201,40 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
                    const char *title, unsigned char titlelen)
 {
   unsigned char i, r, xr = x + w + 1, yb = y + h + 1;
-  unsigned char inv = 1;
+  unsigned char active = (focus & (CTK_FOCUS_WINDOW | CTK_FOCUS_DIALOG)) != 0;
   const struct ctk_hires_theme *t = &ctk_hires_theme;
 
-  /* Focused windows get black borders on white (inv=1, pattern bits are
-     ink); background windows get a lighter border: the patterns drawn
-     white on black would be too heavy, so they keep inv=1 too but the
-     title bar pattern is replaced by a plain line. */
   if(y >= clipy1 && y < clipy2) {
-    cell(x, y, t->ulcorner, inv);
+    cell(x, y, active ? t->ulcorner : cga_uli, 1);
     gotoxy(x + 1, y);
-    reversed = 0;
-    color = (0 << 4) | 1;
+    color = (0 << 4) | 1;               /* black ink on white */
+    reversed = active;                  /* white title on the black bar */
+    deco_top = active ? 0 : 0xff;
+    deco_bot = active ? 0 : 0xff;
     putc_cell(' ');
     for(i = 0; i < titlelen && cursx < xr - 3; ++i) {
       putc_cell((unsigned char)title[i]);
     }
     putc_cell(' ');
+    deco_top = deco_bot = 0;
+    reversed = 0;
     while(cursx < xr) {
-      cell(cursx++, y, (focus & CTK_FOCUS_WINDOW) || (focus & CTK_FOCUS_DIALOG)
-           ? t->titlebar : t->lowerborder, inv);
+      cell(cursx++, y, active ? t->titlebar : cga_tbi, 1);
     }
-    cell(xr, y, t->urcorner, inv);
+    cell(xr, y, active ? t->urcorner : cga_uri, 1);
   }
   for(r = y + 1; r < yb; ++r) {
     if(r >= clipy1 && r < clipy2) {
-      cell(x, r, t->leftborder, inv);
-      cell(xr, r, t->rightborder, inv);
+      cell(x, r, t->leftborder, 1);
+      cell(xr, r, t->rightborder, 1);
     }
   }
   if(yb >= clipy1 && yb < clipy2) {
-    cell(x, yb, t->llcorner, inv);
+    cell(x, yb, t->llcorner, 1);
     for(i = x + 1; i < xr; ++i) {
-      cell(i, yb, t->lowerborder, inv);
+      cell(i, yb, t->lowerborder, 1);
     }
-    cell(xr, yb, t->lrcorner, inv);
+    cell(xr, yb, t->lrcorner, 1);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -199,16 +244,15 @@ clear_line(unsigned char line)
   /* Light grey desktop: sparse dots drawn as ink on white. (The C64 theme
      pattern relies on per-row colours and turns into heavy stripes on a
      two-colour screen.) */
-  static const unsigned char pat[8] = {0x00,0x22,0x00,0x88,0x00,0x22,0x00,0x88};
   unsigned char i;
   for(i = 0; i < SCREEN_WIDTH; ++i) {
-    cell(i, line, pat, 1);
+    cell(i, line, cga_desk, 1);
   }
   if(line == SCREEN_HEIGHT - 1) {
     color = (0 << 4) | 1;
     reversed = 0;
     gotoxy(0, line);
-    cputsn(" Contiki 1.x desktop on Alci - prototype, Ctrl-Q quits ", 60);
+    cputsn(" Alci ", 60);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -230,6 +274,7 @@ ctk_cga_exit(void)
 void
 ctk_draw_init(void)
 {
+  cga_theme();
   set_mode(6);
   ctk_draw_clear(0, SCREEN_HEIGHT);
 }
@@ -269,12 +314,32 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
     }
     break;
   case CTK_WIDGET_BUTTON:
+    if(yclipped && w->window != NULL &&
+       (w == (struct ctk_widget *)&w->window->titlebutton ||
+        w == (struct ctk_widget *)&w->window->closebutton)) {
+      /* Title and close buttons live in the title bar: plain text, white
+         on the black bar of the focused window, black on white otherwise;
+         swapped when the keyboard focus is on them. */
+      unsigned char act = (focus & (CTK_FOCUS_WINDOW | CTK_FOCUS_DIALOG)) != 0;
+      color = (0 << 4) | 1;
+      reversed = act ^ ((focus & CTK_FOCUS_WIDGET) != 0);
+      deco_top = deco_bot = act ? 0 : 0xff;
+      gotoxy(xpos, ypos);
+      putc_cell(' ');
+      cputsn(w->widget.button.text, w->w);
+      putc_cell(' ');
+      deco_top = deco_bot = 0;
+      reversed = 0;
+      break;
+    }
     if(yclipped) {
       color = ctk_hires_theme.buttoncolors[focus];
       gotoxy(xpos, ypos);
-      cell(cursx++, ypos, ctk_hires_theme.buttonleftpattern, !paper());
+      cell(cursx++, ypos, ctk_hires_theme.buttonleftpattern, paper());
+      deco_top = deco_bot = 0xff;
       cputsn(w->widget.button.text, w->w);
-      cell(cursx++, ypos, ctk_hires_theme.buttonrightpattern, !paper());
+      deco_top = deco_bot = 0;
+      cell(cursx++, ypos, ctk_hires_theme.buttonrightpattern, paper());
     }
     break;
   case CTK_WIDGET_HYPERLINK:
@@ -478,9 +543,11 @@ draw_menu(struct ctk_menu *m)
   if(x + CTK_CONF_MENUWIDTH > SCREEN_WIDTH) {
     x = SCREEN_WIDTH - CTK_CONF_MENUWIDTH;
   }
+  deco_bot = 0;
   for(y = 0; y < m->nitems; ++y) {
     color = ctk_hires_theme.menucolor;
     reversed = (y == m->active);
+    deco_bot = (y == m->nitems - 1) ? 0xff : 0;
     gotoxy(x, y + 1);
     if(m->items[y].title[0] == '-') {
       chline(CTK_CONF_MENUWIDTH);
@@ -494,6 +561,7 @@ draw_menu(struct ctk_menu *m)
   }
   gotoxy(x2, 0);
   color = ctk_hires_theme.menucolor;
+  deco_bot = 0xff;
 }
 /*---------------------------------------------------------------------------*/
 void
@@ -503,6 +571,7 @@ ctk_draw_menus(struct ctk_menus *menus)
 
   color = ctk_hires_theme.menucolor;
   reversed = 0;
+  deco_bot = 0xff;
   gotoxy(0, 0);
   putc_cell(' ');
   for(m = menus->menus->next; m != NULL; m = m->next) {
@@ -525,6 +594,7 @@ ctk_draw_menus(struct ctk_menus *menus)
   } else {
     draw_menu(menus->desktopmenu);
   }
+  deco_bot = 0;
 }
 /*---------------------------------------------------------------------------*/
 unsigned char
