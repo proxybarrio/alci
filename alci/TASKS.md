@@ -233,8 +233,9 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   code can cost nothing where the memory is absent (freed after detection
   as in A0 and A5, which today works for far code only), and the cost of
   the alternative, one kernel per machine class. Output for the
-  maintainer: `alci/docs/extra-memory.md`. Strategy decision pending
-  (`STRATEGY.md`).
+  maintainer: `alci/docs/extra-memory.md`. Decided 2026-11-22
+  (`STRATEGY.md`): both, code freed when the memory is absent and kernels
+  per machine class where a class gains; B3 gives the figures for each.
 
 ## Phase 3: tests on varied hardware
 
