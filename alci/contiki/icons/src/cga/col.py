@@ -118,12 +118,12 @@ def telnetd():
 
 def vnc():
     c=Cv(W,H)
-    c.frame(14,4,38,19,C,1,1); c.fill(16,6,36,6,M); c.fill(36,6,36,17,M)
-    c.fill(0,9,29,28,B); c.frame(0,9,29,28,C,2,2); c.fill(3,12,26,12,Wh); c.fill(3,12,3,25,Wh); c.fill(3,25,26,25,M); c.fill(26,12,26,25,M)
-    for y in range(14,24):
-        for x in range(7,25):
-            r=(y-14)%6; xs=(x-7)%6
-            if xs==r or xs==5-r: c.px(x,y,C)
+    for (x0,y0,x1,y1,col) in ((11,2,39,21,C),(6,6,36,25,M),(0,10,31,29,C)):
+        c.fill(x0,y0,x1,y1,B); c.frame(x0,y0,x1,y1,col,2,2)
+    c.fill(4,12,27,13,M)
+    for j in range(6):
+        for i in range(12):
+            if (i+j)%2: c.fill(4+2*i,15+2*j,5+2*i,16+2*j,C)
     return c
 def www():
     c=Cv(W,H); brk(c,3,29,Wh); cx,cy,rx,ry=19.5,16,15.5,12.6
