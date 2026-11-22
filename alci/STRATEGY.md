@@ -46,6 +46,11 @@ real machine for tests, not the design target.
   down. So far one: compressed programs and the text cache (F4b, +1.9 KB
   of resident kernel, 82 KB more room on the 720K disk), approved
   2026-11-19; the same day A5 gave back more than that (3 to 5 KB).
+  Second (2026-11-22): the OS/2 program loader (`CONFIG_EXEC_OS2`, +1696
+  resident bytes) in the kernel of the hard disk image only, for the
+  Bobcat web browser; floppy images keep the plain kernel. Temporary:
+  the aim is a Bobcat that needs no extra kernel code and runs with the
+  default 64-buffer disk cache and the network on (task E6).
 - Programs on the floppies are LZSA1-compressed and decoded by the kernel
   at exec; exited programs stay in free memory until it is needed (text
   cache). A damaged file must never bring the system down: the decoder

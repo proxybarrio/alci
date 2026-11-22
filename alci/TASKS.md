@@ -435,8 +435,12 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   bss). On QEMU 640 KB it shows a local page; with the network up (`ktcp`
   alone) exec fails for lack of memory with 64 buffers and works with
   `buf=16`, which leaves 296 KB free; it completed an HTTP exchange. With
-  `-dump` it clears the screen on exit. Not in the 0.1 images; the
-  kernel cost needs the maintainer's approval.
+  `-dump` it clears the screen on exit. Decided 2026-11-22: on the hard
+  disk image only, with the OS/2 loader in that image's kernel
+  (`STRATEGY.md`, exceptions), and a commented `buf=16` in its
+  `/bootopts`; floppy images without it. Goal still open: Bobcat with
+  no extra kernel code, running with 64 buffers and the network on
+  (smaller `ktcp`, B1; Bobcat's own memory use, with its author).
   Then measure ELKSWeb (graphical, CGA/EGA/VGA,
   HTTP only, GPL-2.0-or-later, see `RELATED.md`): memory, speed on an
   8088 with CGA, and what HTTPS from E5 would need to work with it.
