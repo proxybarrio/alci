@@ -302,7 +302,7 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   call (see `STRATEGY.md`); compare their cost. Output: `alci/docs/pcgeos-port.md` with
   the work needed, for the maintainer's decision; if feasible, D6 runs
   the D2 benchmark.
-- [ ] D7 `TODO` Contiki CTK desktop on Alci, a full candidate for the base
+- [ ] D7 `DOING` Contiki CTK desktop on Alci, a full candidate for the base
   (decided 2026-11-22, with D2 and I2). Contiki 1.x (Adam Dunkels,
   BSD 3-clause, `RELATED.md`) ran a graphical desktop with windows,
   menus, icons and a mouse on the Commodore 64: 64 KB of RAM, a 1 MHz
@@ -332,6 +332,13 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Licence: BSD keeps the notices in every file taken; each application and
   data file checked on its own. Output: the program under `alci/contiki/`,
   results in `RESULTS.md`, the look in `alci/docs/gui-study.md`.
+  Progress (2026-11-22): 1.x chosen over 2.x after building both on
+  Linux (2.x draws its windows with characters on 8-bit machines; only
+  1.x has the graphical desktop). First prototype in `alci/contiki/`:
+  CTK core, event kernel, About and calculator, a CGA 640x200 drawing
+  layer in C after the C64 hires driver, keyboard; 13,328-byte program,
+  no kernel change; desktop, menus, dialogs and calculator work on QEMU.
+  Next: timings on MartyPC and 86Box, editor, file manager, mouse.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
 - [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7
