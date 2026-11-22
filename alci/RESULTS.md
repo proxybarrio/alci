@@ -798,6 +798,38 @@ clock is set only from a valid answer, timer code unchanged; V5 not
 touched; V6 no BIOS dependency. A feature, not a speed change: no gain
 threshold.
 
+## Kilo safe save and buffer bounds, task S5 (2026-11-22)
+
+Alci `b76f3381` and the same with the fix; `kilo.c` is identical to ELKS
+master `df2a61c5`, so ELKS has the same bugs.
+
+Full disk on Alci (QEMU 486, hd32 image, `alci/tests/kilo-save.py`): a
+930-byte file with 4 lines containing "root", the disk filled, 1200
+characters typed at the top, Ctrl-S.
+
+| | status shown | file afterwards |
+| --- | --- | --- |
+| before | `Can't save! I/O error: Error 0` | 1024 bytes of new text, 0 of the original lines |
+| after | `Can't save! I/O error: No space left on device (file unchanged)` | 930 bytes, original intact, no `kilo.tmp` left |
+
+A normal save after the fix writes the new text and leaves no temporary
+file. The same bugs checked on a host build of `kilo.c` (Linux, ASan and
+UBSan), before / after:
+
+| Case | before | after |
+| --- | --- | --- |
+| save fails (file size limit) | original lost | original kept |
+| two saves | heap overflow | clean |
+| open a `.txt` file | null pointer read (SEGV on Linux; on ELKS, real mode, garbage instead of a crash) | clean |
+| cut a 304-character line | stack overflow | clean |
+| search with no match | null pointer read | clean |
+
+Cost: `kilo` 26848 -> 27264 bytes on disk (+416), 256 bytes more of its
+own data while running; no kernel change, no resident memory. The save
+needs room for a second copy of the file while it writes; when there is
+not enough, the save fails and the file stays as it was. Patch for ELKS
+master: `alci/upstream/kilo-safe-save.patch`.
+
 ## Damaged plain programs, exec header and relocation checks, task S4 (2026-11-21)
 
 ELKS `df2a61c5` (upstream master), Alci `0249a736` and Alci with the

@@ -56,6 +56,9 @@ measured separately on MartyPC (`alci/scripts`).
   point, relocation targets, cut files. Each case in a fresh boot; reports
   how the program ended, whether the shell still answers and whether the
   intact programs still work (task S4).
+- `kilo-save.py <hd32 image> <kilo command> [full|ok]`: types into kilo and
+  saves, with the disk filled first (`full`) or not (`ok`), then checks the
+  file (task S5). Copy the kilo builds to compare into the image first.
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `st86.py` options: `CMD_MS` emulated milliseconds to wait for each

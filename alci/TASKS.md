@@ -86,6 +86,20 @@ then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
   rounds the data segment to 256 bytes: 6 failures -> 0, hard disk still
   34/34. Cost +17 bytes of code, +16 bytes resident, about 128 bytes per
   process. Also applies to ELKS (`alci/upstream/`).
+- [x] S5 `DONE 2026-11-22` Kilo (on the 1.44M set and the hard disk
+  install) lost the file being edited when a save failed: it removed the
+  file before writing the new text, so a full disk left a truncated file
+  (reproduced on Alci: 930 bytes became 1024 bytes of new text, none of the
+  original lines left). It also wrote one byte past each line at every
+  save, overflowed a 256-byte stack buffer when copying a line of 255
+  characters or more, read through a null pointer for files without
+  syntax highlighting and in a search with no match, copied file names
+  into a 128-byte field with a limit of 200, and lost memory when opening
+  another file. Now the text goes to `kilo.tmp` in the same directory and
+  replaces the file only after it is fully written (rename, or a copy
+  where rename is not possible); the other bugs are fixed. Program +416
+  bytes on disk, no kernel change. Test: `alci/tests/kilo-save.py`; ELKS
+  patch in `alci/upstream/`.
 - [ ] S4 `PARKED 2026-11-21` Damaged plain (uncompressed) programs: `exec`
   checked the file length and the relocation type, but not the entry point,
   the high words of the segment sizes, nor where a relocation writes. A

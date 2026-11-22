@@ -165,3 +165,9 @@
 - S4 parked: the exec checks are reverted until the first medium-model
   program enters Alci (no program with relocations today, so 80 resident
   bytes for nothing). Test tool, results and the ELKS patch stay.
+
+## 2026-11-22
+
+- S5 done: kilo no longer destroys the file when a save fails (full disk
+  reproduced on Alci), and its buffer overruns and null pointer reads are
+  fixed. +416 bytes on disk, no kernel change. Test `alci/tests/kilo-save.py`.
