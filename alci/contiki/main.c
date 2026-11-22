@@ -21,6 +21,8 @@
 #include "calc-dsc.h"
 
 void ctk_cga_exit(void);
+void calc_init(char *arg);
+void about_init(char *arg);
 
 static struct termios saved;
 static unsigned char keybuf[16];
@@ -143,6 +145,37 @@ main(int argc, char **argv)
   program_handler_init();
   program_handler_add(&about_dsc, "About", 1);
   program_handler_add(&calc_dsc, "Calculator", 1);
+
+  if(argc > 1 && strcmp(argv[1], "-b") == 0) {
+    /* Benchmark: timings in ms, printed after going back to text mode. */
+    clock_time_t t[7];
+    const char *keys = "2*21=";
+    t[0] = clock_time();                /* desktop drawn by ctk_init */
+    while(ek_run()) ;
+    t[1] = clock_time();
+    calc_init(NULL);                    /* open the calculator window */
+    while(ek_run()) ;
+    t[2] = clock_time();
+    while(*keys) {                      /* five keys into the calculator */
+      push((unsigned char)*keys++);
+      while(ek_run() || khead != ktail) ;
+    }
+    t[3] = clock_time();
+    about_init(NULL);                   /* open the About dialog */
+    while(ek_run()) ;
+    t[4] = clock_time();
+    ctk_draw_clear(0, ctk_draw_height());   /* repaint the whole background */
+    t[5] = clock_time();
+    ctk_cga_exit();
+    tcsetattr(0, TCSANOW, &saved);
+    printf("ctk ms: settle %lu calc %lu keys %lu\n", t[1] - t[0], t[2] - t[1], t[3] - t[2]);
+    printf("ctk ms: dialog %lu background %lu\n", t[4] - t[3], t[5] - t[4]);
+    return 0;
+  }
+  if(argc > 1 && strcmp(argv[1], "-q") == 0) {
+    while(ek_run()) ;                   /* draw the desktop, then quit */
+    quit();
+  }
 
   for(;;) {
     if(ek_run() == 0 && khead == ktail) {

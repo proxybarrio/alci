@@ -6,9 +6,26 @@ running as an ordinary ELKS program on a CGA screen (640x200, two colours).
 No kernel change: the same program runs on ELKS and on Alci.
 
 State (2026-11-22): desktop, menus, dialogs, icons, keyboard focus, the
-About dialog and the calculator work on QEMU. Program size 13,328 bytes
-(10.6 KB code, 2.7 KB data, 0.9 KB bss, plus 8 KB heap and 4 KB stack set
-at link time). Not yet measured on MartyPC or 86Box.
+About dialog and the calculator work on QEMU and on MartyPC (8088). Program
+size 13,328 bytes without the benchmark code, 15.8 KB with it (stdio for
+the report).
+
+First timings, MartyPC 8088 4.77 MHz CGA, 720K floppy, 2026-11-22
+(`ctk -q` draws the desktop and quits; `ctk -b` prints timings in ms after
+going back to text mode, with 10 ms resolution):
+
+| Step | Time |
+| --- | --- |
+| `ctk -q`, first run (program read from floppy) | 4.83 s |
+| `ctk -q`, program already in memory (text cache) | 1.24 s |
+| desktop drawn and settled after start | 0.53 s |
+| repaint of the whole background (2,000 cells) | 0.49 s |
+| open the calculator, then five keys (`2*21=`) | 0.66 s (about 0.13 s a key) |
+| open the About dialog | 0.02 s |
+
+The cell writer (`cell()` in `ctk-cga.c`) writes one byte at a time through
+a far pointer; a background repaint at half a second is the first thing
+to speed up.
 
 ## Build and run
 
