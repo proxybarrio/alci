@@ -463,6 +463,15 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Priority (decided 2026-11-22): before compressing Bobcat or adding
   kernel code for it, look for a text browser that is already built for
   ELKS, faster or lighter, and use that if it does the same job.
+  Candidates to compare (2026-11-22), ELKS-native first: ELKSWeb
+  (graphical, original code, GPL-2.0-or-later, already an ELKS external
+  app: HTML, forms, tables, GIF; measure first); Bobcat (text); the
+  Contiki 1.x web browser on the D7 desktop (written for the C64, would
+  use ELKS sockets); MicroWeb (DOS, 8088, CGA/EGA/VGA/Hercules, still
+  developed, v2.1 March 2026, uses mTCP: a port would replace the network
+  layer; check its licence file); DOSLynx and Arachne (older DOS browsers,
+  check licence and CPU needs). The fork census (104 of 168 forks) found
+  no other browser; the weekly reading of the ELKS discussions continues.
   First results (2026-11-22, OpenWatcom snapshot, Bobcat 0.8): builds
   (243 KB, OS/2 NE format, not convertible by `os2toelks`: too many
   segments), so it needs `CONFIG_EXEC_OS2` in the kernel: +1696 resident
