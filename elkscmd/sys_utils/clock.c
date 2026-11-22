@@ -276,6 +276,7 @@ static int two(char *p)
 
 static void check_date(void)
 {
+    static const char mdays[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
     struct tm tm;
     struct timeval tv;
     struct timezone tz;
@@ -316,9 +317,13 @@ static void check_date(void)
         tm.tm_mday = two(dig + 6);
         tm.tm_hour = two(dig + 8);
         tm.tm_min = two(dig + 10);
-        if (tm.tm_year >= 70 && (unsigned)tm.tm_mon < 12 && tm.tm_mday > 0
-                && tm.tm_mday < 32 && tm.tm_hour < 24 && tm.tm_min < 60)
+        /* 1970 to 2037 (32-bit time_t); every year in it divisible by 4 is a leap year */
+        if (tm.tm_year >= 70 && tm.tm_year <= 137 && (unsigned)tm.tm_mon < 12
+                && tm.tm_mday > 0 && tm.tm_mday <= mdays[tm.tm_mon] +
+                    (tm.tm_mon == 1 && (tm.tm_year & 3) == 0)
+                && tm.tm_hour < 24 && tm.tm_min < 60)
             break;
+        outmsg("No such date\n");
     }
 
     /* the typed time is local time */
