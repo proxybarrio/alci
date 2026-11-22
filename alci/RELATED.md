@@ -25,6 +25,7 @@ learn from them and avoid duplicating them.
 | [elks-w16](https://github.com/astrobleem/elks-w16) (2026) | Loader for Windows 3.0 (Win16, NE format) programs on ELKS, with USER and GDI translated to Nano-X calls; one task at a time; needs patches to ELKS and Microwindows; tried on emulated Tandy and PCjr | A way to give the desktop existing programs later; heavy in memory. Not before D2 and D4. |
 | [ELKSWeb](https://github.com/l00nix/ELKSWeb) (2026) | Graphical web browser for ELKS, drawing directly on CGA, EGA and VGA; HTTP only; version 0.5 of 2026-11-18, early beta; installable with ept | Changes E6: measure it before porting a text browser; HTTPS would come from E5. |
 | [picomem-elks](https://github.com/l00nix/picomem-elks) (2026) | Configuration tools for the PicoMEM card on ELKS (network IRQ, fast boot), with backup and rollback; kept outside the ELKS tree | Useful with E0b on real hardware (PicoMEM on an XT). |
+| [unzx0_x86](https://github.com/emmanuel-marty/unzx0_x86) | ZX0 decompressors for x86, including an 8088-tuned one, by Emmanuel Marty (also the author of LZSA) | ZX0 compresses better than LZSA1; whether it decodes fast enough on the 8088 is to be measured in F4e on the same programs. |
 | [LZPACK](https://github.com/johnsonjh/lzpack) (2026) | Executable compressor for CP/M-80 (self-extracting `.COM`, PopCom!-compatible format), portable C89; on ELKS (8086/8088, a 16 KB binary) it compresses and restores files, with a hand-written 8086 decoder; LZ with an 8 KB window and a bit-oriented stream | Not an ELKS executable packer, so no replacement for the kernel's LZSA1 path. Useful as a compressor that runs on Alci itself (LZSA's compressor does not) and as one more codec to measure in F4e. Its author is also adding ELKS executables to UPX: self-extracting programs that would need no kernel support, to compare in F4e when available. |
 | [8086tiny on ELKS](https://github.com/tyama501/8086tinyFile) (2026) | The 8086tiny emulator running on ELKS, to run DOS programs such as FreeDOS; experimental and very slow | Not for Alci now; DOS programs on ELKS would belong to phase 7 (frozen). |
 
@@ -45,6 +46,7 @@ learn from them and avoid duplicating them.
 | elks-w16 | MIT (checked 2026-11-21) | Compatible: code may be adapted with its notice kept. |
 | ELKSWeb | GPL-2.0-or-later (checked 2026-11-21); font data public domain; one test fixture GPL-3.0 | Compatible, except the GPL-3.0 test fixture, which must not be copied into GPLv2 code. |
 | picomem-elks | GPL-2.0-or-later (checked 2026-11-21) | Compatible; used as it is, outside the ELKS tree. |
+| unzx0_x86 | zlib (checked 2026-11-22) | Compatible, notice kept. |
 | LZPACK | MIT-0 (checked 2026-11-21) | Compatible, no notice required. |
 | 8086tiny on ELKS | MIT (8086tiny, checked 2026-11-21) | Compatible; not needed now (phase 7). |
 

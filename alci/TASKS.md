@@ -86,6 +86,11 @@ then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
   rounds the data segment to 256 bytes: 6 failures -> 0, hard disk still
   34/34. Cost +17 bytes of code, +16 bytes resident, about 128 bytes per
   process. Also applies to ELKS (`alci/upstream/`).
+- [x] S6 `DONE 2026-11-22` `clock -c` accepted impossible dates (31
+  February, 31 April) and rolled them into the next month, and years past
+  2037 that overflow the 32-bit time. Now it checks the real length of
+  each month, 29 February in leap years, and 1970 to 2037, and says "No
+  such date" before asking again. +112 bytes in `clock`.
 - [x] S5 `DONE 2026-11-22` Kilo (on the 1.44M set and the hard disk
   install) lost the file being edited when a save failed: it removed the
   file before writing the new text, so a full disk left a truncated file
@@ -549,6 +554,26 @@ Rules for the floppy set (decided 2026-11-19):
   in order: labels and the `disk` command, the catalogue and the
   missing-command message, document disks on two drives, then single
   drive swaps (kernel work, F3 step 3). Test on 86Box XT, T1200, AT.
+  What the kernel does today with a swapped floppy (`directfd.c`, checked
+  2026-11-22, same as ELKS): the change is detected only on AT-class
+  controllers (disk change line, `FD_DIR`); then every queued and later
+  request to that drive is discarded until `check_disk_change()` runs,
+  which unmounts the disk without checking the result, drops its cached
+  inodes and blocks (pending writes are lost, not written to the new
+  disk) and panics ("Root media changed") if it is the root. On an XT
+  nothing is detected: cached blocks of the old disk are read as if they
+  belonged to the new one, and pending writes can land on the wrong disk.
+  So the design must: write and invalidate everything for the drive
+  before asking for a swap; check the label of the disk that comes in
+  before any access, on every machine (the signal is a hint at best);
+  never leave dirty blocks for a disk that may be taken out; turn the
+  root case into "insert disk 1" instead of a panic only if the kernel
+  can wait safely, otherwise keep a clear stop. Acceptance tests, on
+  throwaway images (86Box XT and AT, one and two drives): swap two disks
+  of the same format with files open for reading and for writing, with
+  pending writes, a missing or write-protected disk, the root disk taken
+  out; after each, reboot and compare checksums of both disks to prove no
+  block went to the wrong one.
 - [x] F4b `DONE 2026-11-19` Compressed executables that load fast. After
   trying LZ4 and LZSA1 (three rounds, `RESULTS.md`): LZSA1 (the LZSA
   project's 8088 decoder, zlib) plus a text cache that keeps exited
@@ -587,7 +612,9 @@ Rules for the floppy set (decided 2026-11-19):
   rule in `RESULTS.md`, and a design note for the prerequisite an ELKS
   system installs before using the Alci repository (the kernel decoder,
   as a patch or package), with its cost in bytes. Codecs to compare on
-  the same programs: LZSA1 (today), LZPACK's 8 KB-window LZ (ratio and
+  the same programs: LZSA1 (today), ZX0 (Emmanuel Marty's 8088 decoder
+  `unzx0_x86`, zlib licence: better ratio, decode speed to be measured),
+  LZPACK's 8 KB-window LZ (ratio and
   decode speed on the 8088), and self-extracting ELKS programs (UPX, when
   its ELKS support exists), which would run on an unmodified ELKS at the
   cost of a stub and a decode at every start (see `RELATED.md`).
