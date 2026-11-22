@@ -1,0 +1,95 @@
+name: alci-release
+
+# Started by hand from the Actions tab ("Run workflow"). Two actions:
+#   notes   - replace the text of an existing release with
+#             alci/release/notes-<version>.md
+#   publish - build every image with alci/scripts/mkrelease.sh and create
+#             release v<version> with them, the checksums and the notes
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version, e.g. 0.1.1-preview (release tag v<version>)'
+        required: true
+      action:
+        description: 'notes = update the text only; publish = build and create the release'
+        type: choice
+        options: [notes, publish]
+        default: notes
+      title:
+        description: 'Release title (publish only; empty = "Alci <version>")'
+        required: false
+        default: ''
+      prerelease:
+        description: 'Mark as pre-release (publish only)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: github.repository == 'proxybarrio/alci'
+    runs-on: ubuntu-24.04
+    env:
+      VERSION: ${{ inputs.version }}
+      NOTES: alci/release/notes-${{ inputs.version }}.md
+      GH_TOKEN: ${{ github.token }}
+      TITLE_IN: ${{ inputs.title }}
+      PRERELEASE: ${{ inputs.prerelease }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: notes file
+        run: test -f "$NOTES" || { echo "missing $NOTES"; exit 1; }
+
+      - name: update notes
+        if: inputs.action == 'notes'
+        run: gh release edit "v$VERSION" --notes-file "$NOTES"
+
+      - name: host packages
+        if: inputs.action == 'publish'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texinfo libncurses-dev libelf-dev ncompress nasm xxd
+
+      - name: toolchain and compressor
+        if: inputs.action == 'publish'
+        run: |
+          # prebuilt ia16-elf toolchain (branch toolchain, built on glibc 2.39)
+          git fetch -q --depth 1 origin toolchain
+          mkdir -p cross
+          git show FETCH_HEAD:ia16-toolchain.tar.xz | tar -C cross -xJ
+          # LZSA compressor (zlib licence) for the compressed programs
+          git clone -q https://github.com/emmanuel-marty/lzsa "$RUNNER_TEMP/lzsa"
+          git -C "$RUNNER_TEMP/lzsa" checkout -q 15ee2dfe118eeb8f7683ca44f64821c3a61ca1e5
+          make -C "$RUNNER_TEMP/lzsa" > /dev/null
+          mkdir -p elks/tools/bin
+          cp "$RUNNER_TEMP/lzsa/lzsa" elks/tools/bin/
+
+      - name: Open Watcom (for Bobcat)
+        if: inputs.action == 'publish'
+        uses: open-watcom/setup-watcom@v0
+        with:
+          version: "2.0-64"
+
+      - name: build images
+        if: inputs.action == 'publish'
+        run: alci/scripts/mkrelease.sh "$RUNNER_TEMP/rel" "$VERSION"
+
+      - name: create release
+        if: inputs.action == 'publish'
+        run: |
+          TITLE="$TITLE_IN"
+          [ -n "$TITLE" ] || TITLE="Alci $VERSION"
+          PRE=""
+          [ "$PRERELEASE" = "true" ] && PRE="--prerelease"
+          cd "$RUNNER_TEMP/rel"
+          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "$TITLE" \
+            --notes-file "$GITHUB_WORKSPACE/$NOTES" $PRE \
+            *.img *.tar.gz SHA256SUMS

@@ -16,6 +16,9 @@ on:
 
 jobs:
   build:
+    # the ELKS build; on forks such as Alci it fails building the cross
+    # toolchain, so it runs only on the ELKS repository
+    if: github.repository == 'ghaerr/elks'
 
     runs-on: ubuntu-22.04
 
