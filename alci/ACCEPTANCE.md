@@ -41,6 +41,32 @@ gives 3, kept; a 3% gain with 100 added lines gives 1, rejected.
 "Target workload" is the benchmark the task names; when in doubt, the
 mean of the `bench2.sh` timings.
 
+## Two kinds of change
+
+Every change belongs to one of two classes, named in its commit message
+or results entry.
+
+- **Performance changes** (speed, memory, disk space): all vetoes apply
+  and the gain threshold above decides. An exception (for example a
+  benchmark slower on one case, or resident memory that grows) needs a
+  written reason, figures before and after, and the maintainer's
+  approval, recorded in `RESULTS.md`.
+- **Integrity fixes** (a demonstrated loss or corruption of user data, or
+  a crash or hang of the whole system): the gain threshold does not
+  apply, because the gain is the removed risk. The fix must come with a
+  test that shows the failure before and its absence after, on the
+  machines it concerns. V1, V2, V4, V5 and V6 still apply. Under V3 the
+  cost is reported in bytes, resident and per program, and the effect on
+  machines with 256, 512 and 640 KB is stated; resident growth is
+  accepted only if the risk exists in what Alci ships today (a fix for
+  programs Alci does not yet run waits until it does) and the maintainer
+  approves it. A risk found by reading the code alone is first
+  reproduced; if it cannot be, the change is not an integrity fix.
+
+Neither class can be used to carry the other: a speed change does not
+become acceptable because it also fixes something, and an integrity fix
+does not justify unrelated changes in the same commit.
+
 How to check V1 and the other hardware: see `alci/tests/README.md`.
 Build images with `alci/tests/mkimg.sh` for the current tree and for the
 previous commit (git worktree), run `alci/tests/functional.txt` with

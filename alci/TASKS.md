@@ -5,8 +5,9 @@ Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
 The agent takes the first `TODO` from the top, except for the order
 agreed with the maintainer on 2026-11-19: F4c (done), then E7 (network
 time, time zone, summer time), then F4e (added 2026-11-21), then F4d,
-then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
-2026-11-21), then D5 (boot logo), then I1, I3 and I4 (integrations).
+then B1 (memory survey, block cache first: 64 KB of buffers in main
+memory, added 2026-11-22), then D2 and I2 (GUI benchmark on Nano-X and
+Gem-elks, moved forward 2026-11-21), then D5 (boot logo), then I1, I3 and I4 (integrations).
 
 ## Phase 1: baseline speed
 
@@ -193,7 +194,14 @@ then D2 and I2 (GUI benchmark on Nano-X and Gem-elks, moved forward
 ## Phase 2: memory
 
 - [ ] B1 `TODO` Measure and document where kernel memory goes (code, data,
-  heap, buffers, cache) in `alci/docs/memory.md`.
+  heap, buffers, cache) in `alci/docs/memory.md`. Start with the block
+  cache: today 64 KB of L2 buffers in main memory plus 8 KB of L1
+  (`CONFIG_FS_NR_EXT_BUFFERS=64`, `buf=` in `/bootopts` overrides it).
+  Measure, on 256, 512 and 640 KB machines, the memory left to programs
+  and the hit rate and timings (boot, first and second start of a
+  program, `ls -l`, a file copy, an editor save) with 16, 32 and 64
+  buffers, on floppy and hard disk. Output: a table and a proposal for
+  the default per machine, for the maintainer; no change before that.
 - [ ] B2 `TODO` Elastic disk cache: reads only, writes go to disk at once,
   flushed on mount/umount and media change, at most 64 KB of conventional
   memory and given back to programs on demand; in EMS or extended memory
