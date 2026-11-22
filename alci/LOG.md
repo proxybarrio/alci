@@ -174,3 +174,12 @@
 - S6 done: `clock -c` refuses impossible dates. F5 records what the kernel
   does today when a floppy is swapped and what the design must guarantee.
   F4e also compares ZX0.
+- `setup.sh` copied the old `elks.config` of the toolchain branch, which
+  lacks program compression, when no `.config` existed; it now always
+  starts from `alci/elks.config` and warns when `.config` differs. The
+  strict suites were run again on images built with `alci/elks.config`
+  after the kilo and clock changes: 34/34 (QEMU hd32 and fd720).
+- Kilo on the 720K disk, measured (MartyPC 8088, `bench.sh` image):
+  27264 bytes plain, 19968 compressed with LZSA1; first start 6.19 ->
+  6.10 s without rotation delay, 7.56 -> 7.36 s with it. Disk 1 has
+  103 KB free, 83 KB with compressed kilo on it. Not added yet.

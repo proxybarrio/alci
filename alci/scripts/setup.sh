@@ -19,9 +19,11 @@ if [ ! -x $ELKS/cross/bin/ia16-elf-gcc ]; then
   rm -rf $ROOT/work/tc
   git clone -q --depth 1 -b toolchain https://github.com/proxybarrio/alci $ROOT/work/tc
   mkdir -p $ELKS/cross && tar -C $ELKS/cross -xJf $ROOT/work/tc/ia16-toolchain.tar.xz
-  [ -f $ELKS/.config ] || cp $ROOT/work/tc/elks.config $ELKS/.config
 fi
+# alci/elks.config is the configuration of record (the copy in the
+# toolchain branch is older and lacks program compression)
 [ -f $ELKS/.config ] || cp $ELKS/alci/elks.config $ELKS/.config
+cmp -s $ELKS/.config $ELKS/alci/elks.config || echo "NOTE: .config differs from alci/elks.config"
 # MartyPC
 if [ ! -d $ROOT/martypc ]; then
   git clone -q --depth 1 -b elks-bench https://github.com/proxybarrio/martypc $ROOT/martypc
