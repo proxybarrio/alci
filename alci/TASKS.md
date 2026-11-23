@@ -381,6 +381,13 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   64 EGA colours) sets added the same day. Next: the desktop theme
   (windows, menus, buttons) per screen family; choose the icon set from the
   screen family once the other drawing layers exist.
+  Before closing D7, ask which screen modes are still missing and get icons
+  and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
+  colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for
+  tests on modern PCs). Desktop background ideas: a mountain strip in the
+  bottom 8 text rows (640x64, 5 KB raw or about 3 KB as 302 tiles plus map,
+  copied like the desktop pattern, loaded from a theme file and skipped on
+  small machines); a background computed by formula only on 386 and VGA.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
 - [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7
