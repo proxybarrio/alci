@@ -58,6 +58,10 @@ back to the text console.
   `program-handler-conf.h` from the Contiki 1.x GTK port) and
   `font8x8.h`, a public-domain 8x8 font (Daniel Hepper's font8x8, after
   the IBM public-domain VGA fonts) with its bits reversed for CGA.
+- `theme/p1.py`, `theme-p1.h`: the Alci theme for CGA 640x200 (profile P1):
+  double window border with a dotted shadow, striped black title bar, two-cell
+  close box, outlined buttons and text entries, light slashed desktop. The
+  pieces are drawn by hand in `theme/p1.py`; `theme-p1.h` holds them as bytes.
 - `icons/`: the Alci icon sets, one per screen family, ready to build in
   (`icons/out/<set>.h`) or to install as a file (`icons/out/<set>.ais`);
   see `icons/README.md`. The desktop draws the CGA 640x200 set

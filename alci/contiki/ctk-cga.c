@@ -71,40 +71,26 @@ cell(unsigned char cx, unsigned char cy, const unsigned char *pat,
   p[0x20f0]   = pat[7] ^ x;
 }
 /*---------------------------------------------------------------------------*/
-/* Alci CGA theme: drawn for 640x200, whose pixels are about 2.4 times taller
-   than wide. Vertical strokes are two pixels wide, horizontal ones one pixel
-   tall. Windows: thin left and top edges, a thick right and lower edge that
-   reads as a shadow, a striped title bar when focused. Buttons are rounded
-   "pills". 1 = black ink on white paper. */
-static const unsigned char cga_ul[8]  = {0x3f,0x7f,0xff,0xff,0xff,0xff,0xff,0xff};
-static const unsigned char cga_tb[8]  = {0xff,0xff,0xff,0xff,0xff,0xff,0xff,0xff};
-static const unsigned char cga_tbi[8] = {0xff,0x00,0x00,0x00,0x00,0x00,0x00,0xff};
-static const unsigned char cga_uli[8] = {0x3f,0x60,0xc0,0xc0,0xc0,0xc0,0xc0,0xff};
-static const unsigned char cga_ur[8]  = {0xf0,0xf8,0xfc,0xfc,0xff,0xff,0xff,0xff};
-static const unsigned char cga_uri[8] = {0xf0,0x18,0x0c,0x0c,0x0f,0x0f,0x0f,0xff};
-static const unsigned char cga_r[8]   = {0x0c,0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0x0f};
-static const unsigned char cga_lr[8]  = {0x0f,0x0f,0x0f,0x0f,0x0f,0x1f,0xf3,0xff};
-static const unsigned char cga_lo[8]  = {0x00,0x00,0x00,0x00,0x00,0x00,0xff,0xff};
-static const unsigned char cga_ll[8]  = {0xc0,0xc0,0xc0,0xc0,0xc0,0x60,0x3f,0x0f};
-static const unsigned char cga_l[8]   = {0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0};
-static const unsigned char cga_bl[8]  = {0x07,0x0c,0x18,0x18,0x18,0x18,0x0c,0x07};
-static const unsigned char cga_br[8]  = {0xe0,0x30,0x18,0x18,0x18,0x18,0x30,0xe0};
-static const unsigned char cga_desk[8]= {0x88,0x00,0x22,0x00,0x88,0x00,0x22,0x00};
+/* Alci CGA theme (P1): drawn for 640x200, whose pixels are about 2.4 times
+   taller than wide. Pieces from theme/p1.py: double window border with a
+   dotted shadow, black striped title bar when focused, two-cell close box,
+   outlined buttons and entries. 1 = black ink on white paper. */
+#include "theme-p1.h"
 
 static void
 cga_theme(void)
 {
   struct ctk_hires_theme *t = &ctk_hires_theme;
-  memcpy(t->ulcorner, cga_ul, 8);
-  memcpy(t->titlebar, cga_tb, 8);
-  memcpy(t->urcorner, cga_ur, 8);
-  memcpy(t->rightborder, cga_r, 8);
-  memcpy(t->lrcorner, cga_lr, 8);
-  memcpy(t->lowerborder, cga_lo, 8);
-  memcpy(t->llcorner, cga_ll, 8);
-  memcpy(t->leftborder, cga_l, 8);
-  memcpy(t->buttonleftpattern, cga_bl, 8);
-  memcpy(t->buttonrightpattern, cga_br, 8);
+  memcpy(t->ulcorner, t_ul, 8);
+  memcpy(t->titlebar, t_tb, 8);
+  memcpy(t->urcorner, t_ur, 8);
+  memcpy(t->rightborder, t_r, 8);
+  memcpy(t->lrcorner, t_lr, 8);
+  memcpy(t->lowerborder, t_lo, 8);
+  memcpy(t->llcorner, t_ll, 8);
+  memcpy(t->leftborder, t_l, 8);
+  memcpy(t->buttonleftpattern, t_bl, 8);
+  memcpy(t->buttonrightpattern, t_br, 8);
 }
 /*---------------------------------------------------------------------------*/
 /* Extra lines added to text cells: top and bottom rows, for title bars,
@@ -166,7 +152,7 @@ cclear(unsigned char len)
 static void
 chline(unsigned char len)
 {
-  static const unsigned char line[8] = {0,0,0,0xff,0,0,0,0};
+  static const unsigned char line[8] = {0,0,0,0x55,0,0,0,0};
   unsigned char inv = paper();
   while(len--) {
     cell(cursx++, cursy, line, inv);
@@ -208,23 +194,25 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
   const struct ctk_hires_theme *t = &ctk_hires_theme;
 
   if(y >= clipy1 && y < clipy2) {
-    cell(x, y, active ? t->ulcorner : cga_uli, 1);
-    gotoxy(x + 1, y);
+    cell(x, y, active ? t->ulcorner : t_ul_i, 1);
+    cell(x + 1, y, active ? t_st : t_st_i, 1);
+    gotoxy(x + 2, y);
     color = (0 << 4) | 1;               /* black ink on white */
     reversed = active;                  /* white title on the black bar */
-    deco_top = active ? 0 : 0xff;
-    deco_bot = active ? 0 : 0xff;
+    deco_top = deco_bot = active ? 0 : 0xff;
     putc_cell(' ');
-    for(i = 0; i < titlelen && cursx < xr - 3; ++i) {
+    for(i = 0; i < titlelen && cursx < xr - 4; ++i) {
       putc_cell((unsigned char)title[i]);
     }
     putc_cell(' ');
     deco_top = deco_bot = 0;
     reversed = 0;
-    while(cursx < xr) {
-      cell(cursx++, y, active ? t->titlebar : cga_tbi, 1);
+    while(cursx < xr - 2) {
+      cell(cursx++, y, active ? t->titlebar : t_tb_i, 1);
     }
-    cell(xr, y, active ? t->urcorner : cga_uri, 1);
+    cell(xr - 2, y, active ? t_cl : t_cl_i, 1);
+    cell(xr - 1, y, active ? t_cl2 : t_cl2_i, 1);
+    cell(xr, y, active ? t->urcorner : t_ur_i, 1);
   }
   for(r = y + 1; r < yb; ++r) {
     if(r >= clipy1 && r < clipy2) {
@@ -249,13 +237,17 @@ clear_line(unsigned char line)
      two-colour screen.) */
   unsigned char i;
   for(i = 0; i < SCREEN_WIDTH; ++i) {
-    cell(i, line, cga_desk, 1);
+    cell(i, line, t_desk, 1);
   }
   if(line == SCREEN_HEIGHT - 1) {
+    /* status line: white, with a line along its top edge */
     color = (0 << 4) | 1;
     reversed = 0;
+    deco_top = 0xff;
     gotoxy(0, line);
-    cputsn(" Alci ", 60);
+    cputsn(" Alci", 60);
+    cclear(SCREEN_WIDTH - cursx);
+    deco_top = 0;
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -320,14 +312,21 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
     if(yclipped && w->window != NULL &&
        (w == (struct ctk_widget *)&w->window->titlebutton ||
         w == (struct ctk_widget *)&w->window->closebutton)) {
-      /* Title and close buttons live in the title bar: plain text, white
-         on the black bar of the focused window, black on white otherwise;
-         swapped when the keyboard focus is on them. */
+      /* Title and close buttons live in the title bar; the keyboard focus
+         on one of them inverts it. */
       unsigned char act = (focus & (CTK_FOCUS_WINDOW | CTK_FOCUS_DIALOG)) != 0;
+      unsigned char kf = (focus & CTK_FOCUS_WIDGET) != 0;
       color = (0 << 4) | 1;
-      reversed = act ^ ((focus & CTK_FOCUS_WIDGET) != 0);
-      deco_top = deco_bot = act ? 0 : 0xff;
-      gotoxy(xpos, ypos);
+      if(w == (struct ctk_widget *)&w->window->closebutton) {
+        cell(xpos, ypos, act ? t_tb : t_tb_i, !kf);
+        cell(xpos + 1, ypos, act ? t_cl : t_cl_i, !kf);
+        cell(xpos + 2, ypos, act ? t_cl2 : t_cl2_i, !kf);
+        break;
+      }
+      reversed = act ^ kf;
+      deco_top = deco_bot = (act ^ kf) ? 0 : 0xff;
+      cell(xpos, ypos, act ? t_st : t_st_i, !kf);
+      gotoxy(xpos + 1, ypos);
       putc_cell(' ');
       cputsn(w->widget.button.text, w->w);
       putc_cell(' ');
@@ -336,13 +335,16 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
       break;
     }
     if(yclipped) {
-      color = ctk_hires_theme.buttoncolors[focus];
+      unsigned char kf = (focus & CTK_FOCUS_WIDGET) != 0;
+      color = (0 << 4) | 1;
       gotoxy(xpos, ypos);
-      cell(cursx++, ypos, ctk_hires_theme.buttonleftpattern, paper());
-      deco_top = deco_bot = 0xff;
+      cell(cursx++, ypos, kf ? t_bl_f : t_bl, 1);
+      reversed = kf;                    /* focused: white text, black button */
+      deco_top = deco_bot = kf ? 0 : 0xff;
       cputsn(w->widget.button.text, w->w);
       deco_top = deco_bot = 0;
-      cell(cursx++, ypos, ctk_hires_theme.buttonrightpattern, paper());
+      reversed = 0;
+      cell(cursx++, ypos, kf ? t_br_f : t_br, 1);
     }
     break;
   case CTK_WIDGET_HYPERLINK:
@@ -365,30 +367,26 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
         xscroll = w->widget.textentry.xpos - tmp;
       }
       text = w->widget.textentry.text;
-      if(w->widget.textentry.state == CTK_TEXTENTRY_EDIT) {
+      {
+        unsigned char kf = (focus & CTK_FOCUS_WIDGET) != 0;
+        unsigned char edit = w->widget.textentry.state == CTK_TEXTENTRY_EDIT;
+        color = (0 << 4) | 1;
         reversed = 0;
         gotoxy(xpos, ypos);
-        putc_cell('>');
+        cell(cursx++, ypos, kf ? t_el_f : t_el, 1);
+        deco_top = deco_bot = 0xff;
         text += xscroll;
         for(i = 0; i < w->w; ++i) {
           c = *text;
-          reversed = (i == w->widget.textentry.xpos - xscroll);
+          reversed = edit && (i == w->widget.textentry.xpos - xscroll);
           putc_cell(c == 0 ? ' ' : (unsigned char)c);
-          reversed = 0;
           if(c) {
             ++text;
           }
         }
-        putc_cell('<');
-      } else {
-        gotoxy(xpos, ypos);
-        putc_cell('|');
-        cputsn(text, w->w);
-        tmp = cursx - xpos - 1;
-        if(tmp < w->w) {
-          cclear(w->w - tmp);
-        }
-        putc_cell('|');
+        reversed = 0;
+        deco_top = deco_bot = 0;
+        cell(cursx++, ypos, kf ? t_er_f : t_er, 1);
       }
     }
     reversed = 0;
@@ -406,8 +404,12 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
       }
       tmp = ypos + ICON_H;
       if(tmp < clipy2) {
+        /* focus: only the title is inverted, the drawing stays as it is */
+        color = (0 << 4) | 1;
+        reversed = (focus & CTK_FOCUS_WIDGET) != 0;
         gotoxy(x, tmp);
         cputsn(w->widget.icon.title, len);
+        reversed = 0;
       }
 #if CTK_CONF_ICON_BITMAPS
       if(w->widget.icon.bitmap != NULL) {
@@ -578,7 +580,8 @@ ctk_draw_menus(struct ctk_menus *menus)
   color = ctk_hires_theme.menucolor;
   reversed = 0;
   deco_bot = 0xff;
-  gotoxy(0, 0);
+  cell(0, 0, t_menul, 1);
+  gotoxy(1, 0);
   putc_cell(' ');
   for(m = menus->menus->next; m != NULL; m = m->next) {
     if(m != menus->open) {
