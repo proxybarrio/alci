@@ -40,6 +40,9 @@ set_icon(struct ctk_icon *icon, const char *name)
   icon->bitmap = NULL;                  /* title only */
 }
 
+extern unsigned char ctk_cga_wallpaper;
+unsigned char ctk_cga_wallpaper_find(const char *name);
+
 static struct termios saved;
 static unsigned char keybuf[16];
 static unsigned char khead, ktail;
@@ -148,6 +151,24 @@ main(int argc, char **argv)
 {
   struct termios t;
 
+  {
+    /* wallpaper: ctk -w dots|pairs|slash|none, or CTK_WALLPAPER in the
+       environment; dots by default */
+    const char *wp = getenv("CTK_WALLPAPER");
+    if(argc > 2 && strcmp(argv[1], "-w") == 0) {
+      wp = argv[2];
+      argv += 2;
+      argc -= 2;
+    }
+    if(wp != NULL) {
+      unsigned char n = ctk_cga_wallpaper_find(wp);
+      if(n == 255) {
+        fprintf(stderr, "ctk: wallpapers: dots pairs slash none\n");
+        return 1;
+      }
+      ctk_cga_wallpaper = n;
+    }
+  }
   tcgetattr(0, &saved);
   t = saved;
   t.c_lflag &= ~(ICANON | ECHO | ISIG);

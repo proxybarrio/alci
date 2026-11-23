@@ -381,6 +381,8 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   64 EGA colours) sets added the same day. Next: the desktop theme
   (windows, menus, buttons) per screen family; choose the icon set from the
   screen family once the other drawing layers exist.
+  Wallpaper is a user option (`ctk -w dots|pairs|slash|none`, default
+  dots); later also a Preferences item in the Desktop menu that saves it.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

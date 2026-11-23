@@ -77,20 +77,48 @@ cell(unsigned char cx, unsigned char cy, const unsigned char *pat,
    outlined buttons and entries. 1 = black ink on white paper. */
 #include "theme-p1.h"
 
+/* Wallpaper: index into wallpapers[] (theme-p1.h), chosen before ctk_init
+   (main.c: ctk -w name). The pieces that let the desktop show through, such
+   as the shadows, are combined with it once at start-up. */
+unsigned char ctk_cga_wallpaper;
+static const unsigned char *t_desk;
+#define DECLARE(n) static unsigned char u_##n[8];
+THEME_THROUGH(DECLARE)
+
+/* Index of a wallpaper by name, or 255. */
+unsigned char
+ctk_cga_wallpaper_find(const char *name)
+{
+  unsigned char i;
+  for(i = 0; i < sizeof(wallpaper_names) / sizeof(wallpaper_names[0]); ++i) {
+    if(strcmp(wallpaper_names[i], name) == 0) {
+      return i;
+    }
+  }
+  return 255;
+}
+
 static void
 cga_theme(void)
 {
   struct ctk_hires_theme *t = &ctk_hires_theme;
-  memcpy(t->ulcorner, t_ul, 8);
+  unsigned char i;
+  if(ctk_cga_wallpaper >= sizeof(wallpapers) / 8) {
+    ctk_cga_wallpaper = 0;
+  }
+  t_desk = wallpapers[ctk_cga_wallpaper];
+#define COMBINE(n) for(i = 0; i < 8; ++i) u_##n[i] = t_##n[i] | (t_##n##_d[i] & t_desk[i]);
+  THEME_THROUGH(COMBINE)
+  memcpy(t->ulcorner, u_ul, 8);
   memcpy(t->titlebar, t_tb, 8);
-  memcpy(t->urcorner, t_ur, 8);
-  memcpy(t->rightborder, t_r, 8);
-  memcpy(t->lrcorner, t_lr, 8);
-  memcpy(t->lowerborder, t_lo, 8);
-  memcpy(t->llcorner, t_ll, 8);
+  memcpy(t->urcorner, u_ur, 8);
+  memcpy(t->rightborder, u_r, 8);
+  memcpy(t->lrcorner, u_lr, 8);
+  memcpy(t->lowerborder, u_lo, 8);
+  memcpy(t->llcorner, u_ll, 8);
   memcpy(t->leftborder, t_l, 8);
   memcpy(t->buttonleftpattern, t_bl, 8);
-  memcpy(t->buttonrightpattern, t_br, 8);
+  memcpy(t->buttonrightpattern, u_br, 8);
 }
 /*---------------------------------------------------------------------------*/
 /* Extra lines added to text cells: top and bottom rows, for title bars,
@@ -194,7 +222,7 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
   const struct ctk_hires_theme *t = &ctk_hires_theme;
 
   if(y >= clipy1 && y < clipy2) {
-    cell(x, y, active ? t->ulcorner : t_ul_i, 1);
+    cell(x, y, active ? t->ulcorner : u_ul_i, 1);
     cell(x + 1, y, active ? t_st : t_st_i, 1);
     gotoxy(x + 2, y);
     color = (0 << 4) | 1;               /* black ink on white */
@@ -212,7 +240,7 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
     }
     cell(xr - 2, y, active ? t_cl : t_cl_i, 1);
     cell(xr - 1, y, active ? t_cl2 : t_cl2_i, 1);
-    cell(xr, y, active ? t->urcorner : t_ur_i, 1);
+    cell(xr, y, active ? t->urcorner : u_ur_i, 1);
   }
   for(r = y + 1; r < yb; ++r) {
     if(r >= clipy1 && r < clipy2) {
@@ -344,7 +372,7 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
       cputsn(w->widget.button.text, w->w);
       deco_top = deco_bot = 0;
       reversed = 0;
-      cell(cursx++, ypos, kf ? t_br_f : t_br, 1);
+      cell(cursx++, ypos, kf ? u_br_f : u_br, 1);
     }
     break;
   case CTK_WIDGET_HYPERLINK:
