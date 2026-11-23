@@ -383,6 +383,20 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   screen family once the other drawing layers exist.
   Wallpaper is a user option (`ctk -w dots|pairs|slash|none`, default
   dots); later also a Preferences item in the Desktop menu that saves it.
+  Theme styles (decided 2026-11-23), two families. Two-colour screens (CGA
+  640x200, T1200 and other LCDs, Hercules, 640x400, VGA mono) get their
+  finish from shape: striped title bar on the active window with the
+  title centred on a plain plate, close box on the left, inactive bars
+  plain; corners cut by one pixel on windows, buttons and selections;
+  solid shadow instead of the checker; default button with a ring;
+  rounded screen corners; selected icon label in an inverse pill; plain
+  menu and status bars with a dividing line. Dithered shading was tried
+  and dropped: on 200-line screens it reads as noise. Colour screens get
+  the rich style: two-tone or gradient title bar with a gloss line that
+  stops clear of the title, soft or stepped shadow, rounded corners (flat
+  tones and stepped shadow on 16-colour cards). On 8-pixel cells every
+  bar uses a 6x6 bold font from the second row, so no letter touches a
+  bar edge.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for
