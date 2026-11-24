@@ -25,9 +25,11 @@ of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 19.8 KB,
 ## Looks
 
 CGA two colours (`ctk`): the active title bar carries thin horizontal
-lines (rows 1, 3 and 5 of the bar), with the title centred on a white plate
-that also opens the top line, and the close box on the left on a plate of
-its own; inactive bars are plain. Corners cut by one pixel, solid shadow,
+lines at equal distance (the frame, rows 2 and 4, the line under the bar on
+row 6, then a white row before the contents), with the title centred on a
+white plate that opens the lines, and the close box on the left on a plate
+of its own; inactive bars are plain. `-DBAR_LINES=2` gives a pair of lines
+in the middle instead. Corners cut by one pixel, solid shadow,
 rounded screen corners, the selected icon title in an inverted pill. The
 8x8 font throughout and no line through the letters: buttons are rounded
 brackets, `(7)`, and a filled pill when focused; text entries have side

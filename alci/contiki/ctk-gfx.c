@@ -114,6 +114,23 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #endif
 #define FX 3                    /* the frame runs in pixel column 3 of the border cells */
 
+/* Lines along the active title bar on CGA, rows 0-7 of the bar; row 0 is
+   the frame and BAR_SEP the line under the bar. Spaced the same above and
+   below the middle, so the bar does not look heavier on one side.
+   1: frame, lines on rows 2 and 4, line under the bar on row 6, then a
+      white row before the window contents: four lines at equal distance.
+   2: frame, a pair of lines in the middle (rows 3, 4), line on row 7. */
+#ifndef BAR_LINES
+#define BAR_LINES 1
+#endif
+#if BAR_LINES == 1
+#define BAR_SEP 6
+static const unsigned char bar_lines[8] = {0, 0, 1, 0, 1, 0, 0, 0};
+#else
+#define BAR_SEP 7
+static const unsigned char bar_lines[8] = {0, 0, 0, 1, 1, 0, 0, 0};
+#endif
+
 /*---------------------------------------------------------------------------*/
 /* Low level: BIOS, ports, video memory */
 static void
@@ -602,12 +619,16 @@ wpx(unsigned short X, unsigned short Y)
 bar:
     {
       unsigned char r = Y - gT;
-      if(r == CH - 1) {
 #if defined(GFX_CGA4)
-        if(X <= gL + 1 || X >= gR - 1) {
-          return edge;
+      if(r >= BAR_SEP) {
+        unsigned char onplate = gn && X + 4 >= gtx0 && X <= gtx0 + gn * ADV + 3;
+        if(X <= gL + 1 || X >= gR - 1 || (r == BAR_SEP && !(onplate && BAR_SEP < CH - 1))) {
+          return edge;                  /* line under the bar */
         }
+        return C_PAPER;
+      }
 #endif
+      if(r == CH - 1) {
         return edge;                    /* line under the bar */
       }
 #if defined(MONO)
@@ -651,7 +672,7 @@ bar:
         if(X <= gL + 1 || X >= gR - 1 || (r == 0 && !onplate)) {
           return edge;                  /* the double frame goes round the bar */
         }
-        if(gactive && (r & 1) && r < CH - 1 && !onplate && X >= gL + 3 && X <= gR - 3) {
+        if(gactive && bar_lines[r] && !onplate && X >= gL + 3 && X <= gR - 3) {
           return C_BAR_AT;
         }
       }
@@ -741,12 +762,16 @@ wcell(unsigned char cx, unsigned char cy)
         v |= span(X0, gL, gL) | span(X0, gR, gR);
         if(Y < gT + CH) {
           unsigned char rr = Y - gT;
-          if(rr == CH - 1) {
-            v |= span(X0, gL + 1, gR - 1);      /* line under the bar */
+          if(rr == BAR_SEP) {
+            /* line under the bar; on row 6 the title plate opens it, as the
+               letters reach that row */
+            v |= span(X0, gL + 1, gR - 1) & (BAR_SEP < CH - 1 ? ~plate : 0xff);
+          } else if(rr > BAR_SEP) {
+            /* white row between the bar and the contents */
           } else if(gactive) {
-            /* thin horizontal lines along the bar (rows 1, 3, 5), with
-               plates for the close box and the title */
-            if(rr & 1) {
+            /* lines along the bar, with plates for the close box and the
+               title */
+            if(bar_lines[rr]) {
               v |= span(X0, gbox1 + 4, gR - 2) & ~plate;
             }
             if(rr == 1 || rr == CH - 2) {
