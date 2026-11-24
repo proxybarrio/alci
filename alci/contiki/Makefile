@@ -16,8 +16,11 @@ CFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff \
 	-I$(CONTIKI)/ek -I$(CONTIKI)/ctk -I$(CONTIKI)/lib -I$(CONTIKI)/apps
 LDFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff -maout-heap=0x2000 -maout-stack=0x1000
 VPATH = $(CONTIKI)/ctk $(CONTIKI)/ek $(CONTIKI)/lib $(CONTIKI)/apps
-SRCS = main.c ctk-gfx.c ctk.c ek.c arg.c timer.c \
+COMMON = main.c ctk.c ek.c arg.c timer.c \
 	program-handler.c petsciiconv.c about.c about-dsc.c calc.c calc-dsc.c
+# CGA two colours keeps its own layer and theme; the colour screens share one
+SRCS_cga = $(COMMON) ctk-cga.c theme-default.c
+SRCS_col = $(COMMON) ctk-gfx.c
 # icons built into the desktop
 ICONS = about calculator
 TARGETS = cga cga4 ega vga mcga
@@ -31,14 +34,14 @@ obj-$(1)/gfx-icons.h: icons/tools/mkgfx.py
 	python3 icons/tools/mkgfx.py $(1) $$@ $(ICONS)
 obj-$(1)/%.o: %.c obj-$(1)/gfx-icons.h gfx.h
 	$(CC) $(CFLAGS) -DGFX_$(shell echo $(1) | tr a-z A-Z) -I obj-$(1) -include gfx.h -c -o $$@ $$<
-$(2): $(patsubst %.c,obj-$(1)/%.o,$(SRCS))
+$(2): $(patsubst %.c,obj-$(1)/%.o,$(SRCS_$(3)))
 	$(CC) $(LDFLAGS) -o $$@ $$^
 endef
-$(eval $(call target,cga,ctk))
-$(eval $(call target,cga4,ctk-cga4))
-$(eval $(call target,ega,ctk-ega))
-$(eval $(call target,vga,ctk-vga))
-$(eval $(call target,mcga,ctk-mcga))
+$(eval $(call target,cga,ctk,cga))
+$(eval $(call target,cga4,ctk-cga4,col))
+$(eval $(call target,ega,ctk-ega,col))
+$(eval $(call target,vga,ctk-vga,col))
+$(eval $(call target,mcga,ctk-mcga,col))
 
 # desk: runs the build that fits the screen (asks the video BIOS)
 desk: desk.c

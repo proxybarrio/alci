@@ -186,12 +186,12 @@
 
 ## 2026-11-24
 
-- D7: the desktop drawing layer is rewritten for every screen type
-  (`alci/contiki/ctk-gfx.c`, one program per type: `ctk` CGA two colours,
-  `ctk-cga4`, `ctk-ega`, `ctk-vga`, `ctk-mcga`, plus the launcher `desk`).
-  Two-colour screens follow the shape style, colour screens the colour
-  style with the approved EGA colours. The CGA-only layer and its theme
-  pieces are removed. Checked on QEMU (desktop, menu, calculator, About,
-  focus); MartyPC 8088 timings in `alci/contiki/README.md`: `ctk` keeps
-  the old speed for desktop and background, the calculator keys take
-  0.99 s instead of 0.67 s; `ctk-cga4` is slower (desktop 1.33 s).
+- D7: the colour screens get their own drawing layer
+  (`alci/contiki/ctk-gfx.c`, programs `ctk-cga4`, `ctk-ega`, `ctk-vga`,
+  `ctk-mcga`, launcher `desk`). The shape style tried for CGA (striped
+  bar, small bold font) read badly and was dropped: `ctk` keeps
+  `ctk-cga.c` and the P1 theme, now with the 8x8 font and no line through
+  letters (bracket buttons, underlined entries, status line drawn above
+  its row). CGA four colours takes the P1 double frame. Checked on QEMU;
+  MartyPC 8088 timings in `alci/contiki/README.md`: `ctk` as before,
+  `ctk-cga4` desktop 1.37 s.

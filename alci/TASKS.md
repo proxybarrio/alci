@@ -397,19 +397,21 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   tones and stepped shadow on 16-colour cards). On 8-pixel cells every
   bar uses a 6x6 bold font from the second row, so no letter touches a
   bar edge.
-  Drawing layers and themes (2026-11-24): one drawing layer for every
-  screen type (`ctk-gfx.c`), one program per type from the same sources:
-  `ctk` CGA 640x200 two colours in the shape style, `ctk-cga4` CGA 320x200
-  four colours, `ctk-ega` EGA 640x350, `ctk-vga` VGA 640x480 and
-  `ctk-mcga` MCGA 320x200 in the colour style, and `desk`, which asks the
-  video BIOS and starts the right one. Each build carries the icons of its
-  family (MCGA: reduced from the modern set for now). Small bar font from
-  the X11 5x7 (public domain), titles placed by pixel. All five checked on
-  QEMU; on MartyPC 8088 `ctk` is as fast as the CGA-only layer for the
-  desktop and the background (0.57 s, 0.50 s), 0.99 s instead of 0.67 s for
-  the five calculator keys, 20.6 KB instead of 23.3 KB; `ctk-cga4` draws
-  the desktop in 1.33 s. Next: faster borders on the colour builds, the
-  T1200, Hercules and 640x400 layers, then editor and mouse.
+  Drawing layers and themes (2026-11-24): `ctk-gfx.c` draws the colour
+  screens, one program per type from the same sources: `ctk-cga4` CGA
+  320x200 four colours, `ctk-ega` EGA 640x350, `ctk-vga` VGA 640x480,
+  `ctk-mcga` MCGA 320x200; `ctk` (CGA two colours) keeps `ctk-cga.c` and
+  the P1 theme; `desk` asks the video BIOS and starts the right one. The
+  shape style of 2026-11-23 (striped bar, small bold font) read badly on
+  CGA and was replaced by P1 with the 8x8 font throughout and no line
+  through letters (bracket buttons, entries underlined); CGA four colours
+  takes the P1 double frame, and all 8-pixel colour cells the 8x8 font.
+  Each build carries the icons of its family (MCGA: reduced from the
+  modern set for now). All five checked on QEMU; on MartyPC 8088 `ctk`
+  runs as before (desktop 0.56 s, background 0.51 s, keys 0.67 s,
+  18.6 KB), `ctk-cga4` draws the desktop in 1.37 s. Next: faster borders on
+  the colour builds, the T1200, Hercules and 640x400 layers, then editor
+  and mouse.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

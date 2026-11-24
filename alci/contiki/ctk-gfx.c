@@ -23,7 +23,6 @@
 #include "ctk-draw.h"
 #include "gfx.h"
 #include "font8x8.h"
-#include "font-bar.h"
 
 #include <string.h>
 
@@ -296,7 +295,8 @@ glyph(unsigned char c)
 #if CH > 8
   return bfont[c - 32];
 #else
-  return barfont ? font_bar[c - 32] : font8x8[c];
+  /* the 8x8 font everywhere: the small bar font read badly */
+  return font8x8[c];
 #endif
 }
 /*---------------------------------------------------------------------------*/
@@ -335,7 +335,7 @@ static void
 pix_glyph(unsigned char c, unsigned char fg)
 {
   const unsigned char *g = glyph(c);
-  unsigned char r, x, rows = barfont && CH == 8 ? 8 : (CH > 8 ? CH : 8);
+  unsigned char r, x, rows = CH;
   for(r = 0; r < rows; ++r) {
     unsigned char b = g[r];
     for(x = 0; x < 8; ++x) {
@@ -395,6 +395,11 @@ static unsigned char desk_nosep;        /* 1: leave out the icon column line */
 static unsigned char
 desk(unsigned short X, unsigned short Y)
 {
+#if CH == 8 && !defined(MONO)
+  if(Y == (SH - 1) * CH - 1) {
+    return C_ETCH0;                     /* line over the status bar */
+  }
+#endif
   if(!desk_nosep && Y >= CH + CH / 2 && Y < (SH - 1) * CH - CH / 2) {
     if(X == SEP_X) {
 #if defined(MONO)
@@ -496,11 +501,7 @@ static unsigned char gtitlelen;
 static unsigned short gtx0;             /* first pixel of the title text */
 static unsigned char gn;                /* letters shown */
 static char gstr[48];                   /* "/// title", cut to the room there is */
-#if CH == 8
-#define ADV 6                           /* bar font: 6 pixels a letter */
-#else
-#define ADV 8
-#endif
+#define ADV 8                           /* pixels a letter in titles */
 static unsigned short ggloss0, ggloss1; /* light line on the bar */
 static unsigned short gbox0, gbox1;     /* close box */
 
@@ -557,15 +558,48 @@ wpx(unsigned short X, unsigned short Y)
     if(ex && ey) {
       goto outside;                     /* corners cut by one pixel */
     }
+#if CH == 8
+    /* on 8-pixel cells the bar fills the top row too: the letters need all
+       of rows 0-6, and nothing must run through them */
+    if(Y == gT) {
+      ex = 0;
+      ey = 0;
+      if(X != gL && X != gR) {
+        goto bar;
+      }
+    }
+#endif
+#if defined(GFX_CGA4)
+    /* double frame, thick outside and thin inside, as on the CGA theme P1 */
+    if(Y >= gT + CH) {
+      if(X <= gL + 1 || X >= gR - 1 || Y == gB) {
+        return edge;
+      }
+      if(((X == gL + 3 || X == gR - 3) && Y <= gB - 2) ||
+         (Y == gB - 2 && X >= gL + 3 && X <= gR - 3)) {
+        return edge;
+      }
+      return C_PAPER;
+    }
+    if(ex) {
+      goto bar;                         /* the bar covers the frame */
+    }
+#endif
     if(ex || ey) {
       return edge;
     }
     if(Y >= gT + CH) {
       return C_PAPER;
     }
+bar:
     {
       unsigned char r = Y - gT;
       if(r == CH - 1) {
+#if defined(GFX_CGA4)
+        if(X <= gL + 1 || X >= gR - 1) {
+          return edge;
+        }
+#endif
         return edge;                    /* line under the bar */
       }
 #if defined(MONO)
@@ -1111,6 +1145,8 @@ status_line(void)
 #if defined(MONO)
   rows_solid(C_PAPER);
   rowbg[0] = C_INK;
+#elif CH == 8
+  rows_solid(C_STATUS);                 /* its line is drawn above it (desk) */
 #else
   rows_solid(C_STATUS);
   rowbg[0] = C_ETCH0;
@@ -1182,12 +1218,46 @@ ctk_draw_clear(unsigned char y1, unsigned char y2)
 /*---------------------------------------------------------------------------*/
 /* Buttons and text entries: a cap cell on each side of the text. The frame
    runs in column 4 of the left cap and column 3 of the right one. */
+#if CH == 8 && !defined(MONO)
+/* 8-pixel cells: buttons are rounded brackets, a filled pill when focused;
+   text entries have side bars and a line under the text (as on the CGA
+   theme P1), so no line runs through the letters */
+static const unsigned char cap_b[2][8] = {
+  {0x0e,0x18,0x30,0x30,0x30,0x30,0x18,0x0e}, {0x70,0x18,0x0c,0x0c,0x0c,0x0c,0x18,0x70}};
+static const unsigned char cap_f[2][8] = {
+  {0x0f,0x1f,0x3f,0x3f,0x3f,0x3f,0x1f,0x0f}, {0xf0,0xf8,0xfc,0xfc,0xfc,0xfc,0xf8,0xf0}};
+static const unsigned char cap_e[2][8] = {
+  {0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xff}, {0x03,0x03,0x03,0x03,0x03,0x03,0x03,0xff}};
+static void
+cap8(unsigned char cx, unsigned char cy, unsigned char right,
+     const unsigned char (*pat)[8], unsigned char col, unsigned char col2)
+{
+  unsigned char r, c;
+  for(r = 0; r < 8; ++r) {
+    for(c = 0; c < 8; ++c) {
+      pix[r][c] = (pat[right][r] & (0x80 >> c)) ? (r < 4 ? col : col2) : C_PAPER;
+    }
+  }
+  blit(cx, cy);
+}
+#endif
+
 static void
 cap(unsigned char cx, unsigned char cy, unsigned char right,
     unsigned char fill_t, unsigned char fill_b, unsigned char edge,
     unsigned char ring)
 {
   unsigned char r, c, f = right ? 3 : 4;
+#if CH == 8 && !defined(MONO)
+  if(fill_t != C_PAPER) {
+    cap8(cx, cy, right, cap_f, fill_t, fill_b);
+  } else if(ring == 2) {
+    cap8(cx, cy, right, cap_e, edge, edge);
+  } else {
+    cap8(cx, cy, right, cap_b, edge, edge);
+  }
+  return;
+#endif
 #if defined(MONO)
   /* frame in column 4 (left cap) or 3 (right cap), filled inside when the
      fill is ink, corners cut */
@@ -1236,8 +1306,8 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
     t = b = C_INK;
     fg = C_PAPER;
   }
-#elif defined(GFX_MCGA)
-  unsigned char t = C_BAR_IT, b = C_BAR_IB, fg = C_INK, e = C_EDGE_I;
+#elif CH == 8
+  unsigned char t = C_PAPER, b = C_PAPER, fg = C_INK, e = C_EDGE_I;
   if(kf) {
     t = C_BAR_AT; b = C_BAR_AB; fg = C_TITLE_A; e = C_EDGE_A;
   }
@@ -1268,10 +1338,14 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
     }
   }
 #endif
+#if CH == 8
+  if(!kf) {
+    rows_solid(C_PAPER);
+  }
+#else
   rowbg[0] = rowbg[CH - 1] = e;
-  barfont = 1;
+#endif
   text(s, len, fg);
-  barfont = 0;
 #if defined(MONO)
   cap(cursx, y, 1, t, b, e, 0);
 #else
@@ -1520,7 +1594,7 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
 #if defined(MONO)
       cap(xpos, ypos, 0, C_PAPER, C_PAPER, e, kf);
 #else
-      cap(xpos, ypos, 0, C_PAPER, C_PAPER, e, 0);
+      cap(xpos, ypos, 0, C_PAPER, C_PAPER, e, CH == 8 ? 2 : 0);
 #endif
       gotoxy(xpos + 1, ypos);
       for(i = 0; i < w->w; ++i) {
@@ -1532,7 +1606,11 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
           rows_bar(1);
         }
 #endif
+#if CH == 8
+        rowbg[CH - 1] = e;              /* a line under the text */
+#else
         rowbg[0] = rowbg[CH - 1] = e;
+#endif
         text_cell(c == 0 ? ' ' : (unsigned char)c,
 #if defined(MONO)
                   cur ? C_PAPER : C_INK
@@ -1547,7 +1625,7 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
 #if defined(MONO)
       cap(cursx, ypos, 1, C_PAPER, C_PAPER, e, kf);
 #else
-      cap(cursx, ypos, 1, C_PAPER, C_PAPER, e, 0);
+      cap(cursx, ypos, 1, C_PAPER, C_PAPER, e, CH == 8 ? 2 : 0);
 #endif
     }
     break;
