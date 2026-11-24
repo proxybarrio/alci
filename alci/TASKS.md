@@ -539,7 +539,7 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   developed, v2.1 March 2026, uses mTCP: a port would replace the network
   layer; check its licence file); DOSLynx and Arachne (older DOS browsers,
   check licence and CPU needs). The fork census (104 of 168 forks) found
-  no other browser; the weekly reading of the ELKS discussions continues.
+  no other browser.
   HTTPS and images (decided 2026-11-22): all these browsers speak HTTP
   only. Two modes, both offered: text through a public service such as
   FrogFind (its address set in a configuration line, not in the program,
