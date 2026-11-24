@@ -24,11 +24,11 @@ of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 19.8 KB,
 
 ## Looks
 
-CGA two colours (`ctk`): the active title bar carries thin horizontal
-lines at equal distance (the frame, rows 2 and 4, the line under the bar on
-row 6, then a white row before the contents), with the title centred on a
-white plate that opens the lines, and the close box on the left on a plate
-of its own; inactive bars are plain. `-DBAR_LINES=2` gives a pair of lines
+CGA two colours (`ctk`): the active title bar as on the trial approved on
+2026-11-23: the frame, three thin lines and the line under the bar at the
+same distance (the frame runs in the last pixel row of the row above, so
+the bar keeps all 8 rows), with the title centred on a white plate, and the
+close box on the left on a plate of its own; inactive bars are plain. `-DBAR_LINES=2` gives a pair of lines
 in the middle instead. Corners cut by one pixel, solid shadow,
 rounded screen corners, the selected icon title in an inverted pill. The
 8x8 font throughout and no line through the letters: buttons are rounded

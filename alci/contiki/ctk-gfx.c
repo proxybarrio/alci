@@ -114,22 +114,15 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #endif
 #define FX 3                    /* the frame runs in pixel column 3 of the border cells */
 
-/* Lines along the active title bar on CGA, rows 0-7 of the bar; row 0 is
-   the frame and BAR_SEP the line under the bar. Spaced the same above and
-   below the middle, so the bar does not look heavier on one side.
-   1: frame, lines on rows 2 and 4, line under the bar on row 6, then a
-      white row before the window contents: four lines at equal distance.
-   2: frame, a pair of lines in the middle (rows 3, 4), line on row 7. */
-#ifndef BAR_LINES
-#define BAR_LINES 1
-#endif
-#if BAR_LINES == 1
-#define BAR_SEP 6
-static const unsigned char bar_lines[8] = {0, 0, 1, 0, 1, 0, 0, 0};
-#else
+/* Lines along the active title bar on CGA, as on the approved trial of
+   2026-11-23: the frame, three thin lines and the line under the bar at
+   the same distance, five lines in nine pixel rows. The frame goes in the
+   last pixel row of the cell row above the title (TOP_OUTSIDE), so that
+   the bar keeps rows 0-7: lines on rows 1, 3 and 5, the line under the bar
+   on row 7, the title on its plate in rows 0-6. */
+#define TOP_OUTSIDE 1
 #define BAR_SEP 7
-static const unsigned char bar_lines[8] = {0, 0, 0, 1, 1, 0, 0, 0};
-#endif
+static const unsigned char bar_lines[8] = {0, 1, 0, 1, 0, 1, 0, 0};
 
 /*---------------------------------------------------------------------------*/
 /* Low level: BIOS, ports, video memory */
@@ -669,7 +662,7 @@ bar:
          1, 3, 5) on black, the title on a plain plate */
       {
         unsigned char onplate = gn && X + 4 >= gtx0 && X <= gtx0 + gn * ADV + 3;
-        if(X <= gL + 1 || X >= gR - 1 || (r == 0 && !onplate)) {
+        if(X <= gL + 1 || X >= gR - 1) {
           return edge;                  /* the double frame goes round the bar */
         }
         if(gactive && bar_lines[r] && !onplate && X >= gL + 3 && X <= gR - 3) {
@@ -750,12 +743,9 @@ wcell(unsigned char cx, unsigned char cy)
       /* the title sits on a white plate that also opens the top line, so
          the 8x8 letters have rows 0-6 to themselves */
       unsigned char plate = gn ? span(X0, gtx0 - 4, gtx0 + gn * ADV + 3) : 0;
-      if(Y == gT || Y == gB) {
+      if(Y == gB) {
         in = span(X0, gL + 1, gR - 1);  /* corners cut */
         v = (v & ~in) | in;
-        if(Y == gT) {
-          v &= ~plate;
-        }
       } else {
         in = span(X0, gL, gR);
         v &= ~in;
@@ -899,6 +889,38 @@ static unsigned char cache[2][CH][8];
 #define PUT(k, cx, cy) do { memcpy(pix, cache[k], sizeof(pix)); blit(cx, cy); } while(0)
 #endif
 
+#if defined(MONO) || defined(GFX_CGA4)
+/* The top line of the window frame, in the last pixel row of the cell row
+   above the title (written into video memory over what is there) */
+static void
+top_line(void)
+{
+  unsigned char i;
+  unsigned char __far *row;
+  if(gy == 0) {
+    return;
+  }
+  row = VRAM + (unsigned short)(gy - 1) * 320 + 0x2000 + 3 * 80;     /* pixel row 7 */
+  for(i = gx; i <= gxr; ++i) {
+    unsigned short X0 = i * 8;
+#if defined(MONO)
+    unsigned char m = span(X0, gL + 1, gR - 1);
+    row[i] &= ~m;                       /* ink is 0 on the screen */
+#else
+    unsigned char c;
+    for(c = 0; c < 8; ++c) {
+      unsigned short X = X0 + c;
+      if(X >= gL + 1 && X <= gR - 1) {
+        unsigned char __far *b = row + i * 2 + (c >> 2);
+        unsigned char sh = 6 - 2 * (c & 3);
+        *b = (*b & ~(3 << sh)) | ((gactive ? C_EDGE_A : C_EDGE_I) << sh);
+      }
+    }
+#endif
+  }
+}
+#endif
+
 /* a composed window cell to the screen */
 #if defined(MONO)
 #define BLITW(cx, cy) blit_bytes(cx, cy, mb)
@@ -939,6 +961,9 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
   gkf_title = gkf_close = 0;
   if(y >= clipy1 && y < clipy2) {
     title_row(gx, gxr);
+#if defined(MONO) || defined(GFX_CGA4)
+    top_line();
+#endif
   }
   /* the side cells of the middle rows are alike: compose each once and copy
      it down, again only where the desktop under the shadow changes */
