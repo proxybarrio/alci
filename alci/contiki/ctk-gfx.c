@@ -23,7 +23,7 @@
 #include "ctk-draw.h"
 #include "gfx.h"
 #include "font8x8.h"
-#if defined(GFX_CGA)
+#if defined(GFX_CGA) || defined(GFX_CGA4)
 #include "font-bar.h"
 #endif
 
@@ -126,6 +126,9 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
    CGA_BAR 1: all inside the title row: frame on row 0, lines on rows 2 and
      4, the line under the bar on row 6, a white row 7: four lines.
    The window layout of Contiki is not changed. */
+#ifndef CGA4_BTN
+#define CGA4_BTN 0                      /* four colours: 0 brackets, 1 box, 2 box and small font */
+#endif
 #ifndef CGA_BAR
 #define CGA_BAR 2
 #endif
@@ -380,6 +383,10 @@ glyph(unsigned char c)
   /* two colours: the small Clean 6x6 font in the bars, as on the approved
      trial; the 8x8 font in the windows (four colours: 8x8 everywhere) */
   if(barfont) {
+    return font_bar[c - 32];
+  }
+#elif defined(GFX_CGA4) && CGA4_BTN == 2
+  if(barfont == 2) {
     return font_bar[c - 32];
   }
 #endif
@@ -1668,13 +1675,15 @@ static const unsigned char cap_f[2][8] = {
   {0x0f,0x1f,0x3f,0x3f,0x3f,0x3f,0x1f,0x0f}, {0xf0,0xf8,0xfc,0xfc,0xfc,0xfc,0xf8,0xf0}};
 static const unsigned char cap_e[2][8] = {
   {0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xc0,0xff}, {0x03,0x03,0x03,0x03,0x03,0x03,0x03,0xff}};
-#if defined(MONO)
-static const unsigned char cap_ef[2][8] = {
-  {0xf0,0xf0,0xf0,0xf0,0xf0,0xf0,0xf0,0xff}, {0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0xff}};
+#if defined(MONO) || defined(GFX_CGA4)
 /* buttons as on the approved trial: a box with cut corners round the small
    font (rows 1-6), and a second line on each side when it has the focus */
 static const unsigned char cap_box[2][8] = {
   {0x07,0x08,0x08,0x08,0x08,0x08,0x08,0x07}, {0xe0,0x10,0x10,0x10,0x10,0x10,0x10,0xe0}};
+#endif
+#if defined(MONO)
+static const unsigned char cap_ef[2][8] = {
+  {0xf0,0xf0,0xf0,0xf0,0xf0,0xf0,0xf0,0xff}, {0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0xff}};
 static const unsigned char cap_boxf[2][8] = {
   {0x07,0x28,0x28,0x28,0x28,0x28,0x28,0x07}, {0xe0,0x14,0x14,0x14,0x14,0x14,0x14,0xe0}};
 #else
@@ -1709,6 +1718,21 @@ cap(unsigned char cx, unsigned char cy, unsigned char right,
     unsigned char ring)
 {
   unsigned char r, c, f = right ? 3 : 4;
+#if defined(GFX_CGA4) && CGA4_BTN
+  if(ring != 2) {
+    /* the box in the frame colour, filled when focused */
+    for(r = 0; r < 8; ++r) {
+      unsigned char line = cap_box[right][r];
+      unsigned char in = (r == 0 || r == 7) ? 0 : (right ? 0xe0 : 0x07);
+      unsigned char fl = fill_t != C_PAPER ? in : 0;
+      P1[r] = (edge & 2 ? line : 0) | (fill_t & 2 ? fl : 0);
+      P0[r] = (edge & 1 ? line : 0) | (fill_t & 1 ? fl : 0);
+    }
+    (void)c; (void)f; (void)fill_b;
+    blit_planes(cx, cy);
+    return;
+  }
+#endif
 #if CH == 8 && !defined(MONO)
   if(fill_t != C_PAPER) {
     cap8(cx, cy, right, cap_f, fill_t, fill_b);
@@ -1792,6 +1816,9 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
 #if defined(MONO)
   rows_solid(C_PAPER);
   rowbg[0] = rowbg[CH - 1] = C_INK;     /* the box, clear of the small font */
+#elif defined(GFX_CGA4) && CGA4_BTN
+  rows_solid(kf ? C_BAR_AT : C_PAPER);
+  rowbg[0] = rowbg[CH - 1] = C_EDGE_A;  /* the box above and below */
 #elif CH == 8
   if(!kf) {
     rows_solid(C_PAPER);
@@ -1799,7 +1826,11 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
 #else
   rowbg[0] = rowbg[CH - 1] = e;
 #endif
+#if defined(GFX_CGA4) && CGA4_BTN == 2
+  barfont = 2;                          /* the small font, as on two colours */
+#else
   barfont = 1;
+#endif
   text(s, len, fg);
   barfont = 0;
 #if defined(MONO)
