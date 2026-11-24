@@ -138,6 +138,11 @@ entry1:
 	xor %sp,%sp
 
 	xor %di,%di
+#ifdef BOOT_FAT		// (ALCI) the MINIX loader clears it in load_prog()
+	mov %di,%ds		// invalidate previous /bootopts, clear '##' signature
+	mov %di,SEG_OPTSEG*16
+#endif
+
 #ifdef BOOTCS
 	mov %cs,%ax
 	mov %ax,%ds
