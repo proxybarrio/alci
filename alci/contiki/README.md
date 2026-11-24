@@ -89,10 +89,11 @@ for 286 and later machines.
 
     . ../../env.sh          # ELKS cross toolchain
     make fetch              # Contiki 1.x at the pinned commit
-    make                    # desk, ctk, ctk-cga4, ctk-ega, ctk-vga, ctk-mcga
+    make                    # desk, ctk, ctk-cga4, ctk-ega, ctk-vga, ctk-mcga,
+                            # ctk-herc, ctk-att, ctk-ega2, ctk-vga2
 
 Copy the programs to `/bin` on an Alci or ELKS system and run `desk` (or
-one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga desk`
+one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|herc|att|ega2|vga2 desk`
 chooses by hand. `ctk -d` starts with the calculator open.
 
 Keys: F1 opens the menu (arrows and Enter to choose), Tab and F5 move
@@ -126,8 +127,8 @@ back to the text console.
 - `icons/`: the Alci icon sets, one per screen family (see
   `icons/README.md`). `icons/tools/mkgfx.py` writes, for each build, a
   header with only the icons the desktop uses, in the palette of that
-  screen (`obj-<type>/gfx-icons.h`); the MCGA icons are for now reduced from
-  the modern set. Wallpapers (`ctk -w dots|pairs|slash|none`, default dots,
+  screen (`obj-<type>/gfx-icons.h`); the MCGA icons are the 40x32 set drawn
+  for it, with 40 colours of their own. Wallpapers (`ctk -w dots|pairs|slash|none`, default dots,
   or `CTK_WALLPAPER`) exist on two colours.
 
 ## Licences

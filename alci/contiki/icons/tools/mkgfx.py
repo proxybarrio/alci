@@ -5,9 +5,10 @@ byte per pixel, holding the colour index of the target's palette; 255 marks the
 paper around the drawing, where the desktop shows through (colour sets only).
 Only the icons named are built in, so a set larger than the data segment (the
 VGA one) still fits. For cga (two colours) the icons are stored as 8x8 cells instead, one byte per
-pixel row, ready to copy to the screen. For mcga the icons are taken from the modern set reduced
-to 40x32 and share 48 palette entries (200-247); the palette is written too.
-This is a first MCGA set made by reduction, to be redrawn by hand."""
+pixel row, ready to copy to the screen. For mcga the icons are the 40x32 set
+drawn for it (mcga320-256col), sharing at most 48 palette entries (200-247);
+the palette is written too. With SETS['mcga'] = 'modern-64' the modern set is
+reduced to 40x32 instead, as the first MCGA build did."""
 import os, sys
 import numpy as np
 from PIL import Image
@@ -16,7 +17,7 @@ from scipy import ndimage
 HERE = os.path.dirname(os.path.abspath(__file__))
 PNG = os.path.join(HERE, '..', 'png')
 SETS = {'cga': 'cga640-mono', 'cga4': 'cga320-4col', 'ega': 'ega640x350-16col',
-        'vga': 'vga640-16col', 'mcga': 'modern-64',
+        'vga': 'vga640-16col', 'mcga': 'mcga320-256col',
         'herc': 'hercules-mono', 'att': 'hires640x400-mono',
         'ega2': 'hercules-mono', 'vga2': 'hires640x400-mono'}
 # two-colour screens and the height of their cells
@@ -36,7 +37,30 @@ def main():
     target, out, names = sys.argv[1], sys.argv[2], sys.argv[3:]
     d = os.path.join(PNG, SETS[target])
     icons, pal = [], None
-    if target == 'mcga':
+    if target == 'mcga' and SETS['mcga'] != 'modern-64':
+        # drawn for MCGA: 40x32 palette PNGs sharing one palette, the last
+        # used index transparent; their colours go to the entries from
+        # MCGA_BASE on
+        pal = None
+        for n in names:
+            im = Image.open(os.path.join(d, n + '.png'))
+            if im.mode != 'P' or im.size != (40, 32):
+                raise SystemExit('%s: expected a 40x32 palette PNG' % n)
+            t = im.info.get('transparency')
+            a = np.asarray(im).astype(int)
+            if pal is None:
+                p = im.getpalette()
+                ncol = t if t is not None else MCGA_N
+                if ncol > MCGA_N:
+                    raise SystemExit('more than %d colours' % MCGA_N)
+                pal = [tuple(p[3 * i:3 * i + 3]) for i in range(ncol)]
+            idx = a + MCGA_BASE
+            if t is not None:
+                idx[a == t] = 255
+            if (idx[idx != 255] >= MCGA_BASE + len(pal)).any():
+                raise SystemExit('%s: colour outside the shared palette' % n)
+            icons.append(idx)
+    elif target == 'mcga':
         ims = []
         for n in names:
             im = Image.open(os.path.join(d, n + '.png')).convert('RGBA').resize((40, 32), Image.LANCZOS)
