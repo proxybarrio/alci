@@ -48,18 +48,20 @@ back to text mode (10 ms resolution). "Before" is the CGA-only layer of
 
 | Step | `ctk` before | `ctk` now | `ctk-cga4` |
 | --- | --- | --- | --- |
-| `-q`, first run (program read from floppy) | 5.32 s | 5.26 s | 6.56 s |
-| desktop drawn and settled | 0.55 s | 0.55 s | 1.31 s |
-| repaint of the whole background | 0.50 s | 0.50 s | 0.72 s |
-| open the calculator | 0.03 s | 0.04 s | 0.11 s |
-| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 0.72 s | 2.35 s |
+| `-q`, first run (program read from floppy) | 5.32 s | 5.27 s | 5.13 s |
+| desktop drawn and settled | 0.55 s | 0.55 s | 0.57 s |
+| repaint of the whole background | 0.50 s | 0.50 s | 0.35 s |
+| open the calculator | 0.03 s | 0.04 s | 0.04 s |
+| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 0.72 s | 0.88 s |
 | open the About dialog | 0.01 s | 0.02 s | 0.01 s |
 
 On two colours the frequent cells (desktop, text, buttons, icons, the
 middle of title bars and borders) are written as 8 bytes, and window
-borders are composed a pixel row at a time with bit masks. The colour builds compose cells pixel by pixel and are meant first for
-286 and later machines; on the 8088 the four-colour CGA build works but is
-slower, and its window borders are the next thing to speed up.
+borders are composed a pixel row at a time with bit masks. Four colours
+do the same on two bit planes a row (bit 1 and bit 0 of each pixel), spread
+into 2-bit pixels by a table; icons are stored as video memory has them.
+The EGA, VGA and MCGA builds compose cells pixel by pixel and are meant
+for 286 and later machines.
 
 ## Build and run
 

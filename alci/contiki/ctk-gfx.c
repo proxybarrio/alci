@@ -223,6 +223,61 @@ write4(unsigned char cx, unsigned char cy)
   p[0x20f0] = cb4[14];  p[0x20f1] = cb4[15];
 }
 #define blit_again(cx, cy) write4(cx, cy)
+/* Cells composed as two bit planes a row (bit 1 and bit 0 of the colour,
+   most significant bit = leftmost pixel), then spread into the 2-bit
+   pixels of cb4: a byte operation does eight pixels */
+static unsigned char P1[8], P0[8];
+#define FILL(m, c) do { unsigned char m_ = (m); \
+    p1 = ((c) & 2) ? (p1 | m_) : (p1 & ~m_); \
+    p0 = ((c) & 1) ? (p0 | m_) : (p0 & ~m_); } while(0)
+/* the planes into the 2-bit pixels of cb4 */
+/* A byte of a plane spread over the even bits of a word, its two bytes
+   swapped so that a word store puts the left pixels first. Spread bits
+   stay inside their byte when shifted by one, so the same table serves the
+   high plane, shifted. */
+static const unsigned short spread16[256] = {
+  0x0000, 0x0100, 0x0400, 0x0500, 0x1000, 0x1100, 0x1400, 0x1500,
+  0x4000, 0x4100, 0x4400, 0x4500, 0x5000, 0x5100, 0x5400, 0x5500,
+  0x0001, 0x0101, 0x0401, 0x0501, 0x1001, 0x1101, 0x1401, 0x1501,
+  0x4001, 0x4101, 0x4401, 0x4501, 0x5001, 0x5101, 0x5401, 0x5501,
+  0x0004, 0x0104, 0x0404, 0x0504, 0x1004, 0x1104, 0x1404, 0x1504,
+  0x4004, 0x4104, 0x4404, 0x4504, 0x5004, 0x5104, 0x5404, 0x5504,
+  0x0005, 0x0105, 0x0405, 0x0505, 0x1005, 0x1105, 0x1405, 0x1505,
+  0x4005, 0x4105, 0x4405, 0x4505, 0x5005, 0x5105, 0x5405, 0x5505,
+  0x0010, 0x0110, 0x0410, 0x0510, 0x1010, 0x1110, 0x1410, 0x1510,
+  0x4010, 0x4110, 0x4410, 0x4510, 0x5010, 0x5110, 0x5410, 0x5510,
+  0x0011, 0x0111, 0x0411, 0x0511, 0x1011, 0x1111, 0x1411, 0x1511,
+  0x4011, 0x4111, 0x4411, 0x4511, 0x5011, 0x5111, 0x5411, 0x5511,
+  0x0014, 0x0114, 0x0414, 0x0514, 0x1014, 0x1114, 0x1414, 0x1514,
+  0x4014, 0x4114, 0x4414, 0x4514, 0x5014, 0x5114, 0x5414, 0x5514,
+  0x0015, 0x0115, 0x0415, 0x0515, 0x1015, 0x1115, 0x1415, 0x1515,
+  0x4015, 0x4115, 0x4415, 0x4515, 0x5015, 0x5115, 0x5415, 0x5515,
+  0x0040, 0x0140, 0x0440, 0x0540, 0x1040, 0x1140, 0x1440, 0x1540,
+  0x4040, 0x4140, 0x4440, 0x4540, 0x5040, 0x5140, 0x5440, 0x5540,
+  0x0041, 0x0141, 0x0441, 0x0541, 0x1041, 0x1141, 0x1441, 0x1541,
+  0x4041, 0x4141, 0x4441, 0x4541, 0x5041, 0x5141, 0x5441, 0x5541,
+  0x0044, 0x0144, 0x0444, 0x0544, 0x1044, 0x1144, 0x1444, 0x1544,
+  0x4044, 0x4144, 0x4444, 0x4544, 0x5044, 0x5144, 0x5444, 0x5544,
+  0x0045, 0x0145, 0x0445, 0x0545, 0x1045, 0x1145, 0x1445, 0x1545,
+  0x4045, 0x4145, 0x4445, 0x4545, 0x5045, 0x5145, 0x5445, 0x5545,
+  0x0050, 0x0150, 0x0450, 0x0550, 0x1050, 0x1150, 0x1450, 0x1550,
+  0x4050, 0x4150, 0x4450, 0x4550, 0x5050, 0x5150, 0x5450, 0x5550,
+  0x0051, 0x0151, 0x0451, 0x0551, 0x1051, 0x1151, 0x1451, 0x1551,
+  0x4051, 0x4151, 0x4451, 0x4551, 0x5051, 0x5151, 0x5451, 0x5551,
+  0x0054, 0x0154, 0x0454, 0x0554, 0x1054, 0x1154, 0x1454, 0x1554,
+  0x4054, 0x4154, 0x4454, 0x4554, 0x5054, 0x5154, 0x5454, 0x5554,
+  0x0055, 0x0155, 0x0455, 0x0555, 0x1055, 0x1155, 0x1455, 0x1555,
+  0x4055, 0x4155, 0x4455, 0x4555, 0x5055, 0x5155, 0x5455, 0x5555
+};
+#define PLANE_ROW(r) ((unsigned short *)cb4)[r] = \
+  (spread16[P1[r]] << 1) | spread16[P0[r]]
+static void
+planes4(void)
+{
+  PLANE_ROW(0); PLANE_ROW(1); PLANE_ROW(2); PLANE_ROW(3);
+  PLANE_ROW(4); PLANE_ROW(5); PLANE_ROW(6); PLANE_ROW(7);
+}
+#define blit_planes(cx, cy) do { planes4(); write4(cx, cy); } while(0)
 #else
 #define blit_again(cx, cy) blit(cx, cy)
 #endif
@@ -501,6 +556,23 @@ desk_cell(unsigned char cx, unsigned char cy)
   }
   (void)c;
   blit_bytes(cx, cy, mb);
+#elif defined(GFX_CGA4)
+  /* black, with the icon column line (cyan then black) and the cyan line
+     over the status bar */
+  unsigned short Y = cy * CH;
+  unsigned char m = (cx == SEP_X / 8 && !desk_nosep) ? 0x80 >> (SEP_X & 7) : 0;
+  (void)c;
+  for(r = 0; r < 8; ++r) {
+    unsigned char v = 0;
+    if(Y + r == (SH - 1) * CH - 1) {
+      v = 0xff;
+    } else if(Y + r >= CH + CH / 2 && Y + r < (SH - 1) * CH - CH / 2) {
+      v = m;
+    }
+    P1[r] = 0;
+    P0[r] = v;
+  }
+  blit_planes(cx, cy);
 #else
   unsigned short X = cx * 8, Y = cy * CH;
   if(cx == SEP_X / 8 && !desk_nosep) {
@@ -730,7 +802,7 @@ outside:
   return desk(X, Y);
 }
 
-#if defined(MONO)
+#if defined(MONO) || defined(GFX_CGA4)
 /* Bits of a cell (most significant = leftmost) for the pixels X0..X0+7 that
    fall in [a, b] */
 static const unsigned char span_lo[8] = {
@@ -754,6 +826,8 @@ span(unsigned short X0, unsigned short a, unsigned short b)
    in line */
 #define SPAN(X0, a, b) ((b) < (X0) || (a) > (X0) + 7 ? 0 : \
   ((a) <= (X0) && (b) >= (X0) + 7 && (a) <= (b)) ? 0xff : span(X0, a, b))
+#endif
+#if defined(MONO)
 /* The window cell on two colours, a row at a time, into mb. The masks
    along the cell do not change from row to row, so they are worked out
    once a cell. */
@@ -860,6 +934,102 @@ bar_cell(unsigned short X0)
 }
 #endif
 #define wcell_done() do { } while(0)
+#elif defined(GFX_CGA4) && CGA_BAR == 2
+/* Four colours: the window cell in the bit planes, filled by masks as on
+   two colours */
+static void
+wcell(unsigned char cx, unsigned char cy)
+{
+  unsigned char r, p1, p0;
+  unsigned short X0 = cx * 8, Y0 = cy * CH;
+  unsigned char m_sep1, m_sep0, m_shr, m_shb, m_far, m_win, m_cut, m_e2, m_e3,
+    m_e3row, plate = 0, m_lines = 0, m_box = 0, m_boxside = 0, boxcol, mid;
+  m_sep1 = desk_nosep ? 0 : SPAN(X0, SEP_X, SEP_X);
+  m_sep0 = desk_nosep ? 0 : SPAN(X0, SEP_X + 1, SEP_X + 1);
+  m_shr = SPAN(X0, gR + 1, gR + SHX);
+  m_shb = SPAN(X0, gL + 2, gR + SHX);
+  m_far = SPAN(X0, gR + SHX, gR + SHX);
+  m_win = SPAN(X0, gL, gR);
+  m_cut = SPAN(X0, gL + 1, gR - 1);
+  m_e2 = SPAN(X0, gL, gL + 1) | SPAN(X0, gR - 1, gR);
+  m_e3 = SPAN(X0, gL + 3, gL + 3) | SPAN(X0, gR - 3, gR - 3);
+  m_e3row = SPAN(X0, gL + 3, gR - 3);
+  if(Y0 <= gT + CH - 1 && Y0 + 7 >= gT) {
+    /* the cell has rows of the title bar */
+    plate = gn ? SPAN(X0, gtx0 - 4, gtx0 + gn * ADV + 3) : 0;
+    m_lines = gactive ? m_e3row & ~plate : 0;
+    m_box = SPAN(X0, gbox0, gbox1);
+    m_boxside = SPAN(X0, gbox0, gbox0) | SPAN(X0, gbox1, gbox1);
+  }
+  boxcol = gkf_close ? C_RING : (gactive ? C_HL : C_EDGE_I);
+  mid = (gbox0 + gbox1) / 2 - X0;       /* cross centre, if in this cell */
+  for(r = 0; r < 8; ++r) {
+    unsigned short Y = Y0 + r;
+    p1 = p0 = 0;
+    if(Y == (SH - 1) * CH - 1) {
+      p0 = 0xff;                        /* line over the status bar */
+    }
+    if(Y >= CH + CH / 2 && Y < (SH - 1) * CH - CH / 2) {
+      FILL(m_sep1, C_ETCH0);
+      FILL(m_sep0, C_ETCH1);
+    }
+    /* shadow: a checker of magenta over the desktop */
+    if(Y + gabove >= gT + 2 && Y <= gB + SHY) {
+      unsigned char sm = Y > gB ? m_shb : m_shr;
+      if(Y == gB + SHY) {
+        sm &= ~m_far;
+      }
+      FILL(sm & ((Y & 1) ? 0xaa : 0x55), C_SH1);
+    }
+    if(Y >= gT && Y <= gB) {
+      unsigned char wm = (Y == gT || Y == gB) ? m_cut : m_win, rr = Y - gT;
+      if(Y >= gT + CH) {
+        /* double frame, thick outside and thin inside */
+        if(Y == gB) {
+          FILL(wm, C_EDGE_A);
+        } else {
+          FILL(wm, C_PAPER);
+          FILL(m_e2, C_EDGE_A);
+          if(Y <= gB - 2) {
+            FILL(m_e3, C_EDGE_A);
+          }
+          if(Y == gB - 2) {
+            FILL(m_e3row, C_EDGE_A);
+          }
+        }
+      } else if(rr == CH - 1) {
+        FILL(wm, C_EDGE_A);             /* line under the bar */
+      } else {
+        FILL(wm, C_PAPER);
+        FILL(wm & m_e2, C_EDGE_A);
+        if(bar_lines[rr]) {
+          FILL(m_lines, C_BAR_AT);
+        }
+        if(m_box && rr >= 1 && rr <= CH - 2) {
+          if(rr == 1 || rr == CH - 2) {
+            FILL(m_box, boxcol);
+          } else {
+            /* the cross: pixels mid - d and mid + d, d = rr - 3 */
+            signed char d = rr - (CH - 1) / 2, a = mid - d, b = mid + d;
+            unsigned char cm = 0;
+            if(a >= 0 && a < 8) {
+              cm |= 0x80 >> a;
+            }
+            if(b >= 0 && b < 8) {
+              cm |= 0x80 >> b;
+            }
+            FILL(m_box, gactive ? C_BAR_AB : C_PAPER);
+            FILL(m_boxside, boxcol);
+            FILL(cm & m_box, gactive ? C_TITLE_A : C_INK);
+          }
+        }
+      }
+    }
+    P1[r] = p1;
+    P0[r] = p0;
+  }
+}
+#define wcell_done() do { } while(0)
 #else
 static void
 wcell(unsigned char cx, unsigned char cy)
@@ -897,6 +1067,10 @@ title_cell(unsigned char cx)
     }
     fg = C_PAPER;
   }
+#else
+  fg = gkf_title ? C_RING : (gactive ? C_TITLE_A : C_TITLE_I);
+#endif
+#if defined(MONO) || (defined(GFX_CGA4) && CGA_BAR == 2)
   {
     /* letters are 8 pixels wide: the cell takes bytes from at most two of
        them, shifted */
@@ -924,15 +1098,23 @@ title_cell(unsigned char cx)
       if(g1) {
         b |= g1[r] >> (8 - sh);
       }
+#if defined(MONO)
       if(fg == C_INK) {
         mb[r] |= b;
       } else {
         mb[r] &= ~b;
       }
+#else
+      {
+        unsigned char p1 = P1[r], p0 = P0[r];
+        FILL(b, fg);
+        P1[r] = p1;
+        P0[r] = p0;
+      }
+#endif
     }
   }
 #else
-  fg = gkf_title ? C_RING : (gactive ? C_TITLE_A : C_TITLE_I);
   barfont = 1;
   for(c = 0; c < 8; ++c) {
     unsigned short X = X0 + c;
@@ -994,6 +1176,10 @@ title_kind(unsigned char cx)
 static unsigned char cache[2][8];
 #define SAVE(k) memcpy(cache[k], mb, 8)
 #define PUT(k, cx, cy) blit_bytes(cx, cy, cache[k])
+#elif defined(GFX_CGA4) && CGA_BAR == 2
+static unsigned char cache[2][16];
+#define SAVE(k) do { planes4(); memcpy(cache[k], cb4, 16); } while(0)
+#define PUT(k, cx, cy) do { memcpy(cb4, cache[k], 16); write4(cx, cy); } while(0)
 #else
 static unsigned char cache[2][CH][8];
 #define SAVE(k) memcpy(cache[k], pix, sizeof(pix))
@@ -1066,6 +1252,8 @@ top_line(void)
 /* a composed window cell to the screen */
 #if defined(MONO)
 #define BLITW(cx, cy) blit_bytes(cx, cy, mb)
+#elif defined(GFX_CGA4) && CGA_BAR == 2
+#define BLITW(cx, cy) blit_planes(cx, cy)
 #else
 #define BLITW(cx, cy) blit(cx, cy)
 #endif
@@ -1125,12 +1313,18 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
         wcell(gx, r);
 #if defined(MONO)
         memcpy(lpix[0], mb, 8);
+#elif defined(GFX_CGA4) && CGA_BAR == 2
+        planes4();
+        memcpy(lpix[0], cb4, 16);
 #else
         memcpy(lpix, pix, sizeof(pix));
 #endif
         wcell(gxr, r);
 #if defined(MONO)
         memcpy(rpix[0], mb, 8);
+#elif defined(GFX_CGA4) && CGA_BAR == 2
+        planes4();
+        memcpy(rpix[0], cb4, 16);
 #else
         memcpy(rpix, pix, sizeof(pix));
 #endif
@@ -1138,6 +1332,11 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
 #if defined(MONO)
       blit_bytes(gx, r, lpix[0]);
       blit_bytes(gxr, r, rpix[0]);
+#elif defined(GFX_CGA4) && CGA_BAR == 2
+      memcpy(cb4, lpix[0], 16);
+      write4(gx, r);
+      memcpy(cb4, rpix[0], 16);
+      write4(gxr, r);
 #else
       memcpy(pix, lpix, sizeof(pix));
       blit(gx, r);
@@ -1192,6 +1391,19 @@ comp_text(unsigned char c, unsigned char fg)
       mb[r] &= ~g[r];
     }
   }
+#elif defined(GFX_CGA4)
+  unsigned char r;
+  const unsigned char *g = c != ' ' ? glyph(c) : NULL;
+  for(r = 0; r < 8; ++r) {
+    unsigned char bg = rowbg[r], p1 = (bg & 2) ? 0xff : 0, p0 = (bg & 1) ? 0xff : 0;
+    if(g) {
+      unsigned char m = g[r];
+      p1 = (fg & 2) ? (p1 | m) : (p1 & ~m);
+      p0 = (fg & 1) ? (p0 | m) : (p0 & ~m);
+    }
+    P1[r] = p1;
+    P0[r] = p0;
+  }
 #else
   pix_rows();
   if(c != ' ') {
@@ -1201,6 +1413,8 @@ comp_text(unsigned char c, unsigned char fg)
 }
 #if defined(MONO)
 #define BLITC(cx, cy) blit_bytes(cx, cy, mb)
+#elif defined(GFX_CGA4)
+#define BLITC(cx, cy) blit_planes(cx, cy)
 #else
 #define BLITC(cx, cy) blit(cx, cy)
 #endif
@@ -1468,13 +1682,23 @@ static void
 cap8(unsigned char cx, unsigned char cy, unsigned char right,
      const unsigned char (*pat)[8], unsigned char col, unsigned char col2)
 {
-  unsigned char r, c;
+  unsigned char r;
+#if defined(GFX_CGA4)
+  for(r = 0; r < 8; ++r) {
+    unsigned char m = pat[right][r], k = r < 4 ? col : col2;
+    P1[r] = (k & 2) ? m : 0;            /* paper is colour 0 */
+    P0[r] = (k & 1) ? m : 0;
+  }
+  blit_planes(cx, cy);
+#else
+  unsigned char c;
   for(r = 0; r < 8; ++r) {
     for(c = 0; c < 8; ++c) {
       pix[r][c] = (pat[right][r] & (0x80 >> c)) ? (r < 4 ? col : col2) : C_PAPER;
     }
   }
   blit(cx, cy);
+#endif
 }
 #endif
 #endif
@@ -1587,6 +1811,11 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
 }
 /*---------------------------------------------------------------------------*/
 /* Desktop icons */
+#if defined(GFX_CGA4)
+#define GFX_PALETTE_ONLY                /* only GFX_ICON_PACKED4 */
+#include "gfx-icons.h"
+#undef GFX_PALETTE_ONLY
+#endif
 static void
 icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
      unsigned char clipy1, unsigned char clipy2, unsigned char sel)
@@ -1610,6 +1839,12 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
         /* two colours: the icon is stored as cells, ready to copy */
         (void)d0; (void)Y0;
         blit_bytes(xpos + i, cy, ic->px + ((unsigned short)j * GFX_ICON_CW + i) * 8);
+        continue;
+#elif defined(GFX_CGA4) && defined(GFX_ICON_PACKED4)
+        /* four colours: cells packed as in video memory, over black */
+        (void)d0; (void)Y0;
+        memcpy(cb4, ic->px + ((unsigned short)j * GFX_ICON_CW + i) * 16, 16);
+        write4(xpos + i, cy);
         continue;
 #endif
         for(r = 0; r < CH; ++r) {
