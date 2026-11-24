@@ -196,3 +196,9 @@
   (8088: full redraw with the calculator 0.72 s and 0.88 s). New programs
   `ctk-herc`, `ctk-att`, `ctk-ega2`, `ctk-vga2` (two colours, cells of 14
   and 16 rows), checked on QEMU and 86Box; `desk` detects them.
+- Upstream ELKS merged up to `a3d4940` (`mem=` override in `setup`,
+  external builds of Cmdr and scrcap, version 0.9.3-dev); timings, the
+  strict suites (34/34, QEMU and 86Box XT) and resident memory unchanged.
+  `e47e635` (FAT `/bootopts` fix in the boot sector) does not fit in
+  Alci's MINIX boot sector, which has no free byte left: not merged,
+  listed in "Merges to review" with the three commits after it.

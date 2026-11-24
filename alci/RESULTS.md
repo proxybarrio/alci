@@ -901,6 +901,39 @@ Decision (2026-11-21): reverted in Alci for now (`67c222e4`). No program
 Alci ships today has relocations, so the 80 resident bytes buy nothing
 yet; the patch comes back with the first medium-model program (task S4).
 
+## Upstream merge up to `a3d4940` (2026-11-24)
+
+Upstream ELKS master was at `a450d52` (15 commits after `alci`). Merged
+up to `a3d4940` (`mem=` override in `setup`, Cmdr and scrcap external
+builds, version 0.9.3-dev, the kilo safe save already in Alci). Not
+merged: from `e47e635` on (see "Merges to review"); `342cf3a` and
+`139b823` (ept on 1440k images) and `a450d52` (comment in `udp.c`) wait
+behind it.
+
+Same configuration (`alci/elks.config`), toolchain and MartyPC `05c0d08`
+plus `elks-bench`; Alci before `aec9884`, after the merge `3b32898`.
+
+| bench (MartyPC 8088, 720K) | before | after |
+| --- | --- | --- |
+| `cat /b.txt > /dev/null` | 3.856 s | 3.852 s |
+| `cat /b.txt` (2nd) | 1.526 s | 1.530 s |
+| `ls -l /bin` (1st) | 7.668 s | 7.664 s |
+| `ls -l /bin` (2nd) | 3.950 s | 3.950 s |
+| boot to prompt | 13.677 s | 13.689 s |
+| `cat /bin/sh` | 1.568 s | 1.572 s |
+| `cat /bin/vi` | 3.965 s | 3.961 s |
+| 10 x `pwd` | 1.710 s | 1.706 s |
+| `cat \| cat \| cat` | 3.676 s | 3.672 s |
+| `sort` | 5.291 s | 5.287 s |
+| `grep` | 2.436 s | 2.436 s |
+
+All within 0.3% (V2). V1: strict suites identical before and after,
+34/34 with `check.py` on QEMU hd32 and fd720 and on the 86Box IBM XT
+(hd32). V3: `setup` +138 bytes (run once at boot, not resident; the
+kernel image keeps its size), boot line `Kernel text 330 ftext 10cc init
+16e2 data 1936 end 2936 top 9f80 473+9+0K free` unchanged. V4 and V5:
+no timer, tty or serial code in the merged commits.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
@@ -912,6 +945,7 @@ PicoMEM patch.
 
 | Date | Emulator | from -> to | what changed for us | timings |
 | --- | --- | --- | --- | --- |
+| 2026-11-24 | both | none | MartyPC `main` has nothing new after `05c0d08`. 86Box upstream `141ae59`: 332 commits after `proxybarrio/86box` master `48b41fd`, not merged (no `alci` branch yet, A6); relevant: FDC drive select gated by motor on (`2ae9966`, IBM compatibles), automation and debugger can lock the user's controls (`15487532`), an 808x core swap reverted the same week; the rest mostly 386+ protected mode and dynarec | - |
 | 2026-11-20 | both | none | MartyPC `main` has nothing new after `05c0d08`; 86Box upstream has one commit after `proxybarrio/86box` master `48b41fd` (`f24f956`, UMC 866x parallel port ECP), not merged | - |
 | 2026-11-19 | 86Box | `960d6b7` -> `d4f9a04` | `proxybarrio/86box` has no `alci` branch yet (A6), so `setup.sh` built upstream master plus the PicoMEM patch; needs `libarchive-dev` | functional tests only, no timings compared |
 
@@ -923,4 +957,4 @@ adapting; the maintainer decides how.
 
 | sha | title | check | numbers | decision |
 | --- | --- | --- | --- | --- |
-| | none so far | | | |
+| `e47e635` | [boot] Fix reusing deleted FAT /bootopts after a warm reboot | build | adds 6 bytes at the start of `boot_sect.S`; Alci's MINIX boot sector has 0 bytes free (`end_of_code` = `elks_parms_start` = 0x1F3 since the one-request zone reads of A3), so the build stops with "attempt to move .org backwards" | open: the maintainer decides (find 6 bytes in Alci's loader, keep the upstream fix for FAT images only, or leave it out) |
