@@ -2,38 +2,80 @@
 
 The graphical desktop of Contiki 1.x (CTK: windows, menus, dialogs, icons),
 written by Adam Dunkels for the Commodore 64 and other 8-bit machines,
-running as an ordinary ELKS program on a CGA screen (640x200, two colours).
-No kernel change: the same program runs on ELKS and on Alci.
+running as an ordinary ELKS program. No kernel change: the same programs
+run on ELKS and on Alci.
 
-State (2026-11-22): desktop, menus, dialogs, icons, keyboard focus, the
-About dialog and the calculator work on QEMU and on MartyPC (8088). Program
-size 13,328 bytes without the benchmark code, 15.8 KB with it (stdio for
-the report); the Alci icons add 5 KB (21,776 bytes in all).
+One program per screen type, all from the same sources, and `desk`, which
+asks the video BIOS what is fitted and starts the right one:
 
-First timings, MartyPC 8088 4.77 MHz CGA, 720K floppy, 2026-11-22
-(`ctk -q` draws the desktop and quits; `ctk -b` prints timings in ms after
-going back to text mode, with 10 ms resolution):
+| Program | Screen | Cells | Look |
+| --- | --- | --- | --- |
+| `ctk` | CGA 640x200, 2 colours (also EGA, VGA, LCDs in that mode) | 80x25 of 8x8 | two-colour style |
+| `ctk-cga4` | CGA 320x200, 4 colours (palette 1, high intensity) | 40x25 of 8x8 | colour style |
+| `ctk-ega` | EGA 640x350, 16 of the 64 EGA colours | 80x25 of 8x14 | colour style |
+| `ctk-vga` | VGA 640x480, 16 colours | 80x30 of 8x16 | colour style |
+| `ctk-mcga` | MCGA (and VGA) 320x200, 256 colours | 40x25 of 8x8 | colour style, graded |
 
-| Step | Time |
-| --- | --- |
-| `ctk -q`, first run (program read from floppy) | 4.83 s |
-| `ctk -q`, program already in memory (text cache) | 1.24 s |
-| desktop drawn and settled after start | 0.53 s |
-| repaint of the whole background (2,000 cells) | 0.49 s |
-| open the calculator, then five keys (`2*21=`) | 0.66 s (about 0.13 s a key) |
-| open the About dialog | 0.02 s |
+State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
+About dialog and the calculator work on all five screens on QEMU; timings
+of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 20.6 KB,
+`ctk-cga4` 22.9 KB, `ctk-ega` 25.1 KB, `ctk-mcga` 23.5 KB, `ctk-vga`
+35.8 KB (its two built-in icons are 104x80 pixels), `desk` 1.3 KB.
 
-The cell writer (`cell()` in `ctk-cga.c`) writes one byte at a time through
-a far pointer; a background repaint at half a second is the first thing
-to speed up.
+## The two styles (decided 2026-11-23)
+
+Two-colour screens get their finish from shape: striped title bar on the
+active window with the title on a plain plate in the middle, close box on
+the left, plain bar on inactive windows, frame corners cut by one pixel,
+a solid shadow, buttons outlined (inverted when they have the focus),
+the selected icon title in an inverted pill, rounded screen corners, plain
+menu and status bars with a dividing line.
+
+Colour screens get a two-tone title bar (graded on MCGA), `/// title` on the
+left, a light line on the bar that starts after the title, close box on the
+right, a stepped shadow (soft on MCGA, dotted on CGA four colours), etched
+lines on the status bar and beside the icon column, buttons two-toned and
+blue when they have the focus, with a light ring on cells 14 and 16 pixels
+high. The EGA colours are those of the EGA icon set; the desktop is white
+above, a fine white and grey checker across the middle, grey below.
+
+On 8-pixel cells every bar (menus, titles, status line, buttons) uses a
+small bold font from the second row of the cell, so no letter touches an
+edge; titles are placed by pixel, 6 pixels a letter, so they fit. Cells of
+14 and 16 pixels use the font of the video BIOS, read at start-up.
+
+## Timings
+
+MartyPC, IBM XT, 8088 4.77 MHz, CGA, 720K floppy, 2026-11-24. `ctk -q`
+draws the desktop and quits; `ctk -b` prints timings in ms after going
+back to text mode (10 ms resolution). "Before" is the CGA-only layer of
+2026-11-22 (commit eb1d144).
+
+| Step | `ctk` before | `ctk` now | `ctk-cga4` |
+| --- | --- | --- | --- |
+| `-q`, first run (program read from floppy) | 5.32 s | 5.09 s | 6.25 s |
+| desktop drawn and settled | 0.55 s | 0.57 s | 1.33 s |
+| repaint of the whole background | 0.50 s | 0.50 s | 0.69 s |
+| open the calculator | 0.03 s | 0.07 s | 0.15 s |
+| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 0.99 s | 2.71 s |
+| open the About dialog | 0.01 s | 0.01 s | 0.02 s |
+
+On two colours the frequent cells (desktop, text, buttons, icons, the
+middle of title bars and borders) are written as 8 bytes, and window
+borders are composed a pixel row at a time with bit masks; the colour
+builds compose cells pixel by pixel and are meant first for 286 and later
+machines. The four-colour CGA build runs on the 8088 but is slower; its
+window borders are the next thing to speed up.
 
 ## Build and run
 
     . ../../env.sh          # ELKS cross toolchain
     make fetch              # Contiki 1.x at the pinned commit
-    make                    # produces ./ctk
+    make                    # desk, ctk, ctk-cga4, ctk-ega, ctk-vga, ctk-mcga
 
-Copy `ctk` to an Alci or ELKS system and run it from the text console.
+Copy the programs to `/bin` on an Alci or ELKS system and run `desk` (or
+one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga desk`
+chooses by hand. `ctk -d` starts with the calculator open.
 
 Keys: F1 opens the menu (arrows and Enter to choose), Tab and F5 move
 between widgets, F3 switches window, Enter presses a button, Ctrl-Q goes
@@ -41,50 +83,47 @@ back to the text console.
 
 ## Files
 
-- `ctk-cga.c`: the CGA drawing layer. Same structure as the C64 "hires"
-  driver of Contiki 1.x (`contiki-c64/ctk/ctk-hires.c` and its 6502
-  assembly), rewritten in C for the CGA interleaved frame buffer: 8x8
-  cells, window borders and buttons from the theme patterns, C64 colours
-  mapped to normal or reversed cells.
-- `theme-default.c`, `elks/ctk-hires-theme.h`: the C64 default theme of
-  Contiki 1.x, unchanged except for the C64 colour numbers defined in place
-  of `conio.h`. The desktop background is a light dot pattern instead of the
-  C64 colour gradient.
+- `ctk-gfx.c`: the drawing layer for every screen type. Same structure as
+  the C64 "hires" driver of Contiki 1.x (`contiki-c64/ctk/ctk-hires.c` and
+  its 6502 assembly), in C: the screen is a grid of cells, each cell is
+  composed (into 8 bytes on two colours, into a buffer of colour indices
+  otherwise) and written by the routine of the screen type (CGA interleaved,
+  CGA two bits a pixel, EGA and VGA planes in write mode 2, MCGA bytes).
+  The colours and the two styles are at the top of the file.
+- `gfx.h`: the screen types (cells, rows, icon size) chosen with
+  `-DGFX_<type>`; it also places the icon column for `ctk.c`.
+- `desk.c`: the launcher (video BIOS functions 1Ah and 12h).
 - `main.c`: keyboard (ELKS console in raw mode: arrows `ESC [ A-D`, F1-F5
   `ESC a-e`), clock, and the event loop, which sleeps in `select()` when
   idle.
 - `elks/`: configuration headers (`ctk-conf.h`, `ctk-arch.h` written for
   ELKS; `ek-conf.h`, `cc-conf.h`, `clock-conf.h`, `log-conf.h`,
-  `program-handler-conf.h` from the Contiki 1.x GTK port) and
+  `program-handler-conf.h` from the Contiki 1.x GTK port),
   `font8x8.h`, a public-domain 8x8 font (Daniel Hepper's font8x8, after
-  the IBM public-domain VGA fonts) with its bits reversed for CGA.
-- `theme/p1.py`, `theme-p1.h`: the Alci theme for CGA 640x200 (profile P1):
-  double window border with a dotted shadow, striped black title bar, two-cell
-  close box, outlined buttons and text entries, light slashed desktop. The
-  pieces are drawn by hand in `theme/p1.py`; `theme/mkheader.py` writes them
-  to `theme-p1.h`. Desktop background: `ctk -w dots` (default), `pairs`,
-  `slash` or `none`, or the same names in `CTK_WALLPAPER`; window shadows
-  are combined with the chosen pattern at start-up.
-- `icons/`: the Alci icon sets, one per screen family, ready to build in
-  (`icons/out/<set>.h`) or to install as a file (`icons/out/<set>.ais`);
-  see `icons/README.md`. The desktop draws the CGA 640x200 set
-  (`icons/out/cga640-mono.h`, 10x4 cells per icon): `main.c` gives each
-  program's icon the drawing of the same name, `ctk-cga.c` draws it with
-  the title centred below. All 16 icons are built in (5 KB); `make fetch`
-  also moves the icon column of `ctk.c` for the wider icons.
+  the IBM public-domain VGA fonts) with its bits reversed for CGA, and
+  `font-bar.h`, the small bar font, made by `theme/mkbarfont.py` from the
+  X11 misc-fixed 5x7 font (public domain).
+- `icons/`: the Alci icon sets, one per screen family (see
+  `icons/README.md`). `icons/tools/mkgfx.py` writes, for each build, a
+  header with only the icons the desktop uses, in the palette of that
+  screen (`obj-<type>/gfx-icons.h`); the MCGA icons are for now reduced from
+  the modern set. Wallpapers (`ctk -w dots|pairs|slash|none`, default dots,
+  or `CTK_WALLPAPER`) exist on two colours.
 
 ## Licences
 
 Contiki 1.x: BSD 3-clause, Copyright (c) 2002-2004 Adam Dunkels; the
-notices are kept in every file taken or adapted. font8x8: public domain.
+notices are kept in every file taken or adapted. font8x8 and the X11
+misc-fixed 5x7 font: public domain.
 The Contiki sources themselves are not copied here: `make fetch` downloads
-them, and its only change is to drop a `static` that current compilers
-reject (see the Makefile).
+them, drops a `static` that current compilers reject and makes the icon
+column follow the icon size (see the Makefile).
 
 ## Next steps
 
-1. Measure on MartyPC (8088, 4.77 MHz) and 86Box: start time, redraw of the
-   desktop, opening a window, response to a key.
+1. Faster window borders on the colour builds, first CGA four colours.
 2. Editor, then the file manager (Contiki's "Directory" is minimal).
-3. Mouse (ELKS mouse driver), 320x200 four-colour mode, EGA.
-4. The D2 benchmark against Nano-X and Gem-elks.
+3. Mouse (ELKS mouse driver).
+4. Drawing layers for the T1200 LCD, Hercules and 640x400 (their icon sets
+   exist), Tandy 1000 and PCjr.
+5. The D2 benchmark against Nano-X and Gem-elks.

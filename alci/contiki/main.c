@@ -19,7 +19,8 @@
 
 #include "about-dsc.h"
 #include "calc-dsc.h"
-#include "cga640-mono.h"          /* Alci icons, icons/out/ */
+#include "gfx.h"
+#include "gfx-icons.h"            /* Alci icons of this screen type (icons/tools/mkgfx.py) */
 
 void ctk_cga_exit(void);
 void calc_init(char *arg);
@@ -31,9 +32,9 @@ static void
 set_icon(struct ctk_icon *icon, const char *name)
 {
   unsigned char i;
-  for(i = 0; i < ICONS_CGA640_MONO_COUNT; ++i) {
-    if(strcmp(icons_cga640_mono_names[i], name) == 0) {
-      icon->bitmap = (unsigned char *)icons_cga640_mono_bitmaps[i];
+  for(i = 0; i < GFX_ICON_COUNT; ++i) {
+    if(strcmp(gfx_icon_names[i], name) == 0) {
+      icon->bitmap = (unsigned char *)&gfx_icons[i];
       return;
     }
   }
@@ -163,7 +164,7 @@ main(int argc, char **argv)
     if(wp != NULL) {
       unsigned char n = ctk_cga_wallpaper_find(wp);
       if(n == 255) {
-        fprintf(stderr, "ctk: wallpapers: dots pairs slash none\n");
+        fprintf(stderr, "ctk: unknown wallpaper\n");
         return 1;
       }
       ctk_cga_wallpaper = n;
@@ -210,6 +211,11 @@ main(int argc, char **argv)
     printf("ctk ms: settle %lu calc %lu keys %lu\n", t[1] - t[0], t[2] - t[1], t[3] - t[2]);
     printf("ctk ms: dialog %lu background %lu\n", t[4] - t[3], t[5] - t[4]);
     return 0;
+  }
+  if(argc > 1 && strcmp(argv[1], "-d") == 0) {
+    /* Demonstration: the calculator already open */
+    while(ek_run()) ;
+    calc_init(NULL);
   }
   if(argc > 1 && strcmp(argv[1], "-q") == 0) {
     while(ek_run()) ;                   /* draw the desktop, then quit */

@@ -183,3 +183,15 @@
   27264 bytes plain, 19968 compressed with LZSA1; first start 6.19 ->
   6.10 s without rotation delay, 7.56 -> 7.36 s with it. Disk 1 has
   103 KB free, 83 KB with compressed kilo on it. Not added yet.
+
+## 2026-11-24
+
+- D7: the desktop drawing layer is rewritten for every screen type
+  (`alci/contiki/ctk-gfx.c`, one program per type: `ctk` CGA two colours,
+  `ctk-cga4`, `ctk-ega`, `ctk-vga`, `ctk-mcga`, plus the launcher `desk`).
+  Two-colour screens follow the shape style, colour screens the colour
+  style with the approved EGA colours. The CGA-only layer and its theme
+  pieces are removed. Checked on QEMU (desktop, menu, calculator, About,
+  focus); MartyPC 8088 timings in `alci/contiki/README.md`: `ctk` keeps
+  the old speed for desktop and background, the calculator keys take
+  0.99 s instead of 0.67 s; `ctk-cga4` is slower (desktop 1.33 s).

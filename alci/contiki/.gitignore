@@ -1,3 +1,9 @@
 contiki-1.x/
 ctk
+ctk-cga4
+ctk-ega
+ctk-vga
+ctk-mcga
+desk
+obj-*/
 *.o
