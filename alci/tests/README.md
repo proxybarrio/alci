@@ -59,6 +59,11 @@ measured separately on MartyPC (`alci/scripts`).
 - `kilo-save.py <hd32 image> <kilo command> [full|ok]`: types into kilo and
   saves, with the disk filled first (`full`) or not (`ok`), then checks the
   file (task S5). Copy the kilo builds to compare into the image first.
+- `foreign-exec.sh <alci fd720 image> <elks hd32 image> <workdir>`: runs
+  every LZSA1 program of an Alci floppy on a kernel without the LZSA1
+  decoder (for example upstream ELKS built with `mkimg.sh` from its own
+  configuration) on QEMU, prints each exit status and checks that the
+  system is intact afterwards (task F4e).
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `st86.py` options: `CMD_MS` emulated milliseconds to wait for each

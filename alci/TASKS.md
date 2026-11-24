@@ -861,6 +861,18 @@ Rules for the floppy set (decided 2026-11-19):
   decode speed on the 8088), and self-extracting ELKS programs (UPX, when
   its ELKS support exists), which would run on an unmodified ELKS at the
   cost of a stub and a decode at every start (see `RELATED.md`).
+  Split 2026-11-24 into F4e1 (unmodified kernel, done), F4e2 (build and
+  measure ELKSWeb and Gem-elks), F4e3 (codecs compared), F4e4 (design
+  note for the prerequisite, with its cost in bytes); next: F4e2.
+  F4e1 done 2026-11-24: upstream ELKS `a450d52` with its default
+  configuration (exomizer decoder on, `CONFIG_EXEC_COMPRESS=y`) refused
+  all 36 LZSA1 programs of the Alci 720K disk with `ENOEXEC`, and the
+  system stayed intact (`alci/tests/foreign-exec.sh`). The refusal comes
+  from the exomizer decoder failing on LZSA1 data, not from a check of
+  the header: the kernel does not look at `esh_reserved`. The shell then
+  reads the file as a script and prints lines of garbage before giving
+  up (exit status 2). Proposal for the maintainer, in `RESULTS.md`: a
+  header marker that every ELKS kernel refuses before decoding.
 - [ ] I1 `TODO` ELKSWeb in Alci (after F4e; see `RELATED.md`). Built
   outside the tree with `buildext.sh`, compressed or not as F4e decides,
   on the 1.44M set and the hard disk install (not the 720K disk 1).

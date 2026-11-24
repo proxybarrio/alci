@@ -934,6 +934,48 @@ kernel image keeps its size), boot line `Kernel text 330 ftext 10cc init
 16e2 data 1936 end 2936 top 9f80 473+9+0K free` unchanged. V4 and V5:
 no timer, tty or serial code in the merged commits.
 
+## Alci programs on an unmodified ELKS kernel, task F4e1 (2026-11-24)
+
+Question: what does an ELKS kernel without the LZSA1 decoder do with a
+compressed Alci program? It must refuse it, never run it.
+
+Setup: ELKS master `a450d52` built with `ibmpc-1440.config` (its default
+for PCs: `CONFIG_EXEC_COMPRESS=y`, exomizer decoder; `CONFIG_EXEC_MMODEL=y`,
+so the 64-byte header is accepted), hd32 image by `alci/tests/mkimg.sh`.
+The 36 LZSA1 programs of the Alci 720K disk (`3b32898`) copied into `/z`
+and each run once on QEMU (`alci/tests/foreign-exec.sh`).
+
+| result | programs |
+| --- | --- |
+| machine code run | 0 of 36 |
+| `execve` returns `ENOEXEC` | 36 of 36 |
+| system intact afterwards (`ls`, `md5sum`, `meminfo` identical to a clean boot) | yes |
+
+How it refuses: the kernel does not read `esh_reserved`, so it takes the
+LZSA1 sections for exomizer data and runs its decoder on them; the decoder
+ends with the wrong length and exec fails. This is not a check by design:
+the exomizer decoder only stops when its output pointer meets its input
+pointer, and on foreign data the input pointer could in principle wrap
+below 0 first and let writes leave the segment. None of the 36 did.
+After `ENOEXEC` the shell reads the file as a script (as for any file it
+cannot exec): lines of binary garbage reported "not found", sometimes a
+syntax error, exit status 2. With `CONFIG_EXEC_COMPRESS` off the kernel
+refuses compressed headers before decoding (`error_exec3`).
+
+Proposal (for the maintainer; no change made): make every ELKS kernel
+refuse an Alci program before any decoding. Options:
+
+1. An Alci header form unknown to ELKS: for example `hlen` = 80 (the
+   64-byte header plus 16 bytes) or a different value in the `a_flags`
+   byte of `mh.type`. Every ELKS kernel rejects it at the header switch,
+   before allocating memory. Cost in Alci: one more case in the header
+   check of `exec.c` (estimate under 20 bytes of kernel code, to measure),
+   and `elks-pack.py` writes the new form. The shell still prints the
+   garbage of the script fallback.
+2. Offer ELKS a two-line check that refuses `esh_reserved` values it does
+   not know. Protects only kernels built after it.
+3. Both: 1 for the kernels that exist, 2 so ELKS knows the field.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

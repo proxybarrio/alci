@@ -202,3 +202,9 @@
   `e47e635` (FAT `/bootopts` fix in the boot sector) does not fit in
   Alci's MINIX boot sector, which has no free byte left: not merged,
   listed in "Merges to review" with the three commits after it.
+- F4e split into four pieces. F4e1 done: upstream ELKS with its default
+  configuration refuses all 36 LZSA1 programs of the 720K disk and stays
+  intact, but only because its exomizer decoder fails on LZSA1 data; the
+  shell then prints the file as a garbled script. Header marker options
+  in `RESULTS.md`, for decision. New test `alci/tests/foreign-exec.sh`.
+  No change to the kernel or the programs.
