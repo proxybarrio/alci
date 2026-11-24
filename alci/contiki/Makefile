@@ -22,7 +22,7 @@ SRCS_col = $(COMMON) ctk-gfx.c
 # icons built into the desktop
 ICONS = about calculator
 TARGETS = cga cga4 ega vga mcga
-PROGS = desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga
+PROGS = desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-herc ctk-att ctk-ega2 ctk-vga2
 
 all: $(PROGS)
 
@@ -40,6 +40,10 @@ $(eval $(call target,cga4,ctk-cga4,col))
 $(eval $(call target,ega,ctk-ega,col))
 $(eval $(call target,vga,ctk-vga,col))
 $(eval $(call target,mcga,ctk-mcga,col))
+$(eval $(call target,herc,ctk-herc,col))
+$(eval $(call target,att,ctk-att,col))
+$(eval $(call target,ega2,ctk-ega2,col))
+$(eval $(call target,vga2,ctk-vga2,col))
 
 # desk: runs the build that fits the screen (asks the video BIOS)
 desk: desk.c

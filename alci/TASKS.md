@@ -414,6 +414,17 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   background 0.50 s, five calculator keys 1.08 s. Next: faster keys and
   colour borders, CGA four colours buttons, Hercules / 640x400 / two-colour
   EGA-VGA layers, then editor and mouse.
+  Later the same day: window cells on two colours composed with masks once
+  a cell (calculator with full redraw 1.07 s -> 0.72 s; the CGA-only layer
+  took 0.67 s); CGA four colours on two bit planes a row and packed icons
+  (desktop 1.31 s -> 0.57 s, calculator 2.97 s -> 0.88 s); boxed buttons
+  on four colours as a build option until a look is chosen. Four more
+  programs on the two-colour style with tall cells and the full lined bar
+  of the trials: `ctk-herc` (Hercules 720x348, light on black), `ctk-att`
+  (AT&T 6300 / Olivetti M24 640x400), `ctk-ega2`, `ctk-vga2`; Schumacher
+  Clean Bold 8x14 and 8x16. Checked on QEMU and on 86Box (Turbo XT with
+  Hercules and with the Olivetti OGC card); `desk` now finds Hercules, mono
+  EGA/VGA monitors and Olivetti BIOSes.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

@@ -4,6 +4,10 @@ ctk-cga4
 ctk-ega
 ctk-vga
 ctk-mcga
+ctk-herc
+ctk-att
+ctk-ega2
+ctk-vga2
 desk
 obj-*/
 *.o

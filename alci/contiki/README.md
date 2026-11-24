@@ -15,12 +15,19 @@ asks the video BIOS what is fitted and starts the right one:
 | `ctk-ega` | EGA 640x350, 16 of the 64 EGA colours | 80x25 of 8x14 | colour style |
 | `ctk-vga` | VGA 640x480, 16 colours | 80x30 of 8x16 | colour style |
 | `ctk-mcga` | MCGA (and VGA) 320x200, 256 colours | 40x25 of 8x8 | colour style, graded |
+| `ctk-herc` | Hercules 720x348 (the 6845 programmed directly) | 90x24 of 8x14 | two-colour style, light on black |
+| `ctk-att` | AT&T 6300, Olivetti M24 640x400 (mode 40h) | 80x25 of 8x16 | two-colour style |
+| `ctk-ega2` | EGA 640x350 in two colours (mode 10h, 0Fh on a mono monitor) | 80x25 of 8x14 | two-colour style |
+| `ctk-vga2` | VGA or MCGA 640x480 in two colours (mode 11h) | 80x30 of 8x16 | two-colour style |
 
 State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
-About dialog and the calculator work on all five screens on QEMU; timings
-of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 20.8 KB,
-`ctk-cga4` 22.2 KB, `ctk-ega` 25.1 KB, `ctk-mcga` 22.6 KB, `ctk-vga`
-35.8 KB (its two built-in icons are 104x80 pixels), `desk` 1.3 KB.
+About dialog and the calculator work on the nine screens: CGA, EGA, VGA
+and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
+Hercules card, and with the Olivetti OGC card); timings of `ctk` and
+`ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 22.3 KB, `ctk-cga4`
+21.8 KB, `ctk-ega` 24.7 KB, `ctk-mcga` 22.3 KB, `ctk-vga` 35.1 KB (its two
+built-in icons are 104x80 pixels), `ctk-herc` 22.2 KB, `ctk-att` 22.8 KB,
+`ctk-ega2` 22.0 KB, `ctk-vga2` 22.8 KB, `desk` 1.5 KB.
 
 ## Looks
 
@@ -38,6 +45,14 @@ when they have the focus; text entries have side bars and a line under the
 text. Corners cut by one pixel, solid shadow, rounded screen corners, the
 selected icon title in an inverted pill. `ctk -w none` gives the plain white
 desktop of the trial.
+
+Hercules, 640x400, EGA and VGA in two colours (`ctk-herc`, `ctk-att`,
+`ctk-ega2`, `ctk-vga2`): the same style on cells of 14 and 16 rows, as on
+the trials for those screens: the whole bar in the title row, frame on
+row 0, lines on every other row from 2, the line under the bar on the last
+row, the close box from row 2; Schumacher Clean Bold 8x14 and 8x16
+everywhere (one row lower in the bars); a shadow of 2x2 pixels. Hercules is
+drawn light on black, as on its trial.
 
 ## Timings
 
@@ -88,7 +103,8 @@ back to the text console.
   The colours and the two styles are at the top of the file.
 - `gfx.h`: the screen types (cells, rows, icon size) chosen with
   `-DGFX_<type>`; it also places the icon column for `ctk.c`.
-- `desk.c`: the launcher (video BIOS functions 1Ah and 12h).
+- `desk.c`: the launcher (video BIOS functions 1Ah and 12h, the equipment
+  word and the Hercules status port, "OLIVETTI" in the BIOS for 640x400).
 - `main.c`: keyboard (ELKS console in raw mode: arrows `ESC [ A-D`, F1-F5
   `ESC a-e`), clock, and the event loop, which sleeps in `select()` when
   idle.
@@ -96,7 +112,10 @@ back to the text console.
   ELKS; `ek-conf.h`, `cc-conf.h`, `clock-conf.h`, `log-conf.h`,
   `program-handler-conf.h` from the Contiki 1.x GTK port),
   `font8x8.h`, a public-domain 8x8 font (Daniel Hepper's font8x8, after
-  the IBM public-domain VGA fonts) with its bits reversed for CGA.
+  the IBM public-domain VGA fonts) with its bits reversed for CGA;
+  `font-bar.h`, `font-tall14.h`, `font-tall16.h`, written by
+  `theme/mkbarfont.py` and `theme/mktallfont.py` from the X11 Schumacher
+  Clean fonts.
 - `icons/`: the Alci icon sets, one per screen family (see
   `icons/README.md`). `icons/tools/mkgfx.py` writes, for each build, a
   header with only the icons the desktop uses, in the palette of that
@@ -108,18 +127,18 @@ back to the text console.
 
 Contiki 1.x: BSD 3-clause, Copyright (c) 2002-2004 Adam Dunkels; the
 notices are kept in every file taken or adapted. font8x8: public domain.
-clR6x6 (Schumacher Clean, used for `elks/font-bar.h` by
-`theme/mkbarfont.py`): Copyright 1989 Dale Schumacher, free to use, copy,
-modify and distribute with the notice.
+clR6x6, clB8x14 and clB8x16 (Schumacher Clean, used for `elks/font-bar.h`
+and `elks/font-tall*.h`): Copyright 1989 Dale Schumacher, free to use,
+copy, modify and distribute with the notice.
 The Contiki sources themselves are not copied here: `make fetch` downloads
 them, drops a `static` that current compilers reject and makes the icon
 column follow the icon size (see the Makefile).
 
 ## Next steps
 
-1. Faster window borders on the colour builds, first CGA four colours.
+1. Faster window borders on EGA, VGA and MCGA (pixel by pixel today).
 2. Editor, then the file manager (Contiki's "Directory" is minimal).
 3. Mouse (ELKS mouse driver).
-4. Drawing layers for the T1200 LCD, Hercules and 640x400 (their icon sets
-   exist), Tandy 1000 and PCjr.
+4. Drawing layers for the T1200 LCD (its icon set exists), Tandy 1000 and
+   PCjr; timings of the tall two-colour builds on an 8088.
 5. The D2 benchmark against Nano-X and Gem-elks.

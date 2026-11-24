@@ -26,6 +26,11 @@
 #if defined(GFX_CGA) || defined(GFX_CGA4)
 #include "font-bar.h"
 #endif
+#if defined(GFX_MONO) && GFX_CH == 14
+#include "font-tall14.h"
+#elif defined(GFX_MONO) && GFX_CH == 16
+#include "font-tall16.h"
+#endif
 
 #include <string.h>
 
@@ -41,7 +46,7 @@ unsigned char ctk_draw_windowtitle_height = 1;
 /* Colours of each screen type. Roles: paper and ink of windows, title bars
    (top and bottom half, active and inactive), light line on the bar, frame,
    shadow, etched lines, focus ring, links. */
-#if defined(GFX_CGA)
+#if defined(GFX_MONO)
 #define MONO 1
 enum { C_PAPER = 0, C_INK = 1 };
 #define C_EDGE_A C_INK
@@ -105,9 +110,12 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #endif
 
 /* Shadow width and height in pixels, inside the window's own border cells */
-#if defined(MONO)
+#if defined(MONO) && CH == 8
 #define SHX 3
 #define SHY 1
+#elif defined(MONO)
+#define SHX 2
+#define SHY 2
 #elif CH == 8
 #define SHX 3
 #define SHY 2
@@ -133,15 +141,28 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #define CGA_BAR 2
 #endif
 #define BAR_ABOVE 5                     /* (not used: kept for the record) */
-#if CGA_BAR == 2
+#if defined(GFX_MONO) && GFX_CH > 8
+/* Tall cells: all in the title row, as on the trials: frame on row 0, lines
+   on every other row from 2 to CH-3, the line under the bar on row CH-1,
+   the close box from row 2 to row CH-2 */
+#undef CGA_BAR
+#define CGA_BAR 1
+#define BAR_SEP (GFX_CH - 1)
+#define BOX_T 2
+#define bar_lines(r) ((r) >= 2 && (r) <= GFX_CH - 3 && !((r) & 1))
+#elif CGA_BAR == 2
 #define BAR_SEP 7
+#define BOX_T 1
 static const unsigned char bar_one[8] = {0, 1, 0, 1, 0, 1, 0, 0};
+#define bar_lines(r) bar_one[r]
 #else
 #define BAR_SEP 6
+#define BOX_T 1
 static const unsigned char bar_one[8] = {0, 0, 1, 0, 1, 0, 0, 0};
+#define bar_lines(r) bar_one[r]
 #endif
+#define BOX_B (GFX_CH - 2)
 static unsigned char gabove;            /* pixel rows of the bar above the title row */
-#define bar_lines bar_one
 
 /*---------------------------------------------------------------------------*/
 /* Low level: BIOS, ports, video memory */
@@ -158,8 +179,10 @@ outb(unsigned short port, unsigned char v)
   __asm__ volatile ("outb %%al,%%dx" : : "a" (v), "d" (port));
 }
 
-#if defined(GFX_CGA) || defined(GFX_CGA4)
+#if defined(GFX_CGA) || defined(GFX_CGA4) || defined(GFX_ATT)
 #define VRAM ((unsigned char __far *)0xB8000000UL)
+#elif defined(GFX_HERC)
+#define VRAM ((unsigned char __far *)0xB0000000UL)
 #else
 #define VRAM ((volatile unsigned char __far *)0xA0000000UL)
 #endif
@@ -167,10 +190,15 @@ outb(unsigned short port, unsigned char v)
 /* The cell being composed: one colour index per pixel */
 static unsigned char pix[CH][8];
 
-#if defined(GFX_CGA)
-/* Two colours: cells are also kept as 8 bytes, one per row, 1 = black ink,
-   so that the frequent cells (desktop, text, buttons) skip the pixel buffer */
-static unsigned char mb[8];
+#if defined(MONO)
+/* Two colours: cells are also kept as bytes, one per row, 1 = ink, so that
+   the frequent cells (desktop, text, buttons) skip the pixel buffer */
+static unsigned char mb[CH];
+#if defined(GFX_INVERT)
+#define INK(v) (v)                      /* ink lit, paper dark */
+#else
+#define INK(v) (~(v))                   /* black ink on white */
+#endif
 
 static void
 blit_bytes(unsigned char cx, unsigned char cy, const unsigned char *b)
@@ -179,6 +207,7 @@ blit_bytes(unsigned char cx, unsigned char cy, const unsigned char *b)
   if(cx >= SW || cy >= SH) {
     return;
   }
+#if defined(GFX_CGA)
   p = VRAM + (unsigned short)cy * 320 + cx;
   p[0]      = ~b[0];
   p[0x2000] = ~b[1];
@@ -188,13 +217,42 @@ blit_bytes(unsigned char cx, unsigned char cy, const unsigned char *b)
   p[0x20a0] = ~b[5];
   p[240]    = ~b[6];
   p[0x20f0] = ~b[7];
+#elif defined(GFX_HERC) || defined(GFX_ATT)
+  /* four banks of 8K: pixel row Y is in bank Y & 3, line Y >> 2 */
+  {
+#if defined(GFX_HERC)
+#define LINEB 90
+#else
+#define LINEB 80
+#endif
+    unsigned short Y0 = (unsigned short)cy * CH;
+    unsigned short q = (Y0 >> 2) * LINEB + cx;
+    unsigned char bank = Y0 & 3, r;
+    for(r = 0; r < CH; ++r) {
+      VRAM[((unsigned short)bank << 13) + q] = INK(b[r]);
+      if(++bank == 4) {
+        bank = 0;
+        q += LINEB;
+      }
+    }
+  }
+#else
+  /* EGA and VGA, one plane or all planes alike: rows of 80 bytes */
+  {
+    unsigned char r;
+    p = VRAM + (unsigned short)cy * (CH * 80) + cx;
+    for(r = 0; r < CH; ++r, p += 80) {
+      *p = INK(b[r]);
+    }
+  }
+#endif
 }
 /* the pixel buffer packed into mb */
 static void
 pack(void)
 {
   unsigned char r, c;
-  for(r = 0; r < 8; ++r) {
+  for(r = 0; r < CH; ++r) {
     unsigned char b = 0;
     for(c = 0; c < 8; ++c) {
       b = (b << 1) | (pix[r][c] != C_PAPER);
@@ -292,7 +350,7 @@ blit(unsigned char cx, unsigned char cy)
   if(cx >= SW || cy >= SH) {
     return;
   }
-#if defined(GFX_CGA)
+#if defined(MONO)
   (void)r; (void)c;
   pack();
   blit_bytes(cx, cy, mb);
@@ -346,7 +404,7 @@ blit(unsigned char cx, unsigned char cy)
 }
 /*---------------------------------------------------------------------------*/
 /* Fonts: 8x8 for 8-pixel cells, the small bar font, the BIOS font otherwise */
-#if CH > 8
+#if CH > 8 && !defined(MONO)
 static unsigned char bfont[96][CH];
 static void
 load_bios_font(void)
@@ -376,7 +434,10 @@ glyph(unsigned char c)
   if(c < 32 || c >= 128) {
     c = '?';
   }
-#if CH > 8
+#if CH > 8 && defined(MONO)
+  /* tall cells on two colours: Clean Bold, one row lower in the bars */
+  return font_tall[c - 32] + (barfont ? 0 : 1);
+#elif CH > 8
   return bfont[c - 32];
 #else
 #if defined(MONO)
@@ -555,8 +616,8 @@ desk_cell(unsigned char cx, unsigned char cy)
 #if defined(MONO)
   /* the wallpaper bytes, and the icon column line where it runs */
   unsigned short Y = cy * CH;
-  for(r = 0; r < 8; ++r) {
-    mb[r] = (cy == SH - 2 && r == 7) ? 0xff : wall[r];   /* line over the status bar */
+  for(r = 0; r < CH; ++r) {
+    mb[r] = (cy == SH - 2 && r == CH - 1) ? 0xff : wall[(Y + r) & 7];   /* line over the status bar */
     if(cx == SEP_X / 8 && Y + r >= CH + CH / 2 && Y + r < (SH - 1) * CH - CH / 2) {
       mb[r] |= 0x80 >> (SEP_X & 7);
     }
@@ -768,7 +829,7 @@ bar:
         if(X <= gL + 1 || X >= gR - 1 || (CGA_BAR == 1 && r == 0)) {
           return edge;                  /* the double frame goes round the bar */
         }
-        if(gactive && bar_lines[r] && !onplate && X >= gL + 3 && X <= gR - 3) {
+        if(gactive && bar_lines(r) && !onplate && X >= gL + 3 && X <= gR - 3) {
           return C_BAR_AT;
         }
       }
@@ -835,6 +896,27 @@ span(unsigned short X0, unsigned short a, unsigned short b)
   ((a) <= (X0) && (b) >= (X0) + 7 && (a) <= (b)) ? 0xff : span(X0, a, b))
 #endif
 #if defined(MONO)
+/* Masks for the rows of a cell, as span() for the pixels: the top bit is
+   row 0 */
+#if CH == 8
+typedef unsigned char rmask_t;
+#define RSPAN(Y0, a, b) SPAN(Y0, a, b)
+#define RBIT0 0x80
+#else
+typedef unsigned short rmask_t;
+#define RBIT0 0x8000
+static rmask_t
+RSPAN(unsigned short Y0, unsigned short a, unsigned short b)
+{
+  unsigned char lo, hi;
+  if(b < a || b < Y0 || a > Y0 + CH - 1) {
+    return 0;
+  }
+  lo = a > Y0 ? a - Y0 : 0;
+  hi = b < Y0 + CH - 1 ? b - Y0 : CH - 1;
+  return (0xffffu >> lo) & (unsigned short)(0xffffu << (15 - hi));
+}
+#endif
 /* The window cell on two colours, a row at a time, into mb. The masks
    along the cell do not change from row to row, so they are worked out
    once a cell. */
@@ -844,8 +926,8 @@ wcell(unsigned char cx, unsigned char cy)
   unsigned char r;
   unsigned short X0 = cx * 8, Y0 = cy * CH;
   unsigned char m_shr, m_shb, plate, m_cut, m_in, m_edge, m_sep, m_lines,
-    m_boxin, m_boxside, m_box, m_desk, rm_desk, rm_shr, rm_shb, rm_cut,
-    rm_win, bit;
+    m_boxin, m_boxside, m_box, m_desk;
+  rmask_t rm_desk, rm_shr, rm_shb, rm_cut, rm_win, bit;
   short d;
   m_shr = SPAN(X0, gR + 1, gR + SHX);
   m_shb = SPAN(X0, gL + SHX, gR + SHX - 1);
@@ -853,7 +935,7 @@ wcell(unsigned char cx, unsigned char cy)
   m_in = SPAN(X0, gL, gR);
   m_edge = SPAN(X0, gL, gL) | SPAN(X0, gR, gR);
   m_sep = m_lines = m_boxin = m_boxside = m_box = 0;
-  if(Y0 <= gT + BAR_SEP && Y0 + 7 >= gT) {
+  if(Y0 <= gT + BAR_SEP && Y0 + CH - 1 >= gT) {
     /* the cell has rows of the title bar */
     plate = gn ? SPAN(X0, gtx0 - 4, gtx0 + gn * ADV + 3) : 0;
     m_sep = m_cut & (BAR_SEP < CH - 1 ? ~plate : 0xff);
@@ -865,17 +947,16 @@ wcell(unsigned char cx, unsigned char cy)
     }
   }
   m_desk = cx == SEP_X / 8 ? 0x80 >> (SEP_X & 7) : 0;
-  /* the same for the rows: bit 7 is row 0 */
-  rm_desk = m_desk ? SPAN(Y0, CH + CH / 2, (SH - 1) * CH - CH / 2 - 1) : 0;
-  rm_shr = SPAN(Y0, gT + SHY + 1 - gabove, gB + SHY);
-  rm_shb = SPAN(Y0, gB + 1, gB + SHY);
-  rm_cut = SPAN(Y0, gB, gB) | (CGA_BAR == 1 ? SPAN(Y0, gT, gT) : 0);
-  rm_win = SPAN(Y0, gT, gB) & ~rm_cut;
+  rm_desk = m_desk ? RSPAN(Y0, CH + CH / 2, (SH - 1) * CH - CH / 2 - 1) : 0;
+  rm_shr = RSPAN(Y0, gT + SHY + 1 - gabove, gB + SHY);
+  rm_shb = RSPAN(Y0, gB + 1, gB + SHY);
+  rm_cut = RSPAN(Y0, gB, gB) | (CGA_BAR == 1 ? RSPAN(Y0, gT, gT) : 0);
+  rm_win = RSPAN(Y0, gT, gB) & ~rm_cut;
   d = (short)Y0 - (short)gT;            /* bar row of pixel row 0 */
-  for(r = 0, bit = 0x80; r < 8; ++r, bit >>= 1) {
-    unsigned char v = wall[r];
-    if(cy == SH - 2 && r == 7) {
-      v = 0xff;
+  for(r = 0, bit = RBIT0; r < CH; ++r, bit >>= 1) {
+    unsigned char v = wall[(Y0 + r) & 7];
+    if(cy == SH - 2 && r == CH - 1) {
+      v = 0xff;                         /* line over the status bar */
     }
     if(rm_desk & bit) {
       v |= m_desk;
@@ -892,21 +973,19 @@ wcell(unsigned char cx, unsigned char cy)
     } else if(rm_win & bit) {
       short rr = d + r;
       v = (v & ~m_in) | m_edge;
-      /* the title sits on a white plate that also opens the top line, so
-         the 8x8 letters have rows 0-6 to themselves */
       if(rr == BAR_SEP) {
-        /* line under the bar; on row 6 the title plate opens it, as the
-           letters reach that row */
+        /* line under the bar; on 8-pixel cells with the frame inside the
+           title row, the title plate opens it, as the letters reach it */
         v |= m_sep;
       } else if(rr < BAR_SEP && gactive) {
         /* lines along the bar, with plates for the close box and the
            title */
-        if(bar_lines[rr]) {
+        if(bar_lines(rr)) {
           v |= m_lines;
         }
-        if(rr == 1 || rr == CH - 2) {
+        if(rr == BOX_T || rr == BOX_B) {
           v |= m_boxin;
-        } else if(rr > 1 && rr < CH - 2) {
+        } else if(rr > BOX_T && rr < BOX_B) {
           v |= m_boxside | m_box;
         }
       }
@@ -914,9 +993,9 @@ wcell(unsigned char cx, unsigned char cy)
     mb[r] = v;
   }
 }
-#if CGA_BAR == 2
-/* A cell of the title row between the sides of the frame: the bar rows,
-   then the line under it; nothing of the desktop shows */
+/* A cell of the title row between the sides of the frame: the frame when
+   it is in this row, the bar rows, then the line under it; nothing of the
+   desktop shows */
 static void
 bar_cell(unsigned short X0)
 {
@@ -929,17 +1008,22 @@ bar_cell(unsigned short X0)
       (gkf_close ? SPAN(X0, gbox0, gbox1) : 0);
   }
   for(r = 0; r < BAR_SEP; ++r) {
-    unsigned char v = bar_lines[r] ? m_lines : 0;
-    if(r == 1 || r == CH - 2) {
+    unsigned char v = bar_lines(r) ? m_lines : 0;
+    if(r == BOX_T || r == BOX_B) {
       v |= m_boxin;
-    } else if(r > 1 && r < CH - 2) {
+    } else if(r > BOX_T && r < BOX_B) {
       v |= m_boxside;
     }
     mb[r] = v;
   }
+  if(CGA_BAR == 1) {
+    mb[0] = 0xff;                       /* the frame */
+  }
   mb[BAR_SEP] = BAR_SEP < CH - 1 ? ~plate : 0xff;
+  for(r = BAR_SEP + 1; r < CH; ++r) {
+    mb[r] = 0;
+  }
 }
-#endif
 #define wcell_done() do { } while(0)
 #elif defined(GFX_CGA4) && CGA_BAR == 2
 /* Four colours: the window cell in the bit planes, filled by masks as on
@@ -1009,7 +1093,7 @@ wcell(unsigned char cx, unsigned char cy)
       } else {
         FILL(wm, C_PAPER);
         FILL(wm & m_e2, C_EDGE_A);
-        if(bar_lines[rr]) {
+        if(bar_lines(rr)) {
           FILL(m_lines, C_BAR_AT);
         }
         if(m_box && rr >= 1 && rr <= CH - 2) {
@@ -1058,7 +1142,7 @@ title_cell(unsigned char cx)
 {
   unsigned char c, r, fg;
   unsigned short X0 = cx * 8;
-#if defined(MONO) && CGA_BAR == 2
+#if defined(MONO)
   if(cx > gx && cx < gxr) {
     bar_cell(X0);                       /* wholly inside the frame */
   } else
@@ -1180,8 +1264,8 @@ title_kind(unsigned char cx)
 #endif
 }
 #if defined(MONO)
-static unsigned char cache[2][8];
-#define SAVE(k) memcpy(cache[k], mb, 8)
+static unsigned char cache[2][CH];
+#define SAVE(k) memcpy(cache[k], mb, CH)
 #define PUT(k, cx, cy) blit_bytes(cx, cy, cache[k])
 #elif defined(GFX_CGA4) && CGA_BAR == 2
 static unsigned char cache[2][16];
@@ -1312,14 +1396,17 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
       }
 #if defined(MONO) || defined(GFX_CGA4)
       if(key == 255 || r == 1 || r == 2 || r >= SH - 3 ||
-         gx == SEP_X / 8 || gxr == SEP_X / 8) {
+         gx == SEP_X / 8 || gxr == SEP_X / 8 ||
+         (CH & 7 && ((r * CH) & 7) != key)) {
+        /* (cells of 14 rows meet the 8-row wallpaper at another row each
+           time: key keeps the row it starts at) */
 #else
       if(1) {
 #endif
-        key = 0;
+        key = (r * CH) & 7;
         wcell(gx, r);
 #if defined(MONO)
-        memcpy(lpix[0], mb, 8);
+        memcpy(lpix[0], mb, CH);
 #elif defined(GFX_CGA4) && CGA_BAR == 2
         planes4();
         memcpy(lpix[0], cb4, 16);
@@ -1328,7 +1415,7 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
 #endif
         wcell(gxr, r);
 #if defined(MONO)
-        memcpy(rpix[0], mb, 8);
+        memcpy(rpix[0], mb, CH);
 #elif defined(GFX_CGA4) && CGA_BAR == 2
         planes4();
         memcpy(rpix[0], cb4, 16);
@@ -1382,7 +1469,7 @@ comp_text(unsigned char c, unsigned char fg)
 #if defined(MONO)
   const unsigned char *g;
   unsigned char r;
-  for(r = 0; r < 8; ++r) {
+  for(r = 0; r < CH; ++r) {
     mb[r] = -rowbg[r];                  /* C_INK is 1: 0xff, C_PAPER 0 */
   }
   if(c == ' ') {
@@ -1390,11 +1477,11 @@ comp_text(unsigned char c, unsigned char fg)
   }
   g = glyph(c);
   if(fg == C_INK) {
-    for(r = 0; r < 8; ++r) {
+    for(r = 0; r < CH; ++r) {
       mb[r] |= g[r];
     }
   } else {
-    for(r = 0; r < 8; ++r) {
+    for(r = 0; r < CH; ++r) {
       mb[r] &= ~g[r];
     }
   }
@@ -1456,11 +1543,61 @@ set_mode(unsigned char mode)
 {
   bios10(mode, 0);
 }
+/* the BIOS video mode at start, given back at the end */
+static unsigned char
+get_mode(void)
+{
+  unsigned short ax = 0x0f00, bx = 0;
+  __asm__ volatile ("push %%bp\n\tint $0x10\n\tpop %%bp"
+                    : "+a" (ax), "+b" (bx)
+                    : : "cx", "dx", "si", "di", "memory", "cc");
+  return ax & 0x7f;
+}
+static unsigned char start_mode = 3;
+
+#if defined(GFX_HERC)
+/* Hercules graphics: no BIOS mode, the 6845 is programmed here (values of
+   the Hercules technical reference, as in the nano-X driver of ELKS) */
+static void
+crtc(const unsigned char *v, unsigned char n)
+{
+  unsigned char i;
+  for(i = 0; i < n; ++i) {
+    outb(0x3b4, i);
+    outb(0x3b5, v[i]);
+  }
+}
+static const unsigned char herc_gfx[10] = {
+  0x35, 0x2d, 0x2e, 0x07, 0x5b, 0x02, 0x57, 0x57, 0x02, 0x03
+};
+static const unsigned char herc_txt[12] = {
+  0x61, 0x50, 0x52, 0x0f, 0x19, 0x06, 0x19, 0x19, 0x02, 0x0d, 0x0b, 0x0c
+};
+static void
+herc_graphics(void)
+{
+  unsigned short i;
+  outb(0x3bf, 3);                       /* allow graphics, both pages */
+  outb(0x3b8, 0x02);                    /* graphics, video off */
+  crtc(herc_gfx, 10);
+  for(i = 0; i < 0x8000; ++i) {
+    VRAM[i] = 0;                        /* page 0, black */
+  }
+  outb(0x3b8, 0x0a);                    /* graphics, video on, page 0 */
+}
+#endif
 
 void
 ctk_cga_exit(void)
 {
-  set_mode(3);
+#if defined(GFX_HERC)
+  outb(0x3b8, 0);
+  outb(0x3bf, 0);
+  crtc(herc_txt, 12);
+  set_mode(7);
+#else
+  set_mode(start_mode);
+#endif
 }
 
 #if defined(GFX_MCGA) || defined(GFX_VGA)
@@ -1547,7 +1684,33 @@ ctk_draw_init(void)
     ctk_cga_wallpaper = 0;
   }
   wall = wallpapers[ctk_cga_wallpaper];
+  start_mode = get_mode();
+#if defined(GFX_HERC)
+  herc_graphics();
+#elif defined(GFX_ATT)
+  set_mode(0x40);                       /* AT&T 6300, Olivetti M24 */
+  if(get_mode() != 0x40) {
+    /* a BIOS without mode 40h (an Olivetti card in another PC): the CGA
+       mode, with the 400-line bit of the mode register at 3DEh */
+    set_mode(6);
+    outb(0x3de, 1);
+  }
+#elif defined(GFX_EGA2)
+  /* 640x350: mode 10h, or 0Fh on a monochrome monitor (EGA BIOS 12h/10h
+     gives BH=1); writes go to all planes, so 0 and 1 bits give black and
+     white */
+  {
+    unsigned short ax = 0x1200, bx = 0x0010;
+    __asm__ volatile ("push %%bp\n\tint $0x10\n\tpop %%bp"
+                      : "+a" (ax), "+b" (bx)
+                      : : "cx", "dx", "si", "di", "memory", "cc");
+    set_mode((bx >> 8) == 1 ? 0x0f : 0x10);
+  }
+#elif defined(GFX_VGA2)
+  set_mode(0x11);
+#else
   set_mode(6);
+#endif
 #elif defined(GFX_CGA4)
   set_mode(4);
 #elif defined(GFX_EGA)
@@ -1578,7 +1741,12 @@ round_corner(unsigned char left, unsigned char top)
   unsigned char r;
   for(r = 0; r < 3; ++r) {
     unsigned char k = corner_cut[r];
-    mb[top ? r : 7 - r] |= left ? (unsigned char)(0xff << (8 - k)) : (0xff >> (8 - k));
+    unsigned char m = left ? (unsigned char)(0xff << (8 - k)) : (0xff >> (8 - k));
+#if defined(GFX_INVERT)
+    mb[top ? r : CH - 1 - r] &= ~m;     /* black corners: paper */
+#else
+    mb[top ? r : CH - 1 - r] |= m;
+#endif
   }
 }
 #endif
@@ -1743,13 +1911,35 @@ cap(unsigned char cx, unsigned char cy, unsigned char right,
   }
   return;
 #endif
-#if defined(MONO)
+#if defined(MONO) && CH == 8
   /* brackets, a pill when focused; entries: side bars and a line under */
   {
     const unsigned char (*pat)[8] = ring == 5 ? cap_boxf : ring == 4 ? cap_box :
       ring == 3 ? cap_ef : ring == 2 ? cap_e : cap_b;
     (void)r; (void)c; (void)f; (void)fill_b; (void)edge;
     blit_bytes(cx, cy, pat[right]);
+    return;
+  }
+#elif defined(MONO)
+  /* the same shapes on tall cells: the box with cut corners (a second line
+     on each side when focused), the entry's side bars and line under */
+  {
+    unsigned char top, mid, bot;
+    if(ring >= 4) {
+      top = bot = right ? 0xe0 : 0x07;
+      mid = ring == 5 ? (right ? 0x14 : 0x28) : (right ? 0x10 : 0x08);
+    } else if(ring >= 2) {
+      mid = top = ring == 3 ? (right ? 0x0f : 0xf0) : (right ? 0x03 : 0xc0);
+      bot = 0xff;
+    } else {
+      top = bot = right ? 0x70 : 0x0e;
+      mid = right ? 0x0c : 0x30;
+    }
+    for(r = 0; r < CH; ++r) {
+      mb[r] = r == 0 ? top : r == CH - 1 ? bot : mid;
+    }
+    (void)c; (void)f; (void)fill_b; (void)edge;
+    blit_bytes(cx, cy, mb);
     return;
   }
 #endif
@@ -1764,7 +1954,7 @@ cap(unsigned char cx, unsigned char cy, unsigned char right,
   pix_hline(CH - 1, right ? 0 : f, right ? f : 7, edge);
   pix[0][f] = C_PAPER;                  /* cut corners */
   pix[CH - 1][f] = C_PAPER;
-#if CH > 8
+#if CH > 8 && !defined(MONO)
   if(ring) {
     /* focus ring outside the frame, on cells tall enough for it */
     unsigned char g = right ? f + 2 : f - 2;
@@ -1869,7 +2059,7 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
 #if defined(MONO)
         /* two colours: the icon is stored as cells, ready to copy */
         (void)d0; (void)Y0;
-        blit_bytes(xpos + i, cy, ic->px + ((unsigned short)j * GFX_ICON_CW + i) * 8);
+        blit_bytes(xpos + i, cy, ic->px + ((unsigned short)j * GFX_ICON_CW + i) * CH);
         continue;
 #elif defined(GFX_CGA4) && defined(GFX_ICON_PACKED4)
         /* four colours: cells packed as in video memory, over black */
@@ -1922,7 +2112,7 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
   /* title under the icon, centred; when selected, in a pill. A long title
      keeps its first word ("About Contiki" -> "About"). */
   len = strlen(w->widget.icon.title);
-  if(len > GFX_ICON_CW + 2) {
+  if(len > GFX_ICON_CW) {
     for(i = 0; i < len && w->widget.icon.title[i] != ' '; ++i) ;
     len = i;
   }
@@ -1950,7 +2140,7 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
       if(sel && (i == 0 || i == len - 1)) {
         unsigned char bit = i == 0 ? 0x80 : 0x01;
         mb[0] &= ~bit;
-        mb[7] &= ~bit;
+        mb[CH - 1] &= ~bit;
       }
       blit_bytes(x + i, ty, mb);
     }
@@ -2124,7 +2314,7 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
           rows_bar(1);
         }
 #endif
-#if CH == 8
+#if CH == 8 || defined(MONO)
         rowbg[CH - 1] = e;              /* a line under the text */
 #else
         rowbg[0] = rowbg[CH - 1] = e;

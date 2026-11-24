@@ -38,8 +38,42 @@
 #define GFX_ICON_CW 5
 #define GFX_ICON_RH 4
 #define GFX_LABEL "MCGA 320x200"
+/* Two-colour screens with tall cells, drawn like CGA two colours */
+#elif defined(GFX_HERC)         /* Hercules 720x348, programmed directly */
+#define GFX_SW 90
+#define GFX_SH 24
+#define GFX_CH 14
+#define GFX_ICON_CW 10
+#define GFX_ICON_RH 3
+#define GFX_INVERT 1            /* light lines on black, as on the trial */
+#define GFX_LABEL "Hercules 720x348"
+#elif defined(GFX_ATT)          /* AT&T 6300 / Olivetti M24 640x400, mode 40h */
+#define GFX_SW 80
+#define GFX_SH 25
+#define GFX_CH 16
+#define GFX_ICON_CW 12
+#define GFX_ICON_RH 4
+#define GFX_LABEL "640x400"
+#elif defined(GFX_EGA2)         /* EGA 640x350, 2 colours, mode 10h (0Fh mono) */
+#define GFX_SW 80
+#define GFX_SH 25
+#define GFX_CH 14
+#define GFX_ICON_CW 10
+#define GFX_ICON_RH 3
+#define GFX_LABEL "EGA 640x350 2"
+#elif defined(GFX_VGA2)         /* VGA 640x480, 2 colours, mode 11h */
+#define GFX_SW 80
+#define GFX_SH 30
+#define GFX_CH 16
+#define GFX_ICON_CW 12
+#define GFX_ICON_RH 4
+#define GFX_LABEL "VGA 640x480 2"
 #else
-#error "define one of GFX_CGA, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA"
+#error "define one of GFX_CGA, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA, GFX_HERC, GFX_ATT, GFX_EGA2, GFX_VGA2"
+#endif
+#if defined(GFX_CGA) || defined(GFX_HERC) || defined(GFX_ATT) || \
+    defined(GFX_EGA2) || defined(GFX_VGA2)
+#define GFX_MONO 1              /* two colours, cells kept as bytes */
 #endif
 
 /* Desktop icon column, used by ctk.c (patched by "make fetch") */

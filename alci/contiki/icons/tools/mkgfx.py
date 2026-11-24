@@ -16,7 +16,11 @@ from scipy import ndimage
 HERE = os.path.dirname(os.path.abspath(__file__))
 PNG = os.path.join(HERE, '..', 'png')
 SETS = {'cga': 'cga640-mono', 'cga4': 'cga320-4col', 'ega': 'ega640x350-16col',
-        'vga': 'vga640-16col', 'mcga': 'modern-64'}
+        'vga': 'vga640-16col', 'mcga': 'modern-64',
+        'herc': 'hercules-mono', 'att': 'hires640x400-mono',
+        'ega2': 'hercules-mono', 'vga2': 'hires640x400-mono'}
+# two-colour screens and the height of their cells
+MONO_CH = {'cga': 8, 'herc': 14, 'att': 16, 'ega2': 14, 'vga2': 16}
 MCGA_BASE, MCGA_N = 200, 48
 
 
@@ -53,11 +57,14 @@ def main():
             if im.mode != 'P':
                 raise SystemExit('%s: expected a palette PNG' % n)
             idx = np.asarray(im).astype(int)
-            if target == 'cga':
-                # 0 white paper, 1 black ink in the drawing layer; drawn opaque
+            if target in MONO_CH:
+                # 1 = ink in the drawing layer, drawn opaque. The figure is
+                # dark on white in most sets; the Hercules set has it light
+                # on black, so there the light pixels are the ink
                 p = im.getpalette()
-                lum = [sum(p[3 * i:3 * i + 3]) for i in range(len(p) // 3)]
-                idx = np.where(np.array(lum)[idx] < 384, 1, 0)
+                lum = np.array([sum(p[3 * i:3 * i + 3]) for i in range(len(p) // 3)])
+                light = SETS[target] == 'hercules-mono'
+                idx = np.where((lum[idx] >= 384) if light else (lum[idx] < 384), 1, 0)
             else:
                 paper = int(np.bincount(np.concatenate([idx[0], idx[-1], idx[:, 0], idx[:, -1]])).argmax())
                 idx = idx.copy()
@@ -73,14 +80,18 @@ def main():
         f.write('#ifndef GFX_PALETTE_ONLY\n')
         for n, a in zip(names, icons):
             h, w = a.shape
-            if target == 'cga':
-                # two colours: cells of 8x8, rows of cells top to bottom, one
-                # byte per pixel row, leftmost pixel in the top bit, 1 = ink
+            if target in MONO_CH:
+                # two colours: cells of 8 x cell height, rows of cells top to
+                # bottom, one byte per pixel row, leftmost pixel in the top
+                # bit, 1 = ink
+                ch = MONO_CH[target]
+                if h % ch or w % 8:
+                    raise SystemExit('%s: %dx%d is not whole cells of 8x%d' % (n, w, h, ch))
                 cells = []
-                for cy in range(h // 8):
+                for cy in range(h // ch):
                     for cx in range(w // 8):
-                        for r in range(8):
-                            row = a[cy * 8 + r, cx * 8:cx * 8 + 8]
+                        for r in range(ch):
+                            row = a[cy * ch + r, cx * 8:cx * 8 + 8]
                             cells.append(int(''.join(str(int(v)) for v in row), 2))
                 flat = np.array(cells)
                 f.write('static const unsigned char gfx_icon_%s_px[%d] = {\n' % (n, len(flat)))

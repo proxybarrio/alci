@@ -192,3 +192,7 @@
   title bar with the title on a plate, the 8x8 font throughout, no line
   through letters. Checked on QEMU; MartyPC 8088 timings in
   `alci/contiki/README.md`.
+- D7: faster two-colour window drawing and four-colour CGA on bit planes
+  (8088: full redraw with the calculator 0.72 s and 0.88 s). New programs
+  `ctk-herc`, `ctk-att`, `ctk-ega2`, `ctk-vga2` (two colours, cells of 14
+  and 16 rows), checked on QEMU and 86Box; `desk` detects them.
