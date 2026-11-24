@@ -208,3 +208,8 @@
   shell then prints the file as a garbled script. Header marker options
   in `RESULTS.md`, for decision. New test `alci/tests/foreign-exec.sh`.
   No change to the kernel or the programs.
+- Rest of upstream ELKS merged (`a450d52`): the `/bootopts` boot fix
+  for FAT boot sectors only (MINIX disks already clear the old copy in
+  the loader), and ept, the ELKS package tool, which reaches disk 2 of
+  the 720K set (13 KB left there). Timings, suites and resident memory
+  unchanged.

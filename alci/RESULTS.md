@@ -934,6 +934,23 @@ kernel image keeps its size), boot line `Kernel text 330 ftext 10cc init
 16e2 data 1936 end 2936 top 9f80 473+9+0K free` unchanged. V4 and V5:
 no timer, tty or serial code in the merged commits.
 
+## Upstream merge up to `a450d52` (2026-11-24)
+
+The rest of upstream master after `a3d4940`: `e47e635` (old `/bootopts`
+copy cleared at boot) kept for FAT boot sectors only, `342cf3a` and
+`139b823` (ept, the ELKS package tool, on 1440k images, so also on disk
+2 of the 720K set), `a450d52` (comment). Alci `e68509c` -> `5209a99`,
+same configuration, toolchain and MartyPC.
+
+V2: all eleven `bench.sh` and `bench2.sh` timings within 0.1% of the
+`3b32898` figures above (boot to prompt 13.694 s). V1: strict suites
+34/34 on QEMU hd32 and fd720 and on the 86Box IBM XT; outputs identical
+except `ls /bin | wc -l` on hd32, 149 -> 150 (ept). The FAT 1.44M image
+boots on QEMU and reads its `/bootopts`. V3: kernel and resident memory
+unchanged (same `Kernel text` line); MINIX boot sector unchanged; FAT
+boot sector +6 bytes, 0 left. Disk 2 of the 720K set: 82 files, ept
+included (6110 bytes), 13 KB free (was 19). V4, V5: not touched.
+
 ## Alci programs on an unmodified ELKS kernel, task F4e1 (2026-11-24)
 
 Question: what does an ELKS kernel without the LZSA1 decoder do with a
@@ -999,4 +1016,4 @@ adapting; the maintainer decides how.
 
 | sha | title | check | numbers | decision |
 | --- | --- | --- | --- | --- |
-| `e47e635` | [boot] Fix reusing deleted FAT /bootopts after a warm reboot | build | adds 6 bytes at the start of `boot_sect.S`; Alci's MINIX boot sector has 0 bytes free (`end_of_code` = `elks_parms_start` = 0x1F3 since the one-request zone reads of A3), so the build stops with "attempt to move .org backwards" | open: the maintainer decides (find 6 bytes in Alci's loader, keep the upstream fix for FAT images only, or leave it out) |
+| `e47e635` | [boot] Fix reusing deleted FAT /bootopts after a warm reboot | build | adds 6 bytes at the start of `boot_sect.S`; Alci's MINIX boot sector has 0 bytes free (`end_of_code` = `elks_parms_start` = 0x1F3 since the one-request zone reads of A3), so the build stops with "attempt to move .org backwards" | 2026-11-24: taken for FAT boot sectors only (`77dcbc7`); the MINIX loader already clears the old copy in `load_prog()`. FAT boot sector now full (0 bytes free) |
