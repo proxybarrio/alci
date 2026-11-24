@@ -186,12 +186,9 @@
 
 ## 2026-11-24
 
-- D7: the colour screens get their own drawing layer
-  (`alci/contiki/ctk-gfx.c`, programs `ctk-cga4`, `ctk-ega`, `ctk-vga`,
-  `ctk-mcga`, launcher `desk`). The shape style tried for CGA (striped
-  bar, small bold font) read badly and was dropped: `ctk` keeps
-  `ctk-cga.c` and the P1 theme, now with the 8x8 font and no line through
-  letters (bracket buttons, underlined entries, status line drawn above
-  its row). CGA four colours takes the P1 double frame. Checked on QEMU;
-  MartyPC 8088 timings in `alci/contiki/README.md`: `ctk` as before,
-  `ctk-cga4` desktop 1.37 s.
+- D7: one drawing layer for every screen type (`alci/contiki/ctk-gfx.c`,
+  programs `ctk`, `ctk-cga4`, `ctk-ega`, `ctk-vga`, `ctk-mcga`, launcher
+  `desk`), replacing the CGA-only layer. Both CGA builds: lined active
+  title bar with the title on a plate, the 8x8 font throughout, no line
+  through letters. Checked on QEMU; MartyPC 8088 timings in
+  `alci/contiki/README.md`.

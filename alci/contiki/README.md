@@ -10,29 +10,30 @@ asks the video BIOS what is fitted and starts the right one:
 
 | Program | Screen | Cells | Look |
 | --- | --- | --- | --- |
-| `ctk` | CGA 640x200, 2 colours (also EGA, VGA, LCDs in that mode) | 80x25 of 8x8 | CGA theme P1 |
-| `ctk-cga4` | CGA 320x200, 4 colours (palette 1, high intensity) | 40x25 of 8x8 | colour style with the P1 frame |
+| `ctk` | CGA 640x200, 2 colours (also EGA, VGA, LCDs in that mode) | 80x25 of 8x8 | two-colour style |
+| `ctk-cga4` | CGA 320x200, 4 colours (palette 1, high intensity) | 40x25 of 8x8 | lined bar, double frame |
 | `ctk-ega` | EGA 640x350, 16 of the 64 EGA colours | 80x25 of 8x14 | colour style |
 | `ctk-vga` | VGA 640x480, 16 colours | 80x30 of 8x16 | colour style |
 | `ctk-mcga` | MCGA (and VGA) 320x200, 256 colours | 40x25 of 8x8 | colour style, graded |
 
 State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
 About dialog and the calculator work on all five screens on QEMU; timings
-of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 18.6 KB,
+of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 19.8 KB,
 `ctk-cga4` 22.2 KB, `ctk-ega` 25.1 KB, `ctk-mcga` 22.6 KB, `ctk-vga`
 35.8 KB (its two built-in icons are 104x80 pixels), `desk` 1.3 KB.
 
 ## Looks
 
-CGA two colours (`ctk`, own layer `ctk-cga.c`): the Alci CGA theme P1,
-drawn by hand in `theme/p1.py`: double window frame (a thick line and a
-thin one), black title bar with `// title` in white, close box on the
-right, dotted shadow, light dotted desktop. The 8x8 font throughout and no
-line through the letters: buttons are rounded brackets, `(7)`, and a
-filled pill when focused; text entries have side bars and a line under
-the text; the inactive title cuts the top line; the line over the status
-bar runs in the row above it. (The "shape" style tried on 2026-11-23, with
-a striped bar and a small bold font, read badly and was dropped.)
+CGA two colours (`ctk`): the active title bar carries thin horizontal
+lines (rows 1, 3 and 5 of the bar), with the title centred on a white plate
+that also opens the top line, and the close box on the left on a plate of
+its own; inactive bars are plain. Corners cut by one pixel, solid shadow,
+rounded screen corners, the selected icon title in an inverted pill. The
+8x8 font throughout and no line through the letters: buttons are rounded
+brackets, `(7)`, and a filled pill when focused; text entries have side
+bars and a line under the text; the line over the status bar runs in the
+row above it. (Tried and dropped: a black bar with oblique lines, dots
+on the lower half of the bar, a small bold font.)
 
 Colour screens (`ctk-gfx.c`): a two-tone title bar (graded on MCGA),
 `/// title` on the left, a light line on the bar after the title, close box
@@ -41,10 +42,12 @@ an etched line beside the icon column, buttons two-toned and blue when
 they have the focus, with a light ring on cells 14 and 16 pixels high. The
 EGA colours are those of the EGA icon set; the desktop is white above, a
 fine white and grey checker across the middle, grey below. CGA four
-colours also takes the double frame of P1. On 8-pixel cells (CGA four
+colours takes the lined bar of the two-colour screen (magenta lines on
+black, white title on a plate) and a double frame, thick and thin, in
+cyan. On 8-pixel cells (CGA four
 colours, MCGA) the 8x8 font is used everywhere, the title bar fills the
 whole top row so no line runs through the letters, and buttons and
-entries are drawn as on P1. Cells of 14 and 16 pixels use the font of the
+entries are drawn as on two colours. Cells of 14 and 16 pixels use the font of the
 video BIOS, read at start-up.
 
 ## Timings
@@ -56,14 +59,16 @@ back to text mode (10 ms resolution). "Before" is the CGA-only layer of
 
 | Step | `ctk` before | `ctk` now | `ctk-cga4` |
 | --- | --- | --- | --- |
-| `-q`, first run (program read from floppy) | 5.32 s | 5.09 s | 6.30 s |
-| desktop drawn and settled | 0.55 s | 0.56 s | 1.37 s |
-| repaint of the whole background | 0.50 s | 0.51 s | 0.72 s |
-| open the calculator | 0.03 s | 0.03 s | 0.15 s |
-| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 0.67 s | 2.99 s |
-| open the About dialog | 0.01 s | 0.01 s | 0.01 s |
+| `-q`, first run (program read from floppy) | 5.32 s | 5.26 s | 6.56 s |
+| desktop drawn and settled | 0.55 s | 0.58 s | 1.37 s |
+| repaint of the whole background | 0.50 s | 0.50 s | 0.72 s |
+| open the calculator | 0.03 s | 0.07 s | 0.15 s |
+| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 1.05 s | 2.97 s |
+| open the About dialog | 0.01 s | 0.02 s | 0.01 s |
 
-The colour builds compose cells pixel by pixel and are meant first for
+On two colours the frequent cells (desktop, text, buttons, icons, the
+middle of title bars and borders) are written as 8 bytes, and window
+borders are composed a pixel row at a time with bit masks. The colour builds compose cells pixel by pixel and are meant first for
 286 and later machines; on the 8088 the four-colour CGA build works but is
 slower, and its window borders are the next thing to speed up.
 
@@ -83,11 +88,7 @@ back to the text console.
 
 ## Files
 
-- `ctk-cga.c`, `theme-default.c`, `elks/ctk-hires-theme.h`, `theme/p1.py`,
-  `theme/mkheader.py`, `theme-p1.h`: the CGA two-colour layer and the P1
-  theme pieces (`python3 theme/mkheader.py > theme-p1.h`).
-- `ctk-gfx.c`: the drawing layer for the colour screens (it also holds a
-  two-colour "shape" style, not built). Same structure as
+- `ctk-gfx.c`: the drawing layer for every screen type. Same structure as
   the C64 "hires" driver of Contiki 1.x (`contiki-c64/ctk/ctk-hires.c` and
   its 6502 assembly), in C: the screen is a grid of cells, each cell is
   composed (into 8 bytes on two colours, into a buffer of colour indices

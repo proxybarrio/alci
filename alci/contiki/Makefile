@@ -18,8 +18,6 @@ LDFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff 
 VPATH = $(CONTIKI)/ctk $(CONTIKI)/ek $(CONTIKI)/lib $(CONTIKI)/apps
 COMMON = main.c ctk.c ek.c arg.c timer.c \
 	program-handler.c petsciiconv.c about.c about-dsc.c calc.c calc-dsc.c
-# CGA two colours keeps its own layer and theme; the colour screens share one
-SRCS_cga = $(COMMON) ctk-cga.c theme-default.c
 SRCS_col = $(COMMON) ctk-gfx.c
 # icons built into the desktop
 ICONS = about calculator
@@ -37,7 +35,7 @@ obj-$(1)/%.o: %.c obj-$(1)/gfx-icons.h gfx.h
 $(2): $(patsubst %.c,obj-$(1)/%.o,$(SRCS_$(3)))
 	$(CC) $(LDFLAGS) -o $$@ $$^
 endef
-$(eval $(call target,cga,ctk,cga))
+$(eval $(call target,cga,ctk,col))
 $(eval $(call target,cga4,ctk-cga4,col))
 $(eval $(call target,ega,ctk-ega,col))
 $(eval $(call target,vga,ctk-vga,col))
