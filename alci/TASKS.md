@@ -401,17 +401,19 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   type, one program per type from the same sources: `ctk` CGA 640x200 two
   colours, `ctk-cga4` CGA 320x200 four colours, `ctk-ega` EGA 640x350,
   `ctk-vga` VGA 640x480, `ctk-mcga` MCGA 320x200; `desk` asks the video BIOS
-  and starts the right one. CGA (both): active title bar with thin
-  horizontal lines and the title on a plate (four colours: magenta lines,
-  cyan double frame); the 8x8 font throughout, no line through letters
-  (bracket buttons, underlined entries). The small bold bar font read badly
-  and was dropped. Each build carries the icons of its family (MCGA:
-  reduced from the modern set for now). All five checked on QEMU; on
-  MartyPC 8088 `ctk` draws the desktop in 0.58 s and the background in
-  0.50 s as before, 1.05 s instead of 0.67 s for the five calculator keys,
-  19.8 KB; `ctk-cga4` draws the desktop in 1.37 s. Next: faster borders on
-  the colour builds, the T1200, Hercules and 640x400 layers, then editor
-  and mouse.
+  and starts the right one. CGA title bar (decided 2026-11-24): one text row,
+  Contiki's window layout unchanged; thin lines one pixel row apart, the
+  frame drawn in the last pixel row above the title, lines on rows 1, 3, 5,
+  line under the bar on row 7, title on a white plate (two colours: small
+  Clean 6x6 font, close box left, boxed buttons; four colours: magenta
+  lines, cyan double frame, 8x8 font). A two-row bar was tried and set
+  aside because it changes the window layout. Bars of 14 and 16 pixel
+  rows (Hercules, 640x400, EGA/VGA two colours) can carry the full lined
+  bar of the trials. Each build carries the icons of its family (MCGA:
+  reduced from the modern set for now). MartyPC 8088: `ctk` desktop 0.57 s,
+  background 0.50 s, five calculator keys 1.08 s. Next: faster keys and
+  colour borders, CGA four colours buttons, Hercules / 640x400 / two-colour
+  EGA-VGA layers, then editor and mouse.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for
