@@ -23,6 +23,9 @@
 #include "ctk-draw.h"
 #include "gfx.h"
 #include "font8x8.h"
+#if defined(GFX_CGA)
+#include "font-bar.h"
+#endif
 
 #include <string.h>
 
@@ -305,7 +308,13 @@ glyph(unsigned char c)
 #if CH > 8
   return bfont[c - 32];
 #else
-  /* the 8x8 font everywhere: the small bar font read badly */
+#if defined(MONO)
+  /* two colours: the small Clean 6x6 font in the bars, as on the approved
+     trial; the 8x8 font in the windows */
+  if(barfont) {
+    return font_bar[c - 32];
+  }
+#endif
   return font8x8[c];
 #endif
 }
@@ -1306,6 +1315,12 @@ static const unsigned char cap_e[2][8] = {
 #if defined(MONO)
 static const unsigned char cap_ef[2][8] = {
   {0xf0,0xf0,0xf0,0xf0,0xf0,0xf0,0xf0,0xff}, {0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0x0f,0xff}};
+/* buttons as on the approved trial: a box with cut corners round the small
+   font (rows 1-6), and a second line on each side when it has the focus */
+static const unsigned char cap_box[2][8] = {
+  {0x07,0x08,0x08,0x08,0x08,0x08,0x08,0x07}, {0xe0,0x10,0x10,0x10,0x10,0x10,0x10,0xe0}};
+static const unsigned char cap_boxf[2][8] = {
+  {0x07,0x28,0x28,0x28,0x28,0x28,0x28,0x07}, {0xe0,0x14,0x14,0x14,0x14,0x14,0x14,0xe0}};
 #else
 static void
 cap8(unsigned char cx, unsigned char cy, unsigned char right,
@@ -1341,7 +1356,7 @@ cap(unsigned char cx, unsigned char cy, unsigned char right,
 #if defined(MONO)
   /* brackets, a pill when focused; entries: side bars and a line under */
   {
-    const unsigned char (*pat)[8] = fill_t == C_INK ? cap_f :
+    const unsigned char (*pat)[8] = ring == 5 ? cap_boxf : ring == 4 ? cap_box :
       ring == 3 ? cap_ef : ring == 2 ? cap_e : cap_b;
     (void)r; (void)c; (void)f; (void)fill_b; (void)edge;
     blit_bytes(cx, cy, pat[right]);
@@ -1376,10 +1391,6 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
 {
 #if defined(MONO)
   unsigned char t = C_PAPER, b = C_PAPER, fg = C_INK, e = C_INK;
-  if(kf) {
-    t = b = C_INK;
-    fg = C_PAPER;
-  }
 #elif CH == 8
   unsigned char t = C_PAPER, b = C_PAPER, fg = C_INK, e = C_EDGE_I;
   if(kf) {
@@ -1392,7 +1403,7 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
   }
 #endif
 #if defined(MONO)
-  cap(x, y, 0, t, b, e, 0);
+  cap(x, y, 0, t, b, e, kf ? 5 : 4);
 #else
   cap(x, y, 0, t, b, e, kf);
 #endif
@@ -1412,16 +1423,21 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
     }
   }
 #endif
-#if CH == 8
+#if defined(MONO)
+  rows_solid(C_PAPER);
+  rowbg[0] = rowbg[CH - 1] = C_INK;     /* the box, clear of the small font */
+#elif CH == 8
   if(!kf) {
     rows_solid(C_PAPER);
   }
 #else
   rowbg[0] = rowbg[CH - 1] = e;
 #endif
+  barfont = 1;
   text(s, len, fg);
+  barfont = 0;
 #if defined(MONO)
-  cap(cursx, y, 1, t, b, e, 0);
+  cap(cursx, y, 1, t, b, e, kf ? 5 : 4);
 #else
   cap(cursx, y, 1, t, b, e, kf);
 #endif
@@ -1520,7 +1536,9 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
        when selected */
     rows_solid(sel ? C_INK : C_PAPER);
     for(i = 0; i < len; ++i) {
+      barfont = 1;
       comp_text(w->widget.icon.title[i], sel ? C_PAPER : C_INK);
+      barfont = 0;
       if(sel && (i == 0 || i == len - 1)) {
         unsigned char bit = i == 0 ? 0x80 : 0x01;
         mb[0] &= ~bit;

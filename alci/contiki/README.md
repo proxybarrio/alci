@@ -18,39 +18,24 @@ asks the video BIOS what is fitted and starts the right one:
 
 State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
 About dialog and the calculator work on all five screens on QEMU; timings
-of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 19.8 KB,
+of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 20.8 KB,
 `ctk-cga4` 22.2 KB, `ctk-ega` 25.1 KB, `ctk-mcga` 22.6 KB, `ctk-vga`
 35.8 KB (its two built-in icons are 104x80 pixels), `desk` 1.3 KB.
 
 ## Looks
 
-CGA two colours (`ctk`): the active title bar as on the trial approved on
-2026-11-23: the frame, three thin lines and the line under the bar at the
-same distance (the frame runs in the last pixel row of the row above, so
-the bar keeps all 8 rows), with the title centred on a white plate, and the
-close box on the left on a plate of its own; inactive bars are plain. `-DBAR_LINES=2` gives a pair of lines
-in the middle instead. Corners cut by one pixel, solid shadow,
-rounded screen corners, the selected icon title in an inverted pill. The
-8x8 font throughout and no line through the letters: buttons are rounded
-brackets, `(7)`, and a filled pill when focused; text entries have side
-bars and a line under the text; the line over the status bar runs in the
-row above it. (Tried and dropped: a black bar with oblique lines, dots
-on the lower half of the bar, a small bold font.)
-
-Colour screens (`ctk-gfx.c`): a two-tone title bar (graded on MCGA),
-`/// title` on the left, a light line on the bar after the title, close box
-on the right, a stepped shadow (soft on MCGA, dotted on CGA four colours),
-an etched line beside the icon column, buttons two-toned and blue when
-they have the focus, with a light ring on cells 14 and 16 pixels high. The
-EGA colours are those of the EGA icon set; the desktop is white above, a
-fine white and grey checker across the middle, grey below. CGA four
-colours takes the lined bar of the two-colour screen (magenta lines on
-black, white title on a plate) and a double frame, thick and thin, in
-cyan. On 8-pixel cells (CGA four
-colours, MCGA) the 8x8 font is used everywhere, the title bar fills the
-whole top row so no line runs through the letters, and buttons and
-entries are drawn as on two colours. Cells of 14 and 16 pixels use the font of the
-video BIOS, read at start-up.
+CGA two colours (`ctk`), as on the trial approved on 2026-11-23: the
+active title bar has the frame, three thin lines and the line under the
+bar at the same distance (the frame runs in the last pixel row of the row
+above, so the bar keeps all 8 rows), the title centred on a white plate and
+the close box on the left on a plate of its own; inactive bars are plain.
+Bars, buttons and icon titles use the small Clean 6x6 font (rows 1-6 of the
+cell, so the lines stay clear of it); text inside windows uses the 8x8
+font. Buttons are boxes with cut corners, with a second line on each side
+when they have the focus; text entries have side bars and a line under the
+text. Corners cut by one pixel, solid shadow, rounded screen corners, the
+selected icon title in an inverted pill. `ctk -w none` gives the plain white
+desktop of the trial.
 
 ## Timings
 
@@ -62,10 +47,10 @@ back to text mode (10 ms resolution). "Before" is the CGA-only layer of
 | Step | `ctk` before | `ctk` now | `ctk-cga4` |
 | --- | --- | --- | --- |
 | `-q`, first run (program read from floppy) | 5.32 s | 5.26 s | 6.56 s |
-| desktop drawn and settled | 0.55 s | 0.58 s | 1.37 s |
+| desktop drawn and settled | 0.55 s | 0.57 s | 1.37 s |
 | repaint of the whole background | 0.50 s | 0.50 s | 0.72 s |
 | open the calculator | 0.03 s | 0.07 s | 0.15 s |
-| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 1.05 s | 2.97 s |
+| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 1.07 s | 2.97 s |
 | open the About dialog | 0.01 s | 0.02 s | 0.01 s |
 
 On two colours the frequent cells (desktop, text, buttons, icons, the
@@ -119,6 +104,9 @@ back to the text console.
 
 Contiki 1.x: BSD 3-clause, Copyright (c) 2002-2004 Adam Dunkels; the
 notices are kept in every file taken or adapted. font8x8: public domain.
+clR6x6 (Schumacher Clean, used for `elks/font-bar.h` by
+`theme/mkbarfont.py`): Copyright 1989 Dale Schumacher, free to use, copy,
+modify and distribute with the notice.
 The Contiki sources themselves are not copied here: `make fetch` downloads
 them, drops a `static` that current compilers reject and makes the icon
 column follow the icon size (see the Makefile).
