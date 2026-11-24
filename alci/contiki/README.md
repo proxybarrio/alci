@@ -25,9 +25,9 @@ of `ctk` and `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 20.8 KB,
 ## Looks
 
 CGA two colours (`ctk`), as on the trial approved on 2026-11-23: the
-active title bar has the frame, three thin lines and the line under the
-bar at the same distance (the frame runs in the last pixel row of the row
-above, so the bar keeps all 8 rows), the title centred on a white plate and
+active title bar is embossed: two thin lines close together in the middle,
+farther from the frame and from the line under the bar (the frame runs in
+the last pixel row of the row above, so the bar keeps all 8 rows), the title centred on a white plate and
 the close box on the left on a plate of its own; inactive bars are plain.
 Bars, buttons and icon titles use the small Clean 6x6 font (rows 1-6 of the
 cell, so the lines stay clear of it); text inside windows uses the 8x8

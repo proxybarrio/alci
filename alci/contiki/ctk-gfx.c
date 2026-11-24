@@ -117,15 +117,15 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #endif
 #define FX 3                    /* the frame runs in pixel column 3 of the border cells */
 
-/* Lines along the active title bar on CGA, as on the approved trial of
-   2026-11-23: the frame, three thin lines and the line under the bar at
-   the same distance, five lines in nine pixel rows. The frame goes in the
-   last pixel row of the cell row above the title (TOP_OUTSIDE), so that
-   the bar keeps rows 0-7: lines on rows 1, 3 and 5, the line under the bar
-   on row 7, the title on its plate in rows 0-6. */
+/* Lines along the active title bar on CGA, embossed: close together in the
+   middle and farther from the frame and from the line under the bar. The
+   frame goes in the last pixel row of the cell row above the title
+   (TOP_OUTSIDE), so the bar keeps rows 0-7: two rows clear, a line, one row
+   clear, a line, two rows clear, the line under the bar on row 7; the title
+   on its plate in rows 1-6. */
 #define TOP_OUTSIDE 1
 #define BAR_SEP 7
-static const unsigned char bar_lines[8] = {0, 1, 0, 1, 0, 1, 0, 0};
+static const unsigned char bar_lines[8] = {0, 0, 1, 0, 1, 0, 0, 0};
 
 /*---------------------------------------------------------------------------*/
 /* Low level: BIOS, ports, video memory */
