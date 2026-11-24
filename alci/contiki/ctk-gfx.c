@@ -35,7 +35,7 @@
 
 unsigned char ctk_draw_windowborder_height = 1;
 unsigned char ctk_draw_windowborder_width = 1;
-unsigned char ctk_draw_windowtitle_height;   /* set by ctk_draw_init (TROWS) */
+unsigned char ctk_draw_windowtitle_height = 1;
 
 /*---------------------------------------------------------------------------*/
 /* Colours of each screen type. Roles: paper and ink of windows, title bars
@@ -117,29 +117,28 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #endif
 #define FX 3                    /* the frame runs in pixel column 3 of the border cells */
 
-/* Title bar. On the two CGA screens (200 lines) the bar is two text rows
-   high (TROWS 2, 16 pixel rows), like the bars on the 14- and 16-pixel cells
-   of the Hercules and 640x400 trials: the frame on row 0, thin lines on rows
-   2, 4, ... 12 (active window), the line under the bar on row 14, a white
-   row 15; the title in the 8x8 font on a white plate, rows 4-11; the close
-   box rows 3-12. On the other screens the bar is one row. */
-#if (defined(MONO) || defined(GFX_CGA4))
-#define TROWS 2
-#define BAR_SEP 14
-#define TEXT_Y 4
-#define BOX_T 3
-#define BOX_B 12
-static const unsigned char bar_lines[16] = {0,0,1,0,1,0,1,0,1,0,1,0,1,0,0,0};
-#else
-#define TROWS 1
-#define BAR_SEP (CH - 1)
-#define TEXT_Y 0
-#define BOX_T 1
-#define BOX_B (CH - 2)
-static const unsigned char bar_lines[CH] = {0};
+/* Lines along the active title bar on CGA, in one text row: thin lines at
+   the same distance, one pixel row apart, as on the bars of the trials.
+   CGA_BAR 2: the frame runs in the last pixel row of the cell row above the
+     title (drawn over what is there; under the menu bar its line serves);
+     the bar keeps rows 0-7: lines on rows 1, 3, 5, the line under the bar
+     on row 7: five lines in all.
+   CGA_BAR 1: all inside the title row: frame on row 0, lines on rows 2 and
+     4, the line under the bar on row 6, a white row 7: four lines.
+   The window layout of Contiki is not changed. */
+#ifndef CGA_BAR
+#define CGA_BAR 2
 #endif
-#define TH (TROWS * CH)                 /* height of the bar in pixels */
-static const unsigned char gabove = 0;
+#define BAR_ABOVE 5                     /* (not used: kept for the record) */
+#if CGA_BAR == 2
+#define BAR_SEP 7
+static const unsigned char bar_one[8] = {0, 1, 0, 1, 0, 1, 0, 0};
+#else
+#define BAR_SEP 6
+static const unsigned char bar_one[8] = {0, 0, 1, 0, 1, 0, 0, 0};
+#endif
+static unsigned char gabove;            /* pixel rows of the bar above the title row */
+#define bar_lines bar_one
 
 /*---------------------------------------------------------------------------*/
 /* Low level: BIOS, ports, video memory */
@@ -324,7 +323,7 @@ glyph(unsigned char c)
 #else
 #if defined(MONO)
   /* two colours: the small Clean 6x6 font in the bars, as on the approved
-     trial; the 8x8 font in the windows */
+     trial; the 8x8 font in the windows (four colours: 8x8 everywhere) */
   if(barfont) {
     return font_bar[c - 32];
   }
@@ -542,7 +541,8 @@ static void
 set_geom(unsigned char x, unsigned char y, unsigned char w, unsigned char h,
          unsigned char active, const char *title, unsigned char titlelen)
 {
-  gx = x; gxr = x + w + 1; gy = y; gyb = y + h + TROWS;
+  gx = x; gxr = x + w + 1; gy = y; gyb = y + h + 1;
+  gabove = (CGA_BAR == 2 && y >= 2) ? 1 : 0;
   gL = x * 8 + FX;
   gR = gxr * 8 + FX;
   gT = y * CH;
@@ -553,9 +553,9 @@ set_geom(unsigned char x, unsigned char y, unsigned char w, unsigned char h,
 #if defined(MONO)
   /* close box on the left (cells x+1, x+2), title centred on a plate */
   gbox0 = (x + 1) * 8 + 2;
-  gbox1 = TROWS == 2 ? gbox0 + 22 : (x + 2) * 8 + 5;
+  gbox1 = (x + 2) * 8 + 5;
   {
-    unsigned short lo = gbox1 + 12, hi = gR - 8, room = hi > lo ? (hi - lo) / ADV : 0;
+    unsigned short lo = gbox1 + 10, hi = gR - 8, room = hi > lo ? (hi - lo) / ADV : 0;
     gn = titlelen < room ? titlelen : room;
     memcpy(gstr, title, gn);
     gtx0 = lo + ((hi - lo) - gn * ADV) / 2;
@@ -602,7 +602,7 @@ wpx(unsigned short X, unsigned short Y)
 #if CH == 8
     /* on 8-pixel cells the bar fills the top row too: the letters need all
        of rows 0-6, and nothing must run through them */
-    if(Y == gT && TROWS == 1) {
+    if(Y == gT) {
       ex = 0;
       ey = 0;
       if(X != gL && X != gR) {
@@ -612,7 +612,7 @@ wpx(unsigned short X, unsigned short Y)
 #endif
 #if defined(GFX_CGA4)
     /* double frame, thick outside and thin inside, as on the CGA theme P1 */
-    if(Y >= gT + TH) {
+    if(Y >= gT + CH) {
       if(X <= gL + 1 || X >= gR - 1 || Y == gB) {
         return edge;
       }
@@ -629,7 +629,7 @@ wpx(unsigned short X, unsigned short Y)
     if(ex || ey) {
       return edge;
     }
-    if(Y >= gT + TH) {
+    if(Y >= gT + CH) {
       return C_PAPER;
     }
 bar:
@@ -638,17 +638,13 @@ bar:
 #if defined(GFX_CGA4)
       if(r >= BAR_SEP) {
         unsigned char onplate = gn && X + 4 >= gtx0 && X <= gtx0 + gn * ADV + 3;
-        (void)onplate;
-        if(X <= gL + 1 || X >= gR - 1 || r == BAR_SEP) {
+        if(X <= gL + 1 || X >= gR - 1 || (r == BAR_SEP && !(onplate && BAR_SEP < CH - 1))) {
           return edge;                  /* line under the bar */
         }
         return C_PAPER;
       }
-      if(r == 0) {
-        return edge;                    /* top of the frame */
-      }
 #endif
-      if(r == BAR_SEP) {
+      if(r == CH - 1) {
         return edge;                    /* line under the bar */
       }
 #if defined(MONO)
@@ -668,15 +664,15 @@ bar:
       }
       return C_PAPER;
 #else
-      if(X >= gbox0 && X <= gbox1 && r >= BOX_T && r <= BOX_B) {
-        unsigned char bx = (X == gbox0 || X == gbox1), by = (r == BOX_T || r == BOX_B);
+      if(X >= gbox0 && X <= gbox1 && r >= 1 && r <= CH - 2) {
+        unsigned char bx = (X == gbox0 || X == gbox1), by = (r == 1 || r == CH - 2);
         if(bx || by) {
           return gkf_close ? C_RING : (gactive ? C_HL : C_EDGE_I);
         }
         {
           /* the cross */
           short cx = (short)X - (short)((gbox0 + gbox1) / 2);
-          short cy = (short)r - (short)((BOX_T + BOX_B) / 2);
+          short cy = (short)r - (short)((CH - 1) / 2);
           short a = (CH == 8) ? 2 : 3;
           if(cx >= -a && cx <= a && (cx == cy || cx == -cy || (CH > 8 && (cx == cy + 1 || cx == -cy + 1)))) {
             return gactive ? C_TITLE_A : C_INK;
@@ -689,7 +685,7 @@ bar:
          1, 3, 5) on black, the title on a plain plate */
       {
         unsigned char onplate = gn && X + 4 >= gtx0 && X <= gtx0 + gn * ADV + 3;
-        if(X <= gL + 1 || X >= gR - 1) {
+        if(X <= gL + 1 || X >= gR - 1 || (CGA_BAR == 1 && r == 0)) {
           return edge;                  /* the double frame goes round the bar */
         }
         if(gactive && bar_lines[r] && !onplate && X >= gL + 3 && X <= gR - 3) {
@@ -770,17 +766,19 @@ wcell(unsigned char cx, unsigned char cy)
       /* the title sits on a white plate that also opens the top line, so
          the 8x8 letters have rows 0-6 to themselves */
       unsigned char plate = gn ? span(X0, gtx0 - 4, gtx0 + gn * ADV + 3) : 0;
-      if(Y == gB || (TROWS == 2 && Y == gT)) {
+      if(Y == gB || (CGA_BAR == 1 && Y == gT)) {
         in = span(X0, gL + 1, gR - 1);  /* corners cut */
         v = (v & ~in) | in;
       } else {
         in = span(X0, gL, gR);
         v &= ~in;
         v |= span(X0, gL, gL) | span(X0, gR, gR);
-        if(Y < gT + TH) {
+        if(Y < gT + CH) {
           unsigned char rr = Y - gT;
           if(rr == BAR_SEP) {
-            v |= span(X0, gL + 1, gR - 1);      /* line under the bar */
+            /* line under the bar; on row 6 the title plate opens it, as the
+               letters reach that row */
+            v |= span(X0, gL + 1, gR - 1) & (BAR_SEP < CH - 1 ? ~plate : 0xff);
           } else if(rr > BAR_SEP) {
             /* white row between the bar and the contents */
           } else if(gactive) {
@@ -789,9 +787,9 @@ wcell(unsigned char cx, unsigned char cy)
             if(bar_lines[rr]) {
               v |= span(X0, gbox1 + 4, gR - 2) & ~plate;
             }
-            if(rr == BOX_T || rr == BOX_B) {
+            if(rr == 1 || rr == CH - 2) {
               v |= span(X0, gbox0 + 1, gbox1 - 1);
-            } else if(rr > BOX_T && rr < BOX_B) {
+            } else if(rr > 1 && rr < CH - 2) {
               v |= span(X0, gbox0, gbox0) | span(X0, gbox1, gbox1);
               if(gkf_close) {
                 v |= span(X0, gbox0, gbox1);
@@ -822,30 +820,25 @@ wcell(unsigned char cx, unsigned char cy)
 /* One cell of the title row: frame, bar, then the title letters, placed
    by pixel (6 pixels a letter in the bar font) so that titles fit */
 static void
-title_cell(unsigned char cx, unsigned char cy)
+title_cell(unsigned char cx)
 {
   unsigned char c, r, fg;
   unsigned short X0 = cx * 8;
-  /* pixel row of the bar where this cell begins, and the letters' first */
-  short brow = (short)(cy - gy) * CH - TEXT_Y;
-  wcell(cx, cy);
+  wcell(cx, gy);
 #if defined(MONO)
   fg = C_INK;
   if(gkf_title && gn) {
     /* focus on the title: the plate turns black */
     unsigned char m = span(X0, gtx0 > 5 ? gtx0 - 5 : 0, gtx0 + gn * ADV + 3);
-    for(r = 0; r < CH; ++r) {
-      short br = (short)(cy - gy) * CH + r;
-      if(br >= 1 && br < BAR_SEP - (TROWS == 2 ? 1 : 0)) {
-        mb[r] |= m;
-      }
+    for(r = 1; r < CH - 1; ++r) {
+      mb[r] |= m;
     }
     fg = C_PAPER;
   }
 #else
   fg = gkf_title ? C_RING : (gactive ? C_TITLE_A : C_TITLE_I);
 #endif
-  barfont = TROWS == 1;
+  barfont = 1;
   for(c = 0; c < 8; ++c) {
     unsigned short X = X0 + c;
     if(X >= gtx0 && X < gtx0 + gn * ADV) {
@@ -854,12 +847,8 @@ title_cell(unsigned char cx, unsigned char cy)
       if(ADV == 6) {
         ++col;                          /* the bar font starts in column 1 */
       }
-      for(r = 0; r < CH; ++r) {
-        short gr = brow + r;            /* row of the letter */
-        if(gr < 0 || gr >= 8 || (TROWS == 1 && r == CH - 1)) {
-          continue;
-        }
-        if(g[gr] & (0x80 >> col)) {
+      for(r = 0; r < CH - 1; ++r) {
+        if(g[r] & (0x80 >> col)) {
 #if defined(MONO)
           if(fg == C_INK) {
             mb[r] |= 0x80 >> c;
@@ -923,6 +912,68 @@ static unsigned char cache[2][CH][8];
 #define PUT(k, cx, cy) do { memcpy(pix, cache[k], sizeof(pix)); blit(cx, cy); } while(0)
 #endif
 
+#if defined(MONO) || defined(GFX_CGA4)
+/* The part of the bar above the title row: the last gabove pixel rows of
+   the cell row above, written into video memory over what is there */
+static void
+top_line(void)
+{
+  unsigned char i, k;
+  if(gy == 0) {
+    return;
+  }
+  for(k = 8 - gabove; k < 8; ++k) {
+    /* k: pixel row in the cell row above; d: rows from the top of the bar */
+    unsigned char d = k - (8 - gabove);
+    unsigned char __far *row = VRAM + (unsigned short)(gy - 1) * 320 +
+      ((k & 1) ? 0x2000 : 0) + (k >> 1) * 80;
+    unsigned char stripe = gactive && gabove == BAR_ABOVE && d == 2;
+    unsigned char shadow = d >= SHY + 1;
+    for(i = gx; i <= gxr; ++i) {
+      unsigned short X0 = i * 8;
+#if defined(MONO)
+      unsigned char ink, area = span(X0, gL, gR + (shadow ? SHX : 0));
+      if(d == 0) {
+        ink = span(X0, gL + 1, gR - 1);           /* frame, corners cut */
+        area = span(X0, gL + 1, gR - 1);
+      } else {
+        ink = span(X0, gL, gL) | span(X0, gR, gR);
+        if(stripe) {
+          ink |= span(X0, gL + 2, gR - 2);
+        }
+        if(shadow) {
+          ink |= span(X0, gR + 1, gR + SHX);
+        }
+      }
+      row[i] = (row[i] | area) & ~ink;            /* ink is 0 on the screen */
+#else
+      unsigned char c;
+      for(c = 0; c < 8; ++c) {
+        unsigned short X = X0 + c;
+        unsigned char col = 255, e = gactive ? C_EDGE_A : C_EDGE_I;
+        if(d == 0) {
+          if(X >= gL + 1 && X <= gR - 1) {
+            col = e;
+          }
+        } else if(X >= gL && X <= gR) {
+          col = (X <= gL + 1 || X >= gR - 1) ? e :
+                (stripe && X >= gL + 3 && X <= gR - 3) ? C_BAR_AT : C_PAPER;
+        } else if(shadow && X > gR && X <= gR + SHX) {
+          if(((X ^ (k + (gy - 1) * 8)) & 1) == 0) {
+            col = C_SH1;
+          }
+        }
+        if(col != 255) {
+          unsigned char __far *b = row + i * 2 + (c >> 2);
+          unsigned char sh = 6 - 2 * (c & 3);
+          *b = (*b & ~(3 << sh)) | (col << sh);
+        }
+      }
+#endif
+    }
+  }
+}
+#endif
 
 /* a composed window cell to the screen */
 #if defined(MONO)
@@ -933,28 +984,21 @@ static unsigned char cache[2][CH][8];
 
 /* the title row from cell x0 to x1 */
 static void
-title_row(unsigned char x0, unsigned char x1, unsigned char clipy1,
-          unsigned char clipy2)
+title_row(unsigned char x0, unsigned char x1)
 {
-  unsigned char i, k, t, have;
-  for(t = gy; t < gy + TROWS; ++t) {
-    if(t < clipy1 || t >= clipy2) {
-      continue;
-    }
-    have = 0;
-    for(i = x0; i <= x1; ++i) {
-      k = title_kind(i);
-      if(k) {
-        if(!(have & k)) {
-          title_cell(i, t);
-          SAVE(k - 1);
-          have |= k;
-        }
-        PUT(k - 1, i, t);
-      } else {
-        title_cell(i, t);
-        BLITW(i, t);
+  unsigned char i, k, have = 0;
+  for(i = x0; i <= x1; ++i) {
+    k = title_kind(i);
+    if(k) {
+      if(!(have & k)) {
+        title_cell(i);
+        SAVE(k - 1);
+        have |= k;
       }
+      PUT(k - 1, i, gy);
+    } else {
+      title_cell(i);
+      BLITW(i, gy);
     }
   }
 }
@@ -969,12 +1013,17 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
   set_geom(x, y, w, h, (focus & (CTK_FOCUS_WINDOW | CTK_FOCUS_DIALOG)) != 0,
            title, titlelen);
   gkf_title = gkf_close = 0;
-  title_row(gx, gxr, clipy1, clipy2);
+  if(y >= clipy1 && y < clipy2) {
+    title_row(gx, gxr);
+#if defined(MONO) || defined(GFX_CGA4)
+    top_line();
+#endif
+  }
   /* the side cells of the middle rows are alike: compose each once and copy
      it down, again only where the desktop under the shadow changes */
   {
     unsigned char lpix[CH][8], rpix[CH][8], key = 255;
-    for(r = y + TROWS; r < gyb; ++r) {
+    for(r = y + 1; r < gyb; ++r) {
       if(r < clipy1 || r >= clipy2) {
         continue;
       }
@@ -1175,7 +1224,6 @@ palette(void)
 void
 ctk_draw_init(void)
 {
-  ctk_draw_windowtitle_height = TROWS;
 #if defined(MONO)
   if(ctk_cga_wallpaper >= 4) {
     ctk_cga_wallpaper = 0;
@@ -1637,7 +1685,7 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
                win->title, win->titlelen);
       gkf_title = kf && w == (struct ctk_widget *)&win->titlebutton;
       gkf_close = kf && w == (struct ctk_widget *)&win->closebutton;
-      title_row(gx + 1, gxr - 1, 0, SH);
+      title_row(gx + 1, gxr - 1);
       gkf_title = gkf_close = 0;
       break;
     }
@@ -1760,16 +1808,16 @@ ctk_draw_widget(struct ctk_widget *w, unsigned char focus,
   if(w == win->focused) {
     focus |= CTK_FOCUS_WIDGET;
   }
-  draw_widget(w, win->x + 1, win->y + 1 + TROWS, clipy1, clipy2, focus);
+  draw_widget(w, win->x + 1, win->y + 2, clipy1, clipy2, focus);
 }
 /*---------------------------------------------------------------------------*/
 void
 ctk_draw_clear_window(struct ctk_window *window, unsigned char focus,
                       unsigned char clipy1, unsigned char clipy2)
 {
-  unsigned char i, h = window->y + 1 + TROWS + window->h;
+  unsigned char i, h = window->y + 2 + window->h;
   rows_solid(C_PAPER);
-  for(i = window->y + 1 + TROWS; i < h; ++i) {
+  for(i = window->y + 2; i < h; ++i) {
     if(i >= clipy1 && i <= clipy2) {
       gotoxy(window->x + 1, i);
       blank(window->w);
@@ -1794,14 +1842,14 @@ ctk_draw_window(struct ctk_window *window, unsigned char focus,
                        window->title, window->titlelen);
   }
   for(w = window->inactive; w != NULL; w = w->next) {
-    draw_widget(w, x + 1, y + TROWS, clipy1, clipy2, focus);
+    draw_widget(w, x + 1, y + 1, clipy1, clipy2, focus);
   }
   for(w = window->active; w != NULL; w = w->next) {
     wf = focus;
     if(w == window->focused) {
       wf |= CTK_FOCUS_WIDGET;
     }
-    draw_widget(w, x + 1, y + TROWS, clipy1, clipy2, wf);
+    draw_widget(w, x + 1, y + 1, clipy1, clipy2, wf);
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -1810,7 +1858,7 @@ ctk_draw_dialog(struct ctk_window *dialog)
 {
   struct ctk_widget *w;
   unsigned char x = dialog->x, y = dialog->y + 1, i, wf;
-  unsigned char x1 = x + 1, y1 = y + TROWS, y2 = y1 + dialog->h;
+  unsigned char x1 = x + 1, y1 = y + 1, y2 = y1 + dialog->h;
 
   draw_windowborders(x, y, dialog->w, dialog->h, 0, SH,
                      CTK_FOCUS_DIALOG, dialog->title, dialog->titlelen);
