@@ -52,7 +52,8 @@ the trials for those screens: the whole bar in the title row, frame on
 row 0, lines on every other row from 2, the line under the bar on the last
 row, the close box from row 2; Schumacher Clean Bold 8x14 and 8x16
 everywhere (one row lower in the bars); a shadow of 2x2 pixels. Hercules is
-drawn light on black, as on its trial.
+drawn light on black, as on its trial, with a plain black desktop by
+default (`-w dots` brings the dots back).
 
 ## Timings
 

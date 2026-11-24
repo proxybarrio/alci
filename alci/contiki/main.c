@@ -154,7 +154,7 @@ main(int argc, char **argv)
 
   {
     /* wallpaper: ctk -w dots|pairs|slash|none, or CTK_WALLPAPER in the
-       environment; dots by default */
+       environment; dots by default, none on Hercules */
     const char *wp = getenv("CTK_WALLPAPER");
     if(argc > 2 && strcmp(argv[1], "-w") == 0) {
       wp = argv[2];

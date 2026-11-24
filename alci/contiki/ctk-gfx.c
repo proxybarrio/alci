@@ -520,7 +520,13 @@ pix_vline(unsigned char x, unsigned char r0, unsigned char r1, unsigned char col
 /*---------------------------------------------------------------------------*/
 /* Desktop */
 #if defined(MONO)
+#if defined(GFX_HERC)
+/* Hercules: plain black by default; light dots on its narrow pixels read
+   as a grey weave */
+unsigned char ctk_cga_wallpaper = 3;
+#else
 unsigned char ctk_cga_wallpaper;
+#endif
 static const char * const wallpaper_names[4] = {"dots", "pairs", "slash", "none"};
 static const unsigned char wallpapers[4][8] = {
   {0x00,0x00,0x10,0x00,0x00,0x00,0x01,0x00},
