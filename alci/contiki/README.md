@@ -15,6 +15,7 @@ asks the video BIOS what is fitted and starts the right one:
 | `ctk-ega` | EGA 640x350, 16 of the 64 EGA colours | 80x25 of 8x14 | colour style |
 | `ctk-vga` | VGA 640x480, 16 colours | 80x30 of 8x16 | colour style |
 | `ctk-mcga` | MCGA (and VGA) 320x200, 256 colours | 40x25 of 8x8 | colour style, graded |
+| `ctk-tandy` | Tandy 1000 and PCjr 320x200, 16 colours (mode 9) | 40x25 of 8x8 | colour style, standard colours |
 | `ctk-herc` | Hercules 720x348 (the 6845 programmed directly) | 90x24 of 8x14 | two-colour style, light on black |
 | `ctk-att` | AT&T 6300, Olivetti M24 640x400 (mode 40h) | 80x25 of 8x16 | two-colour style |
 | `ctk-ega2` | EGA 640x350 in two colours (mode 10h, 0Fh on a mono monitor) | 80x25 of 8x14 | two-colour style |
@@ -27,7 +28,8 @@ Hercules card, and with the Olivetti OGC card); timings of `ctk` and
 `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 22.3 KB, `ctk-cga4`
 22.8 KB, `ctk-ega` 24.7 KB, `ctk-mcga` 22.3 KB, `ctk-vga` 35.1 KB (its two
 built-in icons are 104x80 pixels), `ctk-herc` 22.2 KB, `ctk-att` 22.8 KB,
-`ctk-ega2` 22.0 KB, `ctk-vga2` 22.8 KB, `desk` 1.5 KB.
+`ctk-ega2` 22.0 KB, `ctk-vga2` 22.8 KB, `ctk-tandy` 21.7 KB, `desk` 1.6 KB.
+`ctk-tandy` was checked on 86Box (Tandy 1000 HX), through `desk`.
 
 ## Looks
 
@@ -51,6 +53,12 @@ frame, the title in the 8x8 font on a plate. Buttons are cyan boxes with
 cut corners round the small Clean 6x6 font, as on two colours, filled with
 magenta when they have the focus (`-DCGA4_BTN=0` gives the older brackets,
 `1` the box with the 8x8 font).
+
+Tandy 1000 and PCjr (`ctk-tandy`): the colour style of MCGA on the 16
+standard colours, as on the theme trial for those machines: light grey
+desktop, title bar light blue over blue with a light cyan line, white
+windows with a black frame, a shadow in dark grey and black, the focus in
+yellow; the 8x8 font.
 
 Hercules, 640x400, EGA and VGA in two colours (`ctk-herc`, `ctk-att`,
 `ctk-ega2`, `ctk-vga2`): the same style on cells of 14 and 16 rows, as on
@@ -90,10 +98,10 @@ for 286 and later machines.
     . ../../env.sh          # ELKS cross toolchain
     make fetch              # Contiki 1.x at the pinned commit
     make                    # desk, ctk, ctk-cga4, ctk-ega, ctk-vga, ctk-mcga,
-                            # ctk-herc, ctk-att, ctk-ega2, ctk-vga2
+                            # ctk-tandy, ctk-herc, ctk-att, ctk-ega2, ctk-vga2
 
 Copy the programs to `/bin` on an Alci or ELKS system and run `desk` (or
-one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|herc|att|ega2|vga2 desk`
+one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|tandy|herc|att|ega2|vga2 desk`
 chooses by hand. `ctk -d` starts with the calculator open.
 
 Keys: F1 opens the menu (arrows and Enter to choose), Tab and F5 move
@@ -112,7 +120,8 @@ back to the text console.
 - `gfx.h`: the screen types (cells, rows, icon size) chosen with
   `-DGFX_<type>`; it also places the icon column for `ctk.c`.
 - `desk.c`: the launcher (video BIOS functions 1Ah and 12h, the equipment
-  word and the Hercules status port, "OLIVETTI" in the BIOS for 640x400).
+  word and the Hercules status port, "OLIVETTI" in the BIOS for 640x400,
+  the model byte for Tandy 1000 and PCjr).
 - `main.c`: keyboard (ELKS console in raw mode: arrows `ESC [ A-D`, F1-F5
   `ESC a-e`), clock, and the event loop, which sleeps in `select()` when
   idle.
@@ -147,6 +156,7 @@ column follow the icon size (see the Makefile).
 1. Faster window borders on EGA, VGA and MCGA (pixel by pixel today).
 2. Editor, then the file manager (Contiki's "Directory" is minimal).
 3. Mouse (ELKS mouse driver).
-4. Drawing layers for the T1200 LCD (its icon set exists), Tandy 1000 and
-   PCjr; timings of the tall two-colour builds on an 8088.
+4. Drawing layers for the T1200 LCD and for Tandy 640x200 in 4 colours
+   (their icon sets exist); timings of the tall two-colour builds and of
+   the Tandy build on an 8088.
 5. The D2 benchmark against Nano-X and Gem-elks.

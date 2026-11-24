@@ -38,6 +38,13 @@
 #define GFX_ICON_CW 5
 #define GFX_ICON_RH 4
 #define GFX_LABEL "MCGA 320x200"
+#elif defined(GFX_TANDY)        /* Tandy 1000, PCjr: 320x200, 16 colours, mode 9 */
+#define GFX_SW 40
+#define GFX_SH 25
+#define GFX_CH 8
+#define GFX_ICON_CW 5
+#define GFX_ICON_RH 4
+#define GFX_LABEL "Tandy 320x200"
 /* Two-colour screens with tall cells, drawn like CGA two colours */
 #elif defined(GFX_HERC)         /* Hercules 720x348, programmed directly */
 #define GFX_SW 90
@@ -69,7 +76,7 @@
 #define GFX_ICON_RH 4
 #define GFX_LABEL "VGA 640x480 2"
 #else
-#error "define one of GFX_CGA, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA, GFX_HERC, GFX_ATT, GFX_EGA2, GFX_VGA2"
+#error "define one of GFX_CGA, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA, GFX_TANDY, GFX_HERC, GFX_ATT, GFX_EGA2, GFX_VGA2"
 #endif
 #if defined(GFX_CGA) || defined(GFX_HERC) || defined(GFX_ATT) || \
     defined(GFX_EGA2) || defined(GFX_VGA2)

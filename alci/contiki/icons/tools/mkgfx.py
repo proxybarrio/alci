@@ -17,7 +17,7 @@ from scipy import ndimage
 HERE = os.path.dirname(os.path.abspath(__file__))
 PNG = os.path.join(HERE, '..', 'png')
 SETS = {'cga': 'cga640-mono', 'cga4': 'cga320-4col', 'ega': 'ega640x350-16col',
-        'vga': 'vga640-16col', 'mcga': 'mcga320-256col',
+        'vga': 'vga640-16col', 'mcga': 'mcga320-256col', 'tandy': 'tandy320-16col',
         'herc': 'hercules-mono', 'att': 'hires640x400-mono',
         'ega2': 'hercules-mono', 'vga2': 'hires640x400-mono'}
 # two-colour screens and the height of their cells

@@ -79,6 +79,14 @@ static const unsigned char pal16[16][3] = {
   {92,123,190},{12,40,110},{58,64,80},{252,230,148},{245,205,30},
   {110,236,20},{190,248,135},{222,80,164},{240,200,232},{25,110,236},
   {170,176,192}};
+#elif defined(GFX_TANDY)
+/* the 16 standard colours (Tandy 1000 and PCjr keep them in mode 9), as on
+   the theme trial: grey desktop, blue two-tone bar, white windows with a
+   black frame, shadow in two greys */
+enum { C_INK = 0, C_PAPER = 15, C_HL = 11, C_BAR_AT = 9, C_BAR_AB = 1,
+       C_BAR_IT = 7, C_BAR_IB = 7, C_EDGE_A = 0, C_EDGE_I = 8, C_SH1 = 8,
+       C_SH2 = 0, C_ETCH0 = 8, C_ETCH1 = 15, C_RING = 14, C_TITLE_A = 15,
+       C_TITLE_I = 0, C_LINK = 1, C_STATUS = 15, C_DIM = 8, C_GREY = 7 };
 #elif defined(GFX_MCGA)
 /* own palette: fixed colours, graded bars (8 rows), a graded desktop with
    two darker copies for the soft shadow, icons from 200 */
@@ -182,7 +190,7 @@ outb(unsigned short port, unsigned char v)
   __asm__ volatile ("outb %%al,%%dx" : : "a" (v), "d" (port));
 }
 
-#if defined(GFX_CGA) || defined(GFX_CGA4) || defined(GFX_ATT)
+#if defined(GFX_CGA) || defined(GFX_CGA4) || defined(GFX_ATT) || defined(GFX_TANDY)
 #define VRAM ((unsigned char __far *)0xB8000000UL)
 #elif defined(GFX_HERC)
 #define VRAM ((unsigned char __far *)0xB0000000UL)
@@ -365,6 +373,21 @@ blit(unsigned char cx, unsigned char cy)
   }
   (void)c;
   write4(cx, cy);
+#elif defined(GFX_TANDY)
+  /* 4 bits a pixel, left pixel in the high nibble; four banks of 8K,
+     pixel row Y in bank Y & 3, line Y >> 2 of 160 bytes */
+  {
+    unsigned short q = (unsigned short)cy * (2 * 160) + cx * 4;
+    for(r = 0; r < 8; ++r) {
+      volatile unsigned char __far *p = VRAM + ((unsigned short)(r & 3) << 13) + q + (r >> 2) * 160;
+      const unsigned char *s = pix[r];
+      p[0] = (s[0] << 4) | s[1];
+      p[1] = (s[2] << 4) | s[3];
+      p[2] = (s[4] << 4) | s[5];
+      p[3] = (s[6] << 4) | s[7];
+    }
+    (void)c;
+  }
 #elif defined(GFX_MCGA)
   {
     volatile unsigned char __far *p = VRAM + (unsigned short)cy * (8 * 320) + cx * 8;
@@ -584,6 +607,9 @@ desk(unsigned short X, unsigned short Y)
   return 0;
 #elif defined(GFX_MCGA)
   return C_DESK + (unsigned char)(Y * DESK_STEPS / (SH * CH));
+#elif defined(GFX_TANDY)
+  (void)X; (void)Y;
+  return C_GREY;
 #else
   {
     /* white above, a fine checker of white and grey across the middle,
@@ -1726,6 +1752,8 @@ ctk_draw_init(void)
   set_mode(0x10);
 #elif defined(GFX_VGA)
   set_mode(0x12);
+#elif defined(GFX_TANDY)
+  set_mode(9);                          /* standard palette, nothing to set */
 #else
   set_mode(0x13);
 #endif

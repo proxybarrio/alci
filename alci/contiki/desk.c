@@ -3,9 +3,10 @@
  * (task D7). Asks the video BIOS what is fitted and runs ctk-vga (VGA),
  * ctk-mcga (MCGA), ctk-ega (EGA), ctk-vga2 or ctk-ega2 (VGA, MCGA or EGA
  * on a monochrome monitor), ctk-herc (Hercules), ctk-att (AT&T 6300,
- * Olivetti M24: an Olivetti BIOS) or ctk (CGA, also LCD and the rest),
+ * Olivetti M24: an Olivetti BIOS), ctk-tandy (Tandy 1000, PCjr) or ctk (CGA,
+ * also LCD and the rest),
  * passing on its arguments.
- * DESK=cga|cga4|ega|vga|mcga|herc|att|ega2|vga2 chooses by hand.
+ * DESK=cga|cga4|ega|vga|mcga|tandy|herc|att|ega2|vga2 chooses by hand.
  */
 #include <stdlib.h>
 #include <string.h>
@@ -75,6 +76,16 @@ att(void)
   return 0;
 }
 
+/* Tandy 1000 (model byte FFh, 21h at F000:C000) and PCjr (model byte FDh):
+   their own 320x200 mode in 16 colours */
+static int
+tandy(void)
+{
+  unsigned char model = *(const unsigned char __far *)0xF000FFFEUL;
+  return model == 0xfd ||
+         (model == 0xff && *(const unsigned char __far *)0xF000C000UL == 0x21);
+}
+
 static const char *
 detect(void)
 {
@@ -97,7 +108,7 @@ detect(void)
       return "ega2";
     }
     if(d == 2) {
-      return att() ? "att" : "cga";
+      return att() ? "att" : tandy() ? "tandy" : "cga";
     }
     if(d == 1) {
       return hercules() ? "herc" : "mda";
@@ -115,7 +126,7 @@ detect(void)
   if((equipment() & 0x30) == 0x30) {
     return hercules() ? "herc" : "mda";
   }
-  return att() ? "att" : "cga";
+  return att() ? "att" : tandy() ? "tandy" : "cga";
 }
 
 int
