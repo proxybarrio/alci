@@ -144,12 +144,13 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #if defined(GFX_MONO) && GFX_CH > 8
 /* Tall cells: all in the title row, as on the trials: frame on row 0, lines
    on every other row from 2 to CH-3, the line under the bar on row CH-1,
-   the close box from row 2 to row CH-2 */
+   the close box from row 2 to row CH-3 */
 #undef CGA_BAR
 #define CGA_BAR 1
 #define BAR_SEP (GFX_CH - 1)
 #define BOX_T 2
 #define bar_lines(r) ((r) >= 2 && (r) <= GFX_CH - 3 && !((r) & 1))
+#define BOX_B (GFX_CH - 3)
 #elif CGA_BAR == 2
 #define BAR_SEP 7
 #define BOX_T 1
@@ -161,7 +162,9 @@ static const unsigned char bar_one[8] = {0, 1, 0, 1, 0, 1, 0, 0};
 static const unsigned char bar_one[8] = {0, 0, 1, 0, 1, 0, 0, 0};
 #define bar_lines(r) bar_one[r]
 #endif
+#ifndef BOX_B
 #define BOX_B (GFX_CH - 2)
+#endif
 static unsigned char gabove;            /* pixel rows of the bar above the title row */
 
 /*---------------------------------------------------------------------------*/
