@@ -49,10 +49,10 @@ back to text mode (10 ms resolution). "Before" is the CGA-only layer of
 | Step | `ctk` before | `ctk` now | `ctk-cga4` |
 | --- | --- | --- | --- |
 | `-q`, first run (program read from floppy) | 5.32 s | 5.26 s | 6.56 s |
-| desktop drawn and settled | 0.55 s | 0.57 s | 1.37 s |
+| desktop drawn and settled | 0.55 s | 0.55 s | 1.31 s |
 | repaint of the whole background | 0.50 s | 0.50 s | 0.72 s |
-| open the calculator | 0.03 s | 0.07 s | 0.15 s |
-| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 1.07 s | 2.97 s |
+| open the calculator | 0.03 s | 0.04 s | 0.11 s |
+| five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 0.72 s | 2.35 s |
 | open the About dialog | 0.01 s | 0.02 s | 0.01 s |
 
 On two colours the frequent cells (desktop, text, buttons, icons, the
