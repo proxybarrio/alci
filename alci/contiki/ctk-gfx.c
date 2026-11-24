@@ -135,7 +135,7 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
      4, the line under the bar on row 6, a white row 7: four lines.
    The window layout of Contiki is not changed. */
 #ifndef CGA4_BTN
-#define CGA4_BTN 0                      /* four colours: 0 brackets, 1 box, 2 box and small font */
+#define CGA4_BTN 2                      /* four colours: 0 brackets, 1 box, 2 box and small font (chosen) */
 #endif
 #ifndef CGA_BAR
 #define CGA_BAR 2

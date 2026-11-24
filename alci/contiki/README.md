@@ -25,7 +25,7 @@ About dialog and the calculator work on the nine screens: CGA, EGA, VGA
 and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
 Hercules card, and with the Olivetti OGC card); timings of `ctk` and
 `ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 22.3 KB, `ctk-cga4`
-21.8 KB, `ctk-ega` 24.7 KB, `ctk-mcga` 22.3 KB, `ctk-vga` 35.1 KB (its two
+22.8 KB, `ctk-ega` 24.7 KB, `ctk-mcga` 22.3 KB, `ctk-vga` 35.1 KB (its two
 built-in icons are 104x80 pixels), `ctk-herc` 22.2 KB, `ctk-att` 22.8 KB,
 `ctk-ega2` 22.0 KB, `ctk-vga2` 22.8 KB, `desk` 1.5 KB.
 
@@ -45,6 +45,12 @@ when they have the focus; text entries have side bars and a line under the
 text. Corners cut by one pixel, solid shadow, rounded screen corners, the
 selected icon title in an inverted pill. `ctk -w none` gives the plain white
 desktop of the trial.
+
+CGA four colours (`ctk-cga4`): the same lined bar in magenta, a double cyan
+frame, the title in the 8x8 font on a plate. Buttons are cyan boxes with
+cut corners round the small Clean 6x6 font, as on two colours, filled with
+magenta when they have the focus (`-DCGA4_BTN=0` gives the older brackets,
+`1` the box with the 8x8 font).
 
 Hercules, 640x400, EGA and VGA in two colours (`ctk-herc`, `ctk-att`,
 `ctk-ega2`, `ctk-vga2`): the same style on cells of 14 and 16 rows, as on
