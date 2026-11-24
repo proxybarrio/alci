@@ -10,6 +10,14 @@
 #define GFX_ICON_CW 10          /* icon column: cells wide, rows high */
 #define GFX_ICON_RH 4
 #define GFX_LABEL "CGA 640x200"
+#elif defined(GFX_TANDY4)       /* Tandy 1000 SL/TL/RL, PCjr: 640x200, 4 colours, mode 0Ah */
+#define GFX_SW 80
+#define GFX_SH 25
+#define GFX_CH 8
+#define GFX_ICON_CW 10
+#define GFX_ICON_RH 4
+#define GFX_LABEL "Tandy 640x200"
+#define GFX_CGA4 1                      /* drawn as CGA four colours */
 #elif defined(GFX_CGA4)         /* CGA 320x200, 4 colours, BIOS mode 4 */
 #define GFX_SW 40
 #define GFX_SH 25
@@ -76,7 +84,7 @@
 #define GFX_ICON_RH 4
 #define GFX_LABEL "VGA 640x480 2"
 #else
-#error "define one of GFX_CGA, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA, GFX_TANDY, GFX_HERC, GFX_ATT, GFX_EGA2, GFX_VGA2"
+#error "define one of GFX_CGA, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA, GFX_TANDY, GFX_TANDY4, GFX_HERC, GFX_ATT, GFX_EGA2, GFX_VGA2"
 #endif
 #if defined(GFX_CGA) || defined(GFX_HERC) || defined(GFX_ATT) || \
     defined(GFX_EGA2) || defined(GFX_VGA2)

@@ -285,6 +285,19 @@ write4(unsigned char cx, unsigned char cy)
   }
   p = VRAM + (unsigned short)cy * 320 + cx * 2;
   (void)r;
+#if defined(GFX_TANDY4)
+  /* four banks of 8K, lines of 160 bytes; two bytes for eight pixels: the
+     low bit of each, then the high bit */
+  p[0] = cb4[0];        p[1] = cb4[1];
+  p[0x2000] = cb4[2];   p[0x2001] = cb4[3];
+  p[0x4000] = cb4[4];   p[0x4001] = cb4[5];
+  p[0x6000] = cb4[6];   p[0x6001] = cb4[7];
+  p[160] = cb4[8];      p[161] = cb4[9];
+  p[0x20a0] = cb4[10];  p[0x20a1] = cb4[11];
+  p[0x40a0] = cb4[12];  p[0x40a1] = cb4[13];
+  p[0x60a0] = cb4[14];  p[0x60a1] = cb4[15];
+  return;
+#endif
   p[0] = cb4[0];        p[1] = cb4[1];
   p[0x2000] = cb4[2];   p[0x2001] = cb4[3];
   p[80] = cb4[4];       p[81] = cb4[5];
@@ -346,6 +359,14 @@ static const unsigned short spread16[256] = {
 static void
 planes4(void)
 {
+#if defined(GFX_TANDY4)
+  unsigned char r;
+  for(r = 0; r < 8; ++r) {
+    cb4[2 * r] = P0[r];                 /* video memory keeps the planes */
+    cb4[2 * r + 1] = P1[r];
+  }
+  return;
+#endif
   PLANE_ROW(0); PLANE_ROW(1); PLANE_ROW(2); PLANE_ROW(3);
   PLANE_ROW(4); PLANE_ROW(5); PLANE_ROW(6); PLANE_ROW(7);
 }
@@ -365,6 +386,17 @@ blit(unsigned char cx, unsigned char cy)
   (void)r; (void)c;
   pack();
   blit_bytes(cx, cy, mb);
+#elif defined(GFX_TANDY4)
+  for(r = 0; r < 8; ++r) {
+    unsigned char lo = 0, hi = 0;
+    for(c = 0; c < 8; ++c) {
+      lo = (lo << 1) | (pix[r][c] & 1);
+      hi = (hi << 1) | (pix[r][c] >> 1);
+    }
+    cb4[2 * r] = lo;
+    cb4[2 * r + 1] = hi;
+  }
+  write4(cx, cy);
 #elif defined(GFX_CGA4)
   for(r = 0; r < 8; ++r) {
     const unsigned char *q = pix[r];
@@ -1325,8 +1357,13 @@ top_line(void)
   for(k = 8 - gabove; k < 8; ++k) {
     /* k: pixel row in the cell row above; d: rows from the top of the bar */
     unsigned char d = k - (8 - gabove);
+#if defined(GFX_TANDY4)
+    unsigned char __far *row = VRAM + (unsigned short)(gy - 1) * 320 +
+      ((unsigned short)(k & 3) << 13) + (k >> 2) * 160;
+#else
     unsigned char __far *row = VRAM + (unsigned short)(gy - 1) * 320 +
       ((k & 1) ? 0x2000 : 0) + (k >> 1) * 80;
+#endif
     unsigned char stripe = gactive && gabove == BAR_ABOVE && d == 2;
     unsigned char shadow = d >= SHY + 1;
     for(i = gx; i <= gxr; ++i) {
@@ -1364,9 +1401,17 @@ top_line(void)
           }
         }
         if(col != 255) {
+#if defined(GFX_TANDY4)
+          /* the low bit of the eight pixels, then the high bit */
+          unsigned char __far *b = row + i * 2;
+          unsigned char m = 0x80 >> c;
+          b[0] = (col & 1) ? (b[0] | m) : (b[0] & ~m);
+          b[1] = (col & 2) ? (b[1] | m) : (b[1] & ~m);
+#else
           unsigned char __far *b = row + i * 2 + (c >> 2);
           unsigned char sh = 6 - 2 * (c & 3);
           *b = (*b & ~(3 << sh)) | (col << sh);
+#endif
         }
       }
 #endif
@@ -1662,7 +1707,14 @@ mix(unsigned char *o, const unsigned char *a, const unsigned char *b,
 static void
 palette(void)
 {
-#if defined(GFX_CGA4)
+#if defined(GFX_TANDY4)
+  /* palette registers (BIOS 10h/00h): black, light cyan, yellow, white, as
+     on the theme trial; yellow takes the place of CGA's magenta */
+  bios10(0x1000, 0x0000);
+  bios10(0x1000, 0x0b01);
+  bios10(0x1000, 0x0e02);
+  bios10(0x1000, 0x0f03);
+#elif defined(GFX_CGA4)
   bios10(0x0b00, 0x0101);       /* palette 1: cyan, magenta, white */
   bios10(0x0b00, 0x0010);       /* high intensity, black background */
 #elif defined(GFX_EGA)
@@ -1746,6 +1798,8 @@ ctk_draw_init(void)
 #else
   set_mode(6);
 #endif
+#elif defined(GFX_TANDY4)
+  set_mode(0x0a);
 #elif defined(GFX_CGA4)
   set_mode(4);
 #elif defined(GFX_EGA)

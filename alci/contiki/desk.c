@@ -6,7 +6,7 @@
  * Olivetti M24: an Olivetti BIOS), ctk-tandy (Tandy 1000, PCjr) or ctk (CGA,
  * also LCD and the rest),
  * passing on its arguments.
- * DESK=cga|cga4|ega|vga|mcga|tandy|herc|att|ega2|vga2 chooses by hand.
+ * DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2 chooses by hand.
  */
 #include <stdlib.h>
 #include <string.h>
