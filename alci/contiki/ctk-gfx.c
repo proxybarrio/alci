@@ -117,15 +117,23 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #endif
 #define FX 3                    /* the frame runs in pixel column 3 of the border cells */
 
-/* Lines along the active title bar on CGA, embossed: close together in the
-   middle and farther from the frame and from the line under the bar. The
-   frame goes in the last pixel row of the cell row above the title
-   (TOP_OUTSIDE), so the bar keeps rows 0-7: two rows clear, a line, one row
-   clear, a line, two rows clear, the line under the bar on row 7; the title
-   on its plate in rows 1-6. */
-#define TOP_OUTSIDE 1
+/* Lines along the active title bar on CGA, embossed: four thin lines, the
+   two in the middle close together, the outer two farther away, then the
+   frame above and the line under the bar. That takes 13 pixel rows, so the
+   top of the bar (the frame and the first line) is drawn into the last 5
+   pixel rows of the cell row above the title (BAR_ABOVE), over what is
+   there; the title row keeps its 8 rows: lines on rows 0, 2 and 5, the line
+   under the bar on row 7, the title on its plate in rows 1-6.
+   From the top: frame, 1 clear, line, 2 clear, line, 1 clear, line,
+   2 clear, line, 1 clear, line under the bar.
+   A window right under the menu bar has no room above: there the bar keeps
+   to its own row (frame just above, two lines on rows 2 and 4). */
+#define BAR_ABOVE 5
 #define BAR_SEP 7
-static const unsigned char bar_lines[8] = {0, 0, 1, 0, 1, 0, 0, 0};
+static const unsigned char bar_far[8] = {1, 0, 1, 0, 0, 1, 0, 0};
+static const unsigned char bar_near[8] = {0, 0, 1, 0, 1, 0, 0, 0};
+static unsigned char gabove;            /* pixel rows of the bar above the title row */
+#define bar_lines (gabove == BAR_ABOVE ? bar_far : bar_near)
 
 /*---------------------------------------------------------------------------*/
 /* Low level: BIOS, ports, video memory */
@@ -529,6 +537,7 @@ set_geom(unsigned char x, unsigned char y, unsigned char w, unsigned char h,
          unsigned char active, const char *title, unsigned char titlelen)
 {
   gx = x; gxr = x + w + 1; gy = y; gyb = y + h + 1;
+  gabove = y >= 2 ? BAR_ABOVE : 1;
   gL = x * 8 + FX;
   gR = gxr * 8 + FX;
   gT = y * CH;
@@ -701,7 +710,7 @@ outside:
     return C_INK;
   }
 #else
-  if(X >= gL + 2 && X <= gR + SHX && Y >= gT + 2 && Y <= gB + SHY &&
+  if(X >= gL + 2 && X <= gR + SHX && Y + gabove >= gT + 2 && Y <= gB + SHY &&
      (X > gR || Y > gB)) {
     /* two steps: dark next to the window, lighter further out */
     if(X <= gR + SHX / 2 && Y <= gB + SHY / 2 && X >= gL + 1 + SHX / 2 && Y >= gT + 1 + SHY / 2) {
@@ -742,7 +751,7 @@ wcell(unsigned char cx, unsigned char cy)
       v |= 0x80 >> (SEP_X & 7);
     }
     /* shadow */
-    if(Y >= gT + SHY + 1 && Y <= gB + SHY) {
+    if(Y + gabove >= gT + SHY + 1 && Y <= gB + SHY) {
       v |= span(X0, gR + 1, gR + SHX);
     }
     if(Y > gB && Y <= gB + SHY) {
@@ -775,7 +784,7 @@ wcell(unsigned char cx, unsigned char cy)
             }
             if(rr == 1 || rr == CH - 2) {
               v |= span(X0, gbox0 + 1, gbox1 - 1);
-            } else {
+            } else if(rr > 1 && rr < CH - 2) {
               v |= span(X0, gbox0, gbox0) | span(X0, gbox1, gbox1);
               if(gkf_close) {
                 v |= span(X0, gbox0, gbox1);
@@ -899,33 +908,64 @@ static unsigned char cache[2][CH][8];
 #endif
 
 #if defined(MONO) || defined(GFX_CGA4)
-/* The top line of the window frame, in the last pixel row of the cell row
-   above the title (written into video memory over what is there) */
+/* The part of the bar above the title row: the last gabove pixel rows of
+   the cell row above, written into video memory over what is there */
 static void
 top_line(void)
 {
-  unsigned char i;
-  unsigned char __far *row;
+  unsigned char i, k;
   if(gy == 0) {
     return;
   }
-  row = VRAM + (unsigned short)(gy - 1) * 320 + 0x2000 + 3 * 80;     /* pixel row 7 */
-  for(i = gx; i <= gxr; ++i) {
-    unsigned short X0 = i * 8;
+  for(k = 8 - gabove; k < 8; ++k) {
+    /* k: pixel row in the cell row above; d: rows from the top of the bar */
+    unsigned char d = k - (8 - gabove);
+    unsigned char __far *row = VRAM + (unsigned short)(gy - 1) * 320 +
+      ((k & 1) ? 0x2000 : 0) + (k >> 1) * 80;
+    unsigned char stripe = gactive && gabove == BAR_ABOVE && d == 2;
+    unsigned char shadow = d >= SHY + 1;
+    for(i = gx; i <= gxr; ++i) {
+      unsigned short X0 = i * 8;
 #if defined(MONO)
-    unsigned char m = span(X0, gL + 1, gR - 1);
-    row[i] &= ~m;                       /* ink is 0 on the screen */
-#else
-    unsigned char c;
-    for(c = 0; c < 8; ++c) {
-      unsigned short X = X0 + c;
-      if(X >= gL + 1 && X <= gR - 1) {
-        unsigned char __far *b = row + i * 2 + (c >> 2);
-        unsigned char sh = 6 - 2 * (c & 3);
-        *b = (*b & ~(3 << sh)) | ((gactive ? C_EDGE_A : C_EDGE_I) << sh);
+      unsigned char ink, area = span(X0, gL, gR + (shadow ? SHX : 0));
+      if(d == 0) {
+        ink = span(X0, gL + 1, gR - 1);           /* frame, corners cut */
+        area = span(X0, gL + 1, gR - 1);
+      } else {
+        ink = span(X0, gL, gL) | span(X0, gR, gR);
+        if(stripe) {
+          ink |= span(X0, gL + 2, gR - 2);
+        }
+        if(shadow) {
+          ink |= span(X0, gR + 1, gR + SHX);
+        }
       }
-    }
+      row[i] = (row[i] | area) & ~ink;            /* ink is 0 on the screen */
+#else
+      unsigned char c;
+      for(c = 0; c < 8; ++c) {
+        unsigned short X = X0 + c;
+        unsigned char col = 255, e = gactive ? C_EDGE_A : C_EDGE_I;
+        if(d == 0) {
+          if(X >= gL + 1 && X <= gR - 1) {
+            col = e;
+          }
+        } else if(X >= gL && X <= gR) {
+          col = (X <= gL + 1 || X >= gR - 1) ? e :
+                (stripe && X >= gL + 3 && X <= gR - 3) ? C_BAR_AT : C_PAPER;
+        } else if(shadow && X > gR && X <= gR + SHX) {
+          if(((X ^ (k + (gy - 1) * 8)) & 1) == 0) {
+            col = C_SH1;
+          }
+        }
+        if(col != 255) {
+          unsigned char __far *b = row + i * 2 + (c >> 2);
+          unsigned char sh = 6 - 2 * (c & 3);
+          *b = (*b & ~(3 << sh)) | (col << sh);
+        }
+      }
 #endif
+    }
   }
 }
 #endif
