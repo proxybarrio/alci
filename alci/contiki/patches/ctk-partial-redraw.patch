@@ -10,7 +10,7 @@
 +#define REDRAW_ROWS         64
 +static struct ctk_window *redraw_prev;  /* front window before an open */
 +static unsigned char redraw_y1 = 255, redraw_y2;
-
+ 
  #define MAX_REDRAWWIDGETS 4
  static unsigned char redraw;
 @@ -419,7 +425,7 @@
@@ -19,13 +19,13 @@
  {
 -  struct ctk_window *w2;
 +  struct ctk_window *w2, *front = windows;
-
+   
    /* Check if already open. */
    for(w2 = windows; w2 != w && w2 != NULL; w2 = w2->next);
 @@ -454,7 +460,12 @@
    make_desktopmenu();
  #endif /* CTK_CONF_MENUS */
-
+ 
 -  redraw |= REDRAW_ALL;
 +  if(redraw & REDRAW_OPEN) {
 +    redraw |= REDRAW_ALL;               /* two in one round: all */
@@ -59,7 +59,7 @@
  /*-----------------------------------------------------------------------------------*/
  /**
 @@ -1863,6 +1887,36 @@
-
+ 
    if(redraw & REDRAW_ALL) {
      do_redraw_all(1, height);
 +  } else if(redraw & (REDRAW_OPEN | REDRAW_ROWS)) {
@@ -96,10 +96,10 @@
    } else if(redraw & REDRAW_MENUPART) {
      do_redraw_all(1, maxnitems + 1);
 @@ -1887,7 +1941,8 @@
-   }
+   }    
    redraw = 0;
    redraw_widgetptr = 0;
--
+-  
 +  redraw_y1 = 255;
 +  redraw_y2 = 0;
  }
