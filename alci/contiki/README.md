@@ -153,8 +153,11 @@ back to the text console.
 - `icons/`: the Alci icon sets, one per screen family (see
   `icons/README.md`). `icons/tools/mkgfx.py` writes, for each build, a
   header with only the icons the desktop uses, in the palette of that
-  screen (`obj-<type>/gfx-icons.h`); the MCGA icons are the 40x32 set drawn
-  for it, with 40 colours of their own. Wallpapers (`ctk -w dots|pairs|slash|none`, default dots,
+  screen (`obj-<type>/gfx-icons.h`); the MCGA icons come from the set drawn
+  for it, with 40 colours of their own. On the 320x200 screens (CGA four
+  colours, Tandy 16 colours, MCGA) the icons are 32x24 in a column of five
+  cells, with titles of five letters at most ("Calc", "Dir", "Edit"),
+  centred to the pixel; windows can be moved over the column. Wallpapers (`ctk -w dots|pairs|slash|none`, default dots,
   or `CTK_WALLPAPER`) exist on two colours.
 
 ## Licences

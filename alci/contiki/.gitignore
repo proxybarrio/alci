@@ -11,3 +11,6 @@ ctk-vga2
 desk
 obj-*/
 *.o
+icons/src/cga/__pycache__/
+ctk-tandy
+ctk-tandy4

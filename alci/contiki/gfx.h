@@ -23,7 +23,8 @@
 #define GFX_SH 25
 #define GFX_CH 8
 #define GFX_ICON_CW 5
-#define GFX_ICON_RH 4
+#define GFX_ICON_RH 3
+#define GFX_ICON_SMALL 1        /* 32x24 icons, short titles */
 #define GFX_LABEL "CGA 320x200"
 #elif defined(GFX_EGA)          /* EGA 640x350, 16 of 64 colours, mode 10h */
 #define GFX_SW 80
@@ -44,14 +45,16 @@
 #define GFX_SH 25
 #define GFX_CH 8
 #define GFX_ICON_CW 5
-#define GFX_ICON_RH 4
+#define GFX_ICON_RH 3
+#define GFX_ICON_SMALL 1        /* 32x24 icons, short titles */
 #define GFX_LABEL "MCGA 320x200"
 #elif defined(GFX_TANDY)        /* Tandy 1000, PCjr: 320x200, 16 colours, mode 9 */
 #define GFX_SW 40
 #define GFX_SH 25
 #define GFX_CH 8
 #define GFX_ICON_CW 5
-#define GFX_ICON_RH 4
+#define GFX_ICON_RH 3
+#define GFX_ICON_SMALL 1        /* 32x24 icons, short titles */
 #define GFX_LABEL "Tandy 320x200"
 /* Two-colour screens with tall cells, drawn like CGA two colours */
 #elif defined(GFX_HERC)         /* Hercules 720x348, programmed directly */
@@ -92,9 +95,20 @@
 #endif
 
 /* Desktop icon column, used by ctk.c (patched by "make fetch") */
+#if defined(GFX_ICON_SMALL)
+/* 320x200: a column of five cells, the icon filling it, its title right
+   under it and the next icon right above (the desktop draws its icons one
+   cell right and two down from these places) */
+#define CTK_ICONX_FROM_RIGHT (GFX_ICON_CW + 1)
+#define CTK_ICONY_STEP       (GFX_ICON_RH + 1)
+#define CTK_ICONY_FROM_BOTTOM (GFX_ICON_RH + 6)
+#define GFX_SEP_GAP 0           /* the line in the cell left of the icons */
+#else
 #define CTK_ICONX_FROM_RIGHT (GFX_ICON_CW + 2)
 #define CTK_ICONY_STEP       (GFX_ICON_RH + 2)
 #define CTK_ICONY_FROM_BOTTOM (GFX_ICON_RH + 5)
+#define GFX_SEP_GAP 3
+#endif
 
 struct gfx_icon {
   unsigned short w, h;          /* pixels */

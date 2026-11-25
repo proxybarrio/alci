@@ -768,7 +768,7 @@ ctk_cga_wallpaper_find(const char *name)
 }
 
 /* x of the etched line beside the icon column, in pixels */
-#define SEP_X ((SW - CTK_ICONX_FROM_RIGHT - 3) * 8 + 3)
+#define SEP_X ((SW - CTK_ICONX_FROM_RIGHT - GFX_SEP_GAP) * 8 + 3)
 
 static unsigned char desk_nosep;        /* 1: leave out the icon column line */
 
@@ -2431,11 +2431,21 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
 #include "gfx-icons.h"
 #undef GFX_PALETTE_ONLY
 #endif
+#if defined(GFX_ICON_SMALL)
+/* titles of the Contiki programs that do not fit in five letters */
+static const char * const short_titles[][2] = {
+  {"Calculator", "Calc"}, {"Directory", "Dir"}, {"Editor", "Edit"},
+  {"E-mail", "Mail"}, {"Network setup", "Net"}, {"Command shell", "Shell"},
+  {"Processes", "Procs"}, {"Telnet", "Term"}, {"Telnet server", "TelSv"},
+  {"Web server", "WebSv"}, {"Web browser", "WWW"}
+};
+#endif
 static void
 icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
      unsigned char clipy1, unsigned char clipy2, unsigned char sel)
 {
   const struct gfx_icon *ic = (const struct gfx_icon *)w->widget.icon.bitmap;
+  const char *title;
   unsigned char i, j, r, c, len;
   unsigned short ox, oy;
   if(ic != NULL) {
@@ -2505,10 +2515,27 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
   }
   /* title under the icon, centred; when selected, in a pill. A long title
      keeps its first word ("About Contiki" -> "About"). */
-  len = strlen(w->widget.icon.title);
+  title = w->widget.icon.title;
+  len = strlen(title);
+#if defined(GFX_ICON_SMALL)
+  /* five letters at most under the small icons: known long titles have a
+     short form */
+  for(i = 0; i < sizeof(short_titles) / sizeof(short_titles[0]); ++i) {
+    if(strcmp(title, short_titles[i][0]) == 0) {
+      title = short_titles[i][1];
+      len = strlen(title);
+      break;
+    }
+  }
+#endif
   if(len > GFX_ICON_CW) {
-    for(i = 0; i < len && w->widget.icon.title[i] != ' '; ++i) ;
+    for(i = 0; i < len && title[i] != ' '; ++i) ;
     len = i;
+#if defined(GFX_ICON_SMALL)
+    if(len > GFX_ICON_CW) {
+      len = GFX_ICON_CW;
+    }
+#endif
   }
   desk_nosep = 1;
   {
@@ -2529,7 +2556,7 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
     rows_solid(sel ? C_INK : C_PAPER);
     for(i = 0; i < len; ++i) {
       barfont = 1;
-      comp_text(w->widget.icon.title[i], sel ? C_PAPER : C_INK);
+      comp_text(title[i], sel ? C_PAPER : C_INK);
       barfont = 0;
       if(sel && (i == 0 || i == len - 1)) {
         unsigned char bit = i == 0 ? 0x80 : 0x01;
@@ -2539,6 +2566,42 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
       blit_bytes(x + i, ty, mb);
     }
     (void)r; (void)c;
+#elif defined(GFX_ICON_SMALL)
+    {
+      /* centred to the pixel under the icon: a title of an even number of
+         letters starts half a cell in, so each cell takes the halves of
+         two letters */
+      unsigned short lx = xpos * 8 + (GFX_ICON_CW - len) * 4;
+      unsigned short lx1 = lx + len * 8, Y0 = ty * CH;
+      unsigned char cx;
+      (void)x;
+      for(cx = lx / 8; cx <= (lx1 - 1) / 8; ++cx) {
+        unsigned short X0 = cx * 8;
+        for(c = 0; c < 8; ++c) {
+          unsigned short X = X0 + c;
+          unsigned char in = X >= lx && X < lx1;
+          const unsigned char *g = in ? glyph(title[(X - lx) / 8]) : NULL;
+          unsigned char bit = 0x80 >> ((X - lx) & 7);
+          for(r = 0; r < CH; ++r) {
+            unsigned char v = desk(X, Y0 + r);
+            if(in) {
+              if(sel && !((r == 0 || r == CH - 1) && (X == lx || X == lx1 - 1))) {
+#if defined(GFX_MCGA)
+                v = C_BAR_A + r * 8 / CH;
+#else
+                v = r < CH / 2 ? C_BAR_AT : C_BAR_AB;
+#endif
+              }
+              if(g[r] & bit) {
+                v = sel ? C_TITLE_A : C_INK;
+              }
+            }
+            pix[r][c] = v;
+          }
+        }
+        blit(cx, ty);
+      }
+    }
 #else
     for(i = 0; i < len; ++i) {
       unsigned short X0 = (x + i) * 8, Y0 = ty * CH;
@@ -2564,7 +2627,7 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
         pix[0][k] = desk(X0 + k, Y0);
         pix[CH - 1][k] = desk(X0 + k, Y0 + CH - 1);
       }
-      pix_glyph(w->widget.icon.title[i], sel ? C_TITLE_A : C_INK);
+      pix_glyph(title[i], sel ? C_TITLE_A : C_INK);
       blit(x + i, ty);
     }
 #endif

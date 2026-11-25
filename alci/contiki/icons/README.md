@@ -20,6 +20,7 @@ stronger the screen, the more refined the drawing, with the same idea.
 | `vga640-16col` | VGA 640x480, 16 colours | 104x80 pixels | 16, palette of its own (the VGA DAC is reprogrammed) | 4,160 | 66,814 |
 | `mcga320-256col` | MCGA (and VGA) 320x200, 256 colours | 40x32 pixels, 5x4 cells of 8x8 | 40 of a palette of its own, transparent background | 1,280 | |
 | `tandy320-16col` | Tandy 1000 and PCjr 320x200, 16 colours | 40x32 pixels | the 16 standard colours, on the light grey desktop (7) | 640 | |
+| `cga320-4col-32x24`, `tandy320-16col-32x24`, `mcga320-256col-32x24` | the same 320x200 screens, as built into the desktop | 32x24 pixels, centred in 5x3 cells of 8x8 | those of the 40x32 set they come from | | |
 | `tandy640-4col` | Tandy 1000 SL/TL/RL and PCjr 640x200, 4 colours | 80x32 pixels | 4: black, light cyan, yellow, white (local indices 0-3) | 640 | |
 | `svga-64` | Super VGA 800x600 and 1024x768, 256 colours | 64x64 pixels | 61 of a palette of its own, transparent background | 4,096 | |
 | `modern-64`, `modern-128` | modern PCs | 64x64, 128x128 | full colour, transparent background (PNG) | | |
@@ -30,6 +31,9 @@ their design sheets, the modern sets are taken from them at full colour.
 The MCGA and Tandy 320x200 sets are drawn on their own grid; the Tandy
 640x200 set is reduced from its design sheet and cleaned by hand; the Super
 VGA set is the modern set mapped to 61 colours and cleaned of stray pixels.
+The 32x24 sets of the 320x200 screens are reduced from their 40x32 sets by
+`tools/shrink32x24.py`, which removes one column in five and one row in
+four without mixing colours, and draws the calculator again.
 The Hercules palette entry (mint green) is only for previews: the colour
 is the monitor's phosphor.
 
