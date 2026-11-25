@@ -1,0 +1,107 @@
+--- a/contiki/ctk/ctk.c
++++ b/contiki/ctk/ctk.c
+@@ -83,6 +83,12 @@
+ #define REDRAW_WIDGETS      4
+ #define REDRAW_MENUS        8
+ #define REDRAW_MENUPART     16
++/* Alci: opening a window redraws that window and the one it covers in
++   front, closing one the rows it took; not the whole screen */
++#define REDRAW_OPEN         32
++#define REDRAW_ROWS         64
++static struct ctk_window *redraw_prev;  /* front window before an open */
++static unsigned char redraw_y1 = 255, redraw_y2;
+
+ #define MAX_REDRAWWIDGETS 4
+ static unsigned char redraw;
+@@ -419,7 +425,7 @@
+ void
+ ctk_window_open(CC_REGISTER_ARG struct ctk_window *w)
+ {
+-  struct ctk_window *w2;
++  struct ctk_window *w2, *front = windows;
+
+   /* Check if already open. */
+   for(w2 = windows; w2 != w && w2 != NULL; w2 = w2->next);
+@@ -454,7 +460,12 @@
+   make_desktopmenu();
+ #endif /* CTK_CONF_MENUS */
+
+-  redraw |= REDRAW_ALL;
++  if(redraw & REDRAW_OPEN) {
++    redraw |= REDRAW_ALL;               /* two in one round: all */
++  } else {
++    redraw |= REDRAW_OPEN;
++    redraw_prev = front == w ? NULL : front;
++  }
+ }
+ /*-----------------------------------------------------------------------------------*/
+ /**
+@@ -506,7 +517,20 @@
+   /* Recreate the Desktop menu's window entries.*/
+   make_desktopmenu();
+ #endif /* CTK_CONF_MENUS */
+-  redraw |= REDRAW_ALL;
++  {
++    /* the rows of the window: title, body, border and shadow */
++    unsigned char y1 = w->y + 1, y2 = w->y + w->h + 4;
++    if(y2 > height) {
++      y2 = height;
++    }
++    if(y1 < redraw_y1) {
++      redraw_y1 = y1;
++    }
++    if(y2 > redraw_y2) {
++      redraw_y2 = y2;
++    }
++    redraw |= REDRAW_ROWS;
++  }
+ }
+ /*-----------------------------------------------------------------------------------*/
+ /**
+@@ -1863,6 +1887,36 @@
+
+   if(redraw & REDRAW_ALL) {
+     do_redraw_all(1, height);
++  } else if(redraw & (REDRAW_OPEN | REDRAW_ROWS)) {
++    if(dialog != NULL
++#if CTK_CONF_MENUS
++       || menus.open != NULL
++#endif /* CTK_CONF_MENUS */
++       ) {
++      do_redraw_all(1, height);
++    } else {
++#if CTK_CONF_MENUS
++      if(redraw & (REDRAW_MENUPART | REDRAW_MENUS)) {
++        do_redraw_all(1, maxnitems + 1);        /* under the closed menu */
++      }
++#endif /* CTK_CONF_MENUS */
++      if(redraw & REDRAW_ROWS) {
++        do_redraw_all(redraw_y1, redraw_y2);
++      }
++      if((redraw & REDRAW_OPEN) && redraw_prev != NULL) {
++        /* the window that was in front, if still open, loses focus */
++        struct ctk_window *w2;
++        for(w2 = windows; w2 != NULL && w2 != redraw_prev; w2 = w2->next);
++        if(w2 != NULL && w2 != windows) {
++          ctk_draw_clear_window(w2, 0, 1, height);
++          ctk_draw_window(w2, 0, 1, height, 1);
++        }
++      }
++      if(windows != NULL) {
++        ctk_draw_clear_window(windows, CTK_FOCUS_WINDOW, 1, height);
++        ctk_draw_window(windows, CTK_FOCUS_WINDOW, 1, height, 1);
++      }
++    }
+ #if CTK_CONF_MENUS
+   } else if(redraw & REDRAW_MENUPART) {
+     do_redraw_all(1, maxnitems + 1);
+@@ -1887,7 +1941,8 @@
+   }
+   redraw = 0;
+   redraw_widgetptr = 0;
+-
++  redraw_y1 = 255;
++  redraw_y2 = 0;
+ }
+ /*-----------------------------------------------------------------------------------*/
+ EK_EVENTHANDLER(ctk_eventhandler, ev, data)

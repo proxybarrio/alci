@@ -223,3 +223,7 @@
   runs instead of pixel by pixel, the same pixels as before (8088, desktop
   settled: EGA 36.6 s to 0.44 s, VGA 52.9 s to 0.68 s, MCGA 4.5 s to
   0.67 s). Timings in `alci/contiki/README.md`.
+- D7: opening a window redraws that window and the one it covers, closing
+  one the rows it took (CTK patch applied by `make fetch`); the same
+  screens as before, the calculator step 4x faster on CGA and Hercules,
+  about 2x on EGA, VGA and MCGA. The calculator shows 0 when empty.

@@ -64,6 +64,9 @@ fetch:
 	       -e 's/^#define ICONY_DELTA  -5/#define ICONY_DELTA  (-CTK_ICONY_STEP)/' contiki-1.x/contiki/ctk/ctk.c
 	# the calculator shows 0 when its display is empty
 	git -C contiki-1.x apply ../patches/calc-zero.patch
+	# opening a window redraws that window and the one it covers, closing
+	# one the rows it took, instead of the whole screen
+	git -C contiki-1.x apply ../patches/ctk-partial-redraw.patch
 
 clean:
 	rm -rf $(PROGS) obj-*

@@ -112,6 +112,15 @@ draw the same pixels (screenshots compared on QEMU in twelve situations).
 | repaint of the whole background | 33.9 s | 0.25 s | 46.3 s | 0.32 s | 3.87 s | 0.31 s |
 | five keys into the calculator (one full redraw included) | 42.0 s | 1.03 s | 59.1 s | 1.35 s | 6.36 s | 1.46 s |
 
+The "keys" step also holds the drawing of the calculator window, which CTK
+defers to its next round. Contiki's CTK redrew the whole screen to open or
+close a window; a patch applied by `make fetch`
+(`patches/ctk-partial-redraw.patch`) redraws only the window opened and
+the one it covers, or the rows of the window closed, with the same
+pixels on screen. With it the step takes 0.17 s on CGA (was 0.72 s),
+0.28 s on Hercules (was 1.10 s), 0.60 s on EGA, 0.67 s on VGA and 0.77 s
+on MCGA; five keys alone take about 0.33 s on EGA.
+
 On EGA and VGA cells are composed as the four bit planes video memory
 keeps, with masks (window borders and shadows, desktop, letters, button
 sides, icon titles), and written a plane at a time in assembly; the
