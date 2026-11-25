@@ -7,7 +7,7 @@ stay round. In each group the line removed is the one most like a neighbour,
 and the pattern of offsets with the least loss wins. No colour is mixed:
 every pixel left is a pixel of the drawing. The calculator, whose symbols do
 not survive the cut, is drawn again on the reduced frame; the two faces
-(dhcp) are taken from the 64x64 original instead."""
+(dhcp) are the Commodore 64 icon of Contiki."""
 import itertools, os, sys
 import numpy as np
 from PIL import Image
@@ -65,49 +65,47 @@ def greedy(a, axis, n, lo=0, gap=3):
     return a
 
 
+# The network icon of Contiki 1.x on the Commodore 64 (apps/dhcp-dsc.c,
+# tcpipconficon_bitmap, 3x3 characters), Copyright (c) 2003 Adam Dunkels,
+# BSD licence: '#' is a set pixel.
+C64_FACE = [
+    '........................',
+    '.####..########....#.##.',
+    '.#....#########.......#.',
+    '.###..########..........',
+    '.#...#########........#.',
+    '.###.#########..........',
+    '.#...########...........',
+    '.##.#########.####....#.',
+    '.#..#....####..##.......',
+    '.#..##..####............',
+    '.#.#########............',
+    '.#.#########............',
+    '...########.............',
+    '..#########.............',
+    '..#############.........',
+    '......########..........',
+    '.###.#########..........',
+    '.#...############.......',
+    '.###....#######.........',
+    '.#....##########........',
+    '.####..#########........',
+    '.#.....##########....#..',
+    '.#####..####.#######....',
+    '........................',
+]
+
+
 def face(set_, a):
-    """the two profiles (dhcp), taken from the 64x64 original (modern-64):
-    each pixel of the 32x24 grid looks at its patch of rows 4-59, teal if a
-    third of it is coloured, black if half of it is dark, white otherwise;
-    single black pixels go. The two barcode marks on the left are drawn
-    again as a stem with a bar on every other row, stopping one pixel
-    before the black face, and no dot on the right touches the black."""
-    im = Image.open(os.path.join(PNG, 'modern-64', 'dhcp.png')).convert('RGBA')
-    a = np.asarray(im).astype(float)
-    al = a[:, :, 3:4] / 255
-    rgb = (a[:, :, :3] * al + 255 * (1 - al))[4:60]
-    h, w, _ = rgb.shape
-    f = np.zeros((24, 32), int)
-    for y in range(24):
-        for x in range(32):
-            blk = rgb[int(y * h / 24):int(np.ceil((y + 1) * h / 24)),
-                      int(x * w / 32):int(np.ceil((x + 1) * w / 32))].reshape(-1, 3)
-            lum = blk.mean(1)
-            sat = blk.max(1) - blk.min(1)
-            col = ((sat > 60) & (lum >= 60)).mean() + ((sat > 60) & (lum < 90) & (blk[:, 2] > blk[:, 0] + 40)).mean()
-            f[y, x] = 2 if col >= 0.35 else (1 if (lum < 90).mean() >= 0.5 else 0)
-    g = f.copy()
-    for y in range(24):
-        for x in range(32):
-            nb = f[max(0, y - 1):y + 2, max(0, x - 1):x + 2]
-            if f[y, x] == 1 and (nb == 1).sum() <= 2:
-                g[y, x] = 0
-    f = g
-    for rows in (range(0, 11), range(15, 24)):
-        for k, r in enumerate(rows):
-            first = next((x for x in range(32) if f[r, x] == 1), 8)
-            end = min(first - 1, 7)
-            f[r, :end] = 0
-            f[r, :2] = 2
-            if k % 2 == 0:
-                f[r, 2:end] = 2
-    for y in range(24):
-        for x in range(18, 32):
-            if f[y, x] == 2 and (f[max(0, y - 1):y + 2, max(0, x - 1):x + 2] == 1).any():
-                f[y, x] = 0
-    white, black, teal = {'cga320-4col': (3, 0, 1), 'tandy320-16col': (15, 0, 3),
-                          'mcga320-256col': (5, 0, 13)}[set_]
-    return np.choose(f, [white, black, teal]).astype(np.uint8)
+    """the two profiles (dhcp): the Commodore 64 icon as it is, white on
+    black, 24x24 in the middle of the 32x24 cell, the desktop either side"""
+    paper = {'cga320-4col': 0, 'tandy320-16col': 7, 'mcga320-256col': 40}[set_]
+    white = {'cga320-4col': 3, 'tandy320-16col': 15, 'mcga320-256col': 5}[set_]
+    f = np.full((24, 32), paper, np.uint8)
+    for y, row in enumerate(C64_FACE):
+        for x, ch in enumerate(row):
+            f[y, 4 + x] = white if ch == '#' else 0
+    return f
 
 
 def symbol(a, x0, y0, s, col):
