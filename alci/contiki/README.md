@@ -88,13 +88,27 @@ back to text mode (10 ms resolution). "Before" is the CGA-only layer of
 | five keys into the calculator (`2*21=`, one full redraw included) | 0.67 s | 0.72 s | 0.88 s |
 | open the About dialog | 0.01 s | 0.02 s | 0.01 s |
 
+The other 8088 builds, on the same XT with the card changed (Hercules,
+IBM EGA) or on MartyPC's Tandy 1000 (8088 4.77 MHz), 2026-11-25:
+
+| Step | `ctk-herc` | `ctk-ega2` | `ctk-tandy` |
+| --- | --- | --- | --- |
+| desktop drawn and settled | 0.83 s | 0.81 s | 0.80 s |
+| repaint of the whole background | 0.76 s | 0.74 s | 0.55 s |
+| five keys into the calculator (one full redraw included) | 1.10 s | 1.06 s | 1.48 s |
+
+Cells of 14 rows cost more than cells of 8: the background takes 2160
+cells of 14 writes on Hercules. `ctk-att` and `ctk-vga2` use the same code
+as `ctk-ega2` (MartyPC has neither an Olivetti nor a VGA here).
+
 On two colours the frequent cells (desktop, text, buttons, icons, the
 middle of title bars and borders) are written as 8 bytes, and window
 borders are composed a pixel row at a time with bit masks. Four colours
 do the same on two bit planes a row (bit 1 and bit 0 of each pixel), spread
 into 2-bit pixels by a table; icons are stored as video memory has them.
-The EGA, VGA and MCGA builds compose cells pixel by pixel and are meant
-for 286 and later machines.
+The Tandy 16-colour build works the same way on four planes, packed into
+4-bit pixels by two tables. The EGA, VGA and MCGA builds compose cells
+pixel by pixel and are meant for 286 and later machines.
 
 ## Build and run
 

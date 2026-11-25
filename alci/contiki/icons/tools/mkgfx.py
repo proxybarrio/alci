@@ -99,7 +99,8 @@ def main():
                 % (target, SETS[target]))
         # four colours: icons that fill their cells exactly are stored packed
         packed4 = (target == 'cga4' and all(a.shape == (32, 40) for a in icons)) or \
-            (target == 'tandy4' and all(a.shape == (32, 80) for a in icons))
+            (target == 'tandy4' and all(a.shape == (32, 80) for a in icons)) or \
+            (target == 'tandy' and all(a.shape == (32, 40) for a in icons))
         if packed4:
             f.write('#define GFX_ICON_PACKED4 1\n')
         f.write('#ifndef GFX_PALETTE_ONLY\n')
@@ -118,6 +119,21 @@ def main():
                         for r in range(ch):
                             row = a[cy * ch + r, cx * 8:cx * 8 + 8]
                             cells.append(int(''.join(str(int(v)) for v in row), 2))
+                flat = np.array(cells)
+                f.write('static const unsigned char gfx_icon_%s_px[%d] = {\n' % (n, len(flat)))
+            elif target == 'tandy' and packed4:
+                # Tandy 320x200 in 16 colours: cells of 8x8, four bytes a
+                # pixel row, two 4-bit pixels a byte, the left one high, as
+                # the video memory has them; around the drawing the grey of
+                # the desktop (7)
+                cells = []
+                b = np.where(a == 255, 7, a)
+                for cy in range(h // 8):
+                    for cx in range(w // 8):
+                        for r in range(8):
+                            row = b[cy * 8 + r, cx * 8:cx * 8 + 8]
+                            for k in range(0, 8, 2):
+                                cells.append((int(row[k]) << 4) | int(row[k + 1]))
                 flat = np.array(cells)
                 f.write('static const unsigned char gfx_icon_%s_px[%d] = {\n' % (n, len(flat)))
             elif target == 'tandy4' and packed4:
