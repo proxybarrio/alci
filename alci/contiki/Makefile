@@ -62,6 +62,8 @@ fetch:
 	       -e 's/^#define ICONY_START  (height - 7)/#define ICONY_START  (height - CTK_ICONY_FROM_BOTTOM)/' \
 	       -e 's/^#define ICONX_DELTA  -16/#define ICONX_DELTA  (-CTK_ICONX_FROM_RIGHT - 4)/' \
 	       -e 's/^#define ICONY_DELTA  -5/#define ICONY_DELTA  (-CTK_ICONY_STEP)/' contiki-1.x/contiki/ctk/ctk.c
+	# the calculator shows 0 when its display is empty
+	git -C contiki-1.x apply ../patches/calc-zero.patch
 
 clean:
 	rm -rf $(PROGS) obj-*

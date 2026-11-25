@@ -1,0 +1,26 @@
+diff --git a/contiki/apps/calc.c b/contiki/apps/calc.c
+index 603e610..f3f4006 100644
+--- a/contiki/apps/calc.c
++++ b/contiki/apps/calc.c
+@@ -125,7 +125,12 @@ static void
+ add_to_input(char c)
+ {
+   unsigned char i;
+-    
++
++  /* Alci: a lone 0 is replaced by the first digit */
++  if(input[10] == ' ' && input[11] == '0') {
++    input[11] = c;
++    return;
++  }
+   for(i = 0; i < 11; ++i) {
+     input[i] = input[i + 1];
+   }
+@@ -140,6 +145,7 @@ clear_input(void)
+   for(i = 0; i < sizeof(input); ++i) {
+     input[i] = ' ';
+   }      
++  input[11] = '0';                      /* Alci: an empty display shows 0 */
+ }
+ /*-----------------------------------------------------------------------------------*/
+ static void
