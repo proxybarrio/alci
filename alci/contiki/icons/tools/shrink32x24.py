@@ -97,14 +97,31 @@ C64_FACE = [
 
 
 def face(set_, a):
-    """the two profiles (dhcp): the Commodore 64 icon as it is, white on
-    black, 24x24 in the middle of the 32x24 cell, the desktop either side"""
-    paper = {'cga320-4col': 0, 'tandy320-16col': 7, 'mcga320-256col': 40}[set_]
-    white = {'cga320-4col': 3, 'tandy320-16col': 15, 'mcga320-256col': 5}[set_]
+    """the two profiles (dhcp): the Commodore 64 icon as it is, 24x24 in the
+    middle of the 32x24 cell, the desktop either side; the white face and
+    eye on black as there, the barcode marks on the left and the dots on
+    the right in the colours of the set"""
+    from scipy import ndimage
+    paper, white, bars, dots = {'cga320-4col': (0, 3, 1, 2),
+                                'tandy320-16col': (7, 15, 3, 9),
+                                'mcga320-256col': (40, 5, 13, 8)}[set_]
+    on = np.array([[ch == '#' for ch in row] for row in C64_FACE])
+    lab, n = ndimage.label(on)
+    sizes = ndimage.sum(on, lab, range(1, n + 1))
+    big = 1 + int(np.argmax(sizes))
     f = np.full((24, 32), paper, np.uint8)
-    for y, row in enumerate(C64_FACE):
-        for x, ch in enumerate(row):
-            f[y, 4 + x] = white if ch == '#' else 0
+    f[:, 4:28] = 0
+    for k in range(1, n + 1):
+        ys, xs = np.nonzero(lab == k)
+        if k == big:
+            c = white
+        elif xs.max() <= 6:
+            c = bars
+        elif xs.min() >= 18:
+            c = dots
+        else:
+            c = white
+        f[ys, xs + 4] = c
     return f
 
 
