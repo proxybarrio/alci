@@ -7,7 +7,7 @@ stay round. In each group the line removed is the one most like a neighbour,
 and the pattern of offsets with the least loss wins. No colour is mixed:
 every pixel left is a pixel of the drawing. The calculator, whose symbols do
 not survive the cut, is drawn again on the reduced frame; the two faces
-(dhcp) lose their margin and their plainest lines instead."""
+(dhcp) lose their plainest lines instead, in the CGA drawing."""
 import itertools, os, sys
 import numpy as np
 from PIL import Image
@@ -66,13 +66,16 @@ def greedy(a, axis, n, lo=0, gap=3):
 
 
 def face(set_, a):
-    """the two profiles: cut evenly they lose their outline. On Tandy and
-    MCGA the drawing is 35 pixels wide inside a margin: the margin goes,
-    then three plain columns of the faces and one row in seven. The CGA
-    drawing fills the width: its plainest columns and rows go."""
+    """the two profiles (dhcp), as the 64x64 originals draw them. The CGA
+    40x32 drawing fills the width: its plainest columns and rows go. The
+    Tandy and MCGA 40x32 drawings stray from the originals, so theirs is
+    the CGA one in their colours: bars, dots, white face; black stays."""
+    cga = np.asarray(Image.open(os.path.join(PNG, 'cga320-4col', 'dhcp.png')))
+    f = greedy(greedy(cga[2:31], 1, 8, gap=2), 0, 5, gap=2)
     if set_ == 'cga320-4col':
-        return greedy(greedy(a[2:31], 1, 8, gap=2), 0, 5, gap=2)
-    return cut(greedy(a[2:30, 3:38], 1, 3, lo=8), 0, 7)
+        return f
+    bars, dots, white = (3, 9, 15) if set_ == 'tandy320-16col' else (13, 8, 5)
+    return np.choose(f, [0, bars, dots, white]).astype(np.uint8)
 
 
 def symbol(a, x0, y0, s, col):
