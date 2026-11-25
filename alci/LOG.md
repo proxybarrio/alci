@@ -213,3 +213,13 @@
   the loader), and ept, the ELKS package tool, which reaches disk 2 of
   the 720K set (13 KB left there). Timings, suites and resident memory
   unchanged.
+
+## 2026-11-25
+
+- D7: icons of 32x24 in a column of five cells on the 320x200 screens
+  (CGA four colours, Tandy, MCGA), with titles of five letters at most;
+  the face icon is the Commodore 64 one of Contiki.
+- D7: the EGA, VGA and MCGA colour builds composed in bit planes and by
+  runs instead of pixel by pixel, the same pixels as before (8088, desktop
+  settled: EGA 36.6 s to 0.44 s, VGA 52.9 s to 0.68 s, MCGA 4.5 s to
+  0.67 s). Timings in `alci/contiki/README.md`.

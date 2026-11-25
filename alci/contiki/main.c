@@ -188,7 +188,7 @@ main(int argc, char **argv)
 
   if(argc > 1 && strcmp(argv[1], "-b") == 0) {
     /* Benchmark: timings in ms, printed after going back to text mode. */
-    clock_time_t t[7];
+    clock_time_t t[8];
     const char *keys = "2*21=";
     t[0] = clock_time();                /* desktop drawn by ctk_init */
     while(ek_run()) ;
@@ -206,10 +206,15 @@ main(int argc, char **argv)
     t[4] = clock_time();
     ctk_draw_clear(0, ctk_draw_height());   /* repaint the whole background */
     t[5] = clock_time();
+    ctk_draw_clear(1, ctk_draw_height() - 1);   /* the desktop rows alone */
+    t[6] = clock_time();
+    ctk_draw_clear(ctk_draw_height() - 1, ctk_draw_height());   /* the status bar */
+    t[7] = clock_time();
     ctk_cga_exit();
     tcsetattr(0, TCSANOW, &saved);
     printf("ctk ms: settle %lu calc %lu keys %lu\n", t[1] - t[0], t[2] - t[1], t[3] - t[2]);
     printf("ctk ms: dialog %lu background %lu\n", t[4] - t[3], t[5] - t[4]);
+    printf("ctk ms: rows %lu status %lu\n", t[6] - t[5], t[7] - t[6]);
     return 0;
   }
   if(argc > 1 && strcmp(argv[1], "-d") == 0) {

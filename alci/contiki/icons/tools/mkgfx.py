@@ -107,6 +107,14 @@ def main():
             (target == 'tandy' and all(a.shape in ((32, 40), (24, 40)) for a in icons))
         if packed4:
             f.write('#define GFX_ICON_PACKED4 1\n')
+        # EGA and VGA: icons that fill their cells exactly are stored as
+        # planes: for each cell, each pixel row: the mask of the drawing,
+        # then the four plane bytes (most significant bit = leftmost)
+        planes16 = {'ega': (14, 9, 3), 'vga': (16, 13, 5)}.get(target)
+        if planes16 and not all(a.shape == (planes16[0] * planes16[2], planes16[1] * 8) for a in icons):
+            planes16 = None
+        if planes16:
+            f.write('#define GFX_ICON_PLANES16 1\n')
         f.write('#ifndef GFX_PALETTE_ONLY\n')
         for n, a in zip(names, icons):
             h, w = a.shape
@@ -172,6 +180,19 @@ def main():
                                 for x in row[k:k + 4]:
                                     v = (v << 2) | int(x)
                                 cells.append(v)
+                flat = np.array(cells)
+                f.write('static const unsigned char gfx_icon_%s_px[%d] = {\n' % (n, len(flat)))
+            elif planes16:
+                ch = planes16[0]
+                cells = []
+                for cy in range(h // ch):
+                    for cx in range(w // 8):
+                        for r in range(ch):
+                            row = a[cy * ch + r, cx * 8:cx * 8 + 8]
+                            bits = lambda f: int(''.join('1' if f(int(v)) else '0' for v in row), 2)
+                            cells.append(bits(lambda v: v != 255))
+                            for k in range(4):
+                                cells.append(bits(lambda v, k=k: v != 255 and (v >> k) & 1))
                 flat = np.array(cells)
                 f.write('static const unsigned char gfx_icon_%s_px[%d] = {\n' % (n, len(flat)))
             else:

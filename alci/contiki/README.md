@@ -26,10 +26,10 @@ State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
 About dialog and the calculator work on the nine screens: CGA, EGA, VGA
 and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
 Hercules card, and with the Olivetti OGC card); timings of `ctk` and
-`ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 22.3 KB, `ctk-cga4`
-22.8 KB, `ctk-ega` 24.7 KB, `ctk-mcga` 22.3 KB, `ctk-vga` 35.1 KB (its two
-built-in icons are 104x80 pixels), `ctk-herc` 22.2 KB, `ctk-att` 22.8 KB,
-`ctk-ega2` 22.0 KB, `ctk-vga2` 22.8 KB, `ctk-tandy` 21.7 KB, `ctk-tandy4` 22.7 KB, `desk` 1.6 KB.
+`ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 22.4 KB, `ctk-cga4`
+23.0 KB, `ctk-ega` 24.5 KB, `ctk-mcga` 22.5 KB, `ctk-vga` 31.1 KB (its two
+built-in icons are 104x80 pixels), `ctk-herc` 22.5 KB, `ctk-att` 23.0 KB,
+`ctk-ega2` 22.2 KB, `ctk-vga2` 23.0 KB, `ctk-tandy` 23.2 KB, `ctk-tandy4` 22.8 KB, `desk` 1.6 KB.
 `ctk-tandy` and `ctk-tandy4` were checked on 86Box (Tandy 1000 HX).
 
 ## Looks
@@ -99,7 +99,30 @@ IBM EGA) or on MartyPC's Tandy 1000 (8088 4.77 MHz), 2026-11-25:
 
 Cells of 14 rows cost more than cells of 8: the background takes 2160
 cells of 14 writes on Hercules. `ctk-att` and `ctk-vga2` use the same code
-as `ctk-ega2` (MartyPC has neither an Olivetti nor a VGA here).
+as `ctk-ega2` (MartyPC has no Olivetti here).
+
+The colour builds of EGA, VGA and MCGA on the same XT with MartyPC's VGA
+card (Bochs VGA BIOS; it also runs EGA mode 10h), 2026-11-25. "Before" is
+commit a9a826752, where these screens were composed pixel by pixel; both
+draw the same pixels (screenshots compared on QEMU in twelve situations).
+
+| Step | `ctk-ega` before | `ctk-ega` now | `ctk-vga` before | `ctk-vga` now | `ctk-mcga` before | `ctk-mcga` now |
+| --- | --- | --- | --- | --- | --- | --- |
+| desktop drawn and settled | 36.6 s | 0.44 s | 52.9 s | 0.68 s | 4.50 s | 0.67 s |
+| repaint of the whole background | 33.9 s | 0.25 s | 46.3 s | 0.32 s | 3.87 s | 0.31 s |
+| five keys into the calculator (one full redraw included) | 42.0 s | 1.03 s | 59.1 s | 1.35 s | 6.36 s | 1.46 s |
+
+On EGA and VGA cells are composed as the four bit planes video memory
+keeps, with masks (window borders and shadows, desktop, letters, button
+sides, icon titles), and written a plane at a time in assembly; the
+desktop is filled a band at a time (set/reset for plain rows, the checker
+as two rows repeated through the latches); the plane bytes of the four
+desktop rows are worked out at start, the icons are stored as planes with
+a mask, and the background planes of a line of text are kept from one
+letter to the next. On MCGA the window cells go by runs of a row, the
+desktop is filled a pixel row at a time and cells are copied with word
+moves. The build keeps `-fno-inline`: with inlining, ia16-gcc 6.3 left DS
+on the BIOS font segment and wrote a wrong value to a VGA register.
 
 On two colours the frequent cells (desktop, text, buttons, icons, the
 middle of title bars and borders) are written as 8 bytes, and window
@@ -173,9 +196,8 @@ column follow the icon size (see the Makefile).
 
 ## Next steps
 
-1. Faster window borders on EGA, VGA and MCGA (pixel by pixel today).
-2. Editor, then the file manager (Contiki's "Directory" is minimal).
-3. Mouse (ELKS mouse driver).
-4. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
+1. Editor, then the file manager (Contiki's "Directory" is minimal).
+2. Mouse (ELKS mouse driver).
+3. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
    the Tandy build on an 8088.
-5. The D2 benchmark against Nano-X and Gem-elks.
+4. The D2 benchmark against Nano-X and Gem-elks.

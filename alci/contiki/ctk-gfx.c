@@ -174,6 +174,9 @@ static const unsigned char bar_one[8] = {0, 0, 1, 0, 1, 0, 0, 0};
 #define BOX_B (GFX_CH - 2)
 #endif
 static unsigned char gabove;            /* pixel rows of the bar above the title row */
+#if defined(GFX_TANDY) || defined(GFX_EGA) || defined(GFX_VGA)
+#define PL16 1                          /* 16 colours composed in four bit planes */
+#endif
 
 /*---------------------------------------------------------------------------*/
 /* Low level: BIOS, ports, video memory */
@@ -187,8 +190,17 @@ bios10(unsigned short ax, unsigned short bx)
 static void
 outb(unsigned short port, unsigned char v)
 {
-  __asm__ volatile ("outb %%al,%%dx" : : "a" (v), "d" (port));
+  /* "memory": video memory writes must not move across a register write */
+  __asm__ volatile ("outb %%al,%%dx" : : "a" (v), "d" (port) : "memory");
 }
+#if defined(GFX_EGA) || defined(GFX_VGA)
+/* index in the low byte, data in the high byte: both registers at once */
+static void
+outw(unsigned short port, unsigned short v)
+{
+  __asm__ volatile ("outw %%ax,%%dx" : : "a" (v), "d" (port) : "memory");
+}
+#endif
 
 #if defined(GFX_CGA) || defined(GFX_CGA4) || defined(GFX_ATT) || defined(GFX_TANDY)
 #define VRAM ((unsigned char __far *)0xB8000000UL)
@@ -534,6 +546,105 @@ planes4(void)
   }
 }
 #define blit_planes(cx, cy) do { planes4(); write4(cx, cy); } while(0)
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+/* 16 colours on EGA and VGA: cells composed as four bit planes a row
+   (most significant bit = leftmost pixel), as the video memory keeps them,
+   and written a plane at a time (map mask, write mode 0) */
+static unsigned char cb4[4 * CH];
+#define P0 (cb4)
+#define P1 (cb4 + CH)
+#define P2 (cb4 + 2 * CH)
+#define P3 (cb4 + 3 * CH)
+#define FILL16(m, c) do { unsigned char m_ = (m); \
+    q0 = ((c) & 1) ? (q0 | m_) : (q0 & ~m_); \
+    q1 = ((c) & 2) ? (q1 | m_) : (q1 & ~m_); \
+    q2 = ((c) & 4) ? (q2 | m_) : (q2 & ~m_); \
+    q3 = ((c) & 8) ? (q3 | m_) : (q3 & ~m_); } while(0)
+#define PLANE_ROWS(p, s) do { \
+    p[0] = s[0]; p[80] = s[1]; p[160] = s[2]; p[240] = s[3]; \
+    p[320] = s[4]; p[400] = s[5]; p[480] = s[6]; p[560] = s[7]; \
+    p[640] = s[8]; p[720] = s[9]; p[800] = s[10]; p[880] = s[11]; \
+    p[960] = s[12]; p[1040] = s[13]; \
+    if(CH == 16) { p[1120] = s[14]; p[1200] = s[15]; } } while(0)
+static void
+write4(unsigned char cx, unsigned char cy)
+{
+  /* the sequencer index stays on the map mask (2): one OUT a plane, then
+     the CH bytes of the plane down the cell, a movsb and a step of a line
+     each */
+  unsigned short off = (unsigned short)cy * (CH * 80) + cx;
+  const unsigned char *src = cb4;
+  if(cx >= SW || cy >= SH) {
+    return;
+  }
+  __asm__ volatile ("push %%es\n\t"
+                    "mov $0xa000,%%ax\n\tmov %%ax,%%es\n\t"
+                    "mov $0x3c5,%%dx\n\tcld\n\t"
+                    "mov $1,%%al\n\tout %%al,%%dx\n\tmov %%bx,%%di\n\t"
+                    ".rept %c[ch]\n\tmovsb\n\tadd $79,%%di\n\t.endr\n\t"
+                    "mov $2,%%al\n\tout %%al,%%dx\n\tmov %%bx,%%di\n\t"
+                    ".rept %c[ch]\n\tmovsb\n\tadd $79,%%di\n\t.endr\n\t"
+                    "mov $4,%%al\n\tout %%al,%%dx\n\tmov %%bx,%%di\n\t"
+                    ".rept %c[ch]\n\tmovsb\n\tadd $79,%%di\n\t.endr\n\t"
+                    "mov $8,%%al\n\tout %%al,%%dx\n\tmov %%bx,%%di\n\t"
+                    ".rept %c[ch]\n\tmovsb\n\tadd $79,%%di\n\t.endr\n\t"
+                    "mov $15,%%al\n\tout %%al,%%dx\n\t"
+                    "pop %%es"
+                    : "+S" (src)
+                    : "b" (off), [ch] "i" (CH)
+                    : "ax", "dx", "di", "memory", "cc");
+}
+#define blit_again(cx, cy) write4(cx, cy)
+#define planes4() do { } while(0)
+/* n bytes of v from offset off of the video segment, in the planes enabled */
+static void vset(unsigned short off, unsigned char v, unsigned short n);
+/* a pixel row of n cells, the four plane bytes q the same in every cell:
+   planes all on or all off by set/reset, the others a pass for each
+   different byte */
+static void
+vrow(unsigned short off, const unsigned char *q, unsigned short n)
+{
+  unsigned char k, e = 0, sr = 0, done;
+  for(k = 0; k < 4; ++k) {
+    if(q[k] == 0 || q[k] == 0xff) {
+      e |= 1 << k;
+      if(q[k]) {
+        sr |= 1 << k;
+      }
+    }
+  }
+  outw(0x3ce, (unsigned short)sr << 8);          /* set/reset */
+  outw(0x3ce, ((unsigned short)e << 8) | 1);     /* enable set/reset */
+  done = e;
+  if(e == 0x0f) {
+    vset(off, 0, n);
+  }
+  for(k = 0; k < 4; ++k) {
+    if(!(done & (1 << k))) {
+      unsigned char j, m = 1 << k;
+      for(j = k + 1; j < 4; ++j) {
+        if(!(done & (1 << j)) && q[j] == q[k]) {
+          m |= 1 << j;
+        }
+      }
+      outb(0x3c5, m | e);               /* the set/reset planes come along */
+      vset(off, q[k], n);
+      done |= m;
+      e = 0;
+    }
+  }
+  outw(0x3ce, 1);
+  outb(0x3c5, 0x0f);
+}
+static void
+vset(unsigned short off, unsigned char v, unsigned short n)
+{
+  __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosb\n\tpop %%es"
+                    : "+D" (off), "+c" (n)
+                    : "a" (v), "d" (0xa000)
+                    : "memory", "cc");
+}
+#define blit_planes(cx, cy) write4(cx, cy)
 #else
 #define blit_again(cx, cy) blit(cx, cy)
 #endif
@@ -583,42 +694,39 @@ blit(unsigned char cx, unsigned char cy)
   write4(cx, cy);
 #elif defined(GFX_MCGA)
   {
-    volatile unsigned char __far *p = VRAM + (unsigned short)cy * (8 * 320) + cx * 8;
-    for(r = 0; r < 8; ++r, p += 320) {
-      for(c = 0; c < 8; ++c) {
-        p[c] = pix[r][c];
-      }
-    }
+    /* eight rows of eight bytes: four word moves and a step of a line */
+    unsigned short off = (unsigned short)cy * (8 * 320) + cx * 8;
+    const unsigned char *src = pix[0];
+    (void)r; (void)c;
+    __asm__ volatile ("push %%es\n\tmov $0xa000,%%ax\n\tmov %%ax,%%es\n\tcld\n\t"
+                      ".rept 8\n\tmovsw\n\tmovsw\n\tmovsw\n\tmovsw\n\tadd $312,%%di\n\t.endr\n\t"
+                      "pop %%es"
+                      : "+S" (src), "+D" (off)
+                      : : "ax", "memory", "cc");
   }
 #else
-  /* EGA and VGA planes, write mode 2: for each colour of a pixel row, the
-     bit mask selects its pixels and one write sets all four planes. */
-  {
-    volatile unsigned char __far *p = VRAM + (unsigned short)cy * (CH * 80) + cx;
-    for(r = 0; r < CH; ++r, p += 80) {
-      unsigned char done = 0;
-      for(c = 0; c < 8; ++c) {
-        unsigned char col, mask, k;
-        if(done & (0x80 >> c)) {
-          continue;
-        }
-        col = pix[r][c];
-        mask = 0;
-        for(k = c; k < 8; ++k) {
-          if(pix[r][k] == col) {
-            mask |= 0x80 >> k;
-          }
-        }
-        done |= mask;
-        outb(0x3ce, 8);
-        outb(0x3cf, mask);
-        (void)*p;                       /* load the latches */
-        *p = col;
+  /* EGA and VGA: the pixels into the four planes */
+  for(r = 0; r < CH; ++r) {
+    const unsigned char *s = pix[r];
+    unsigned char q0 = 0, q1 = 0, q2 = 0, q3 = 0, m = 0x80;
+    for(c = 0; c < 8; ++c, m >>= 1) {
+      unsigned char v = s[c];
+      if(v & 1) {
+        q0 |= m;
+      }
+      if(v & 2) {
+        q1 |= m;
+      }
+      if(v & 4) {
+        q2 |= m;
+      }
+      if(v & 8) {
+        q3 |= m;
       }
     }
-    outb(0x3ce, 8);
-    outb(0x3cf, 0xff);
+    P0[r] = q0; P1[r] = q1; P2[r] = q2; P3[r] = q3;
   }
+  write4(cx, cy);
 #endif
 }
 /*---------------------------------------------------------------------------*/
@@ -628,13 +736,14 @@ static unsigned char bfont[96][CH];
 static void
 load_bios_font(void)
 {
-  unsigned short seg, off;
+  unsigned short seg, off, bx = CH == 14 ? 0x0200 : 0x0600;
   unsigned char i, r;
   const unsigned char __far *f;
+  /* (BX is an output too: a video BIOS may change it) */
   __asm__ volatile ("push %%bp\n\tpush %%es\n\tint $0x10\n\tmov %%es,%%ax\n\t"
                     "mov %%bp,%%dx\n\tpop %%es\n\tpop %%bp"
-                    : "=a" (seg), "=d" (off)
-                    : "a" (0x1130), "b" (CH == 14 ? 0x0200 : 0x0600)
+                    : "=a" (seg), "=d" (off), "+b" (bx)
+                    : "a" (0x1130)
                     : "cx", "si", "di", "memory", "cc");
   f = (const unsigned char __far *)(((unsigned long)seg << 16) | off);
   for(i = 0; i < 96; ++i) {
@@ -676,6 +785,11 @@ glyph(unsigned char c)
 /*---------------------------------------------------------------------------*/
 /* Composing a cell */
 static unsigned char rowbg[CH];         /* background colour of each pixel row */
+#if defined(GFX_EGA) || defined(GFX_VGA)
+/* the text cell last composed: its row colours and colour, and as planes
+   its background and the background xor the colour */
+static unsigned char tc_bg[CH], tc_fg = 0xff, tc_bd[8 * CH];
+#endif
 
 static void
 rows_solid(unsigned char col)
@@ -771,6 +885,24 @@ ctk_cga_wallpaper_find(const char *name)
 #define SEP_X ((SW - CTK_ICONX_FROM_RIGHT - GFX_SEP_GAP) * 8 + 3)
 
 static unsigned char desk_nosep;        /* 1: leave out the icon column line */
+#if defined(GFX_MCGA)
+/* the colour of each pixel row of the graded desktop, worked out at start:
+   C_DESK + Y * DESK_STEPS / (SH * CH) */
+static unsigned char mdesk[SH * CH];
+static void
+mdesk_init(void)
+{
+  unsigned short y;
+  for(y = 0; y < SH * CH; ++y) {
+    mdesk[y] = C_DESK + (unsigned char)(y * DESK_STEPS / (SH * CH));
+  }
+}
+#endif
+/* Y * 5 / (SH * CH), the band of the 16-colour desktop, without dividing:
+   band k starts at the first Y with Y * 5 >= k * SH * CH */
+#define DESK_B(k) (((k) * SH * CH + 4) / 5)
+#define DESK_BAND(Y) ((Y) < DESK_B(2) ? ((Y) < DESK_B(1) ? 0 : 1) : \
+  (Y) < DESK_B(3) ? 2 : (Y) < DESK_B(4) ? 3 : 4)
 
 static unsigned char
 desk(unsigned short X, unsigned short Y)
@@ -799,7 +931,7 @@ desk(unsigned short X, unsigned short Y)
 #elif defined(GFX_CGA4)
   return 0;
 #elif defined(GFX_MCGA)
-  return C_DESK + (unsigned char)(Y * DESK_STEPS / (SH * CH));
+  return mdesk[Y];
 #elif defined(GFX_TANDY)
   (void)X; (void)Y;
   return C_GREY;
@@ -807,7 +939,7 @@ desk(unsigned short X, unsigned short Y)
   {
     /* white above, a fine checker of white and grey across the middle,
        grey below: the stepped shading of the 16-colour cards */
-    unsigned char band = (unsigned char)(Y * 5 / (SH * CH));
+    unsigned char band = DESK_BAND(Y);
     if(band < 2) {
       return C_PAPER;
     }
@@ -818,6 +950,54 @@ desk(unsigned short X, unsigned short Y)
   }
 #endif
 }
+#if defined(GFX_EGA) || defined(GFX_VGA)
+/* desk() for the 8 pixels of a cell row, as four plane bytes: white above,
+   the checker of white and grey across the middle (grey on odd X ^ Y),
+   grey below, and the etched line of the icon column */
+/* the four rows of the desktop as plane bytes: white, grey, the checker
+   on an even row and on an odd one (grey on odd X ^ Y), set at start */
+static unsigned char dpat[4][4];
+#define DESKQ(Y) (DESK_BAND(Y) < 2 ? 0 : DESK_BAND(Y) >= 4 ? 1 : 2 + ((Y) & 1))
+static unsigned char deskrow[SH * CH][4];       /* dpat of each pixel row */
+static unsigned short expw[16][4];      /* colour -> plane words, 0 or 0xffff */
+static void
+desk_patterns(void)
+{
+  unsigned char k, c;
+  for(c = 0; c < 16; ++c) {
+    for(k = 0; k < 4; ++k) {
+      expw[c][k] = (c >> k) & 1 ? 0xffff : 0;
+    }
+  }
+  for(k = 0; k < 4; ++k) {
+    unsigned char w = (C_PAPER >> k) & 1 ? 0xff : 0, g = (C_GREY >> k) & 1 ? 0xff : 0;
+    dpat[0][k] = w;
+    dpat[1][k] = g;
+    dpat[2][k] = (g & ~0xaa) | (w & 0xaa);      /* even Y: grey on odd X */
+    dpat[3][k] = (g & ~0x55) | (w & 0x55);
+  }
+  {
+    unsigned short y;
+    for(y = 0; y < SH * CH; ++y) {
+      memcpy(deskrow[y], dpat[DESKQ(y)], 4);
+    }
+  }
+}
+static void
+desk16(unsigned char cx, unsigned short Y, unsigned char *q)
+{
+  const unsigned char *d = deskrow[Y];
+  q[0] = d[0]; q[1] = d[1]; q[2] = d[2]; q[3] = d[3];
+  if(cx == SEP_X / 8 && !desk_nosep && Y >= CH + CH / 2 && Y < (SH - 1) * CH - CH / 2) {
+    unsigned char q0 = q[0], q1 = q[1], q2 = q[2], q3 = q[3];
+    FILL16(0x80 >> (SEP_X & 7), C_ETCH0);
+    if(cx == (SEP_X + 1) / 8) {
+      FILL16(0x80 >> ((SEP_X + 1) & 7), C_ETCH1);
+    }
+    q[0] = q0; q[1] = q1; q[2] = q2; q[3] = q3;
+  }
+}
+#endif
 /* The desktop under a shadow: one or two steps darker */
 static unsigned char
 shade(unsigned short X, unsigned short Y, unsigned char step)
@@ -890,6 +1070,27 @@ desk_cell(unsigned char cx, unsigned char cy)
     P0[r] = v;
   }
   blit_planes(cx, cy);
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+  unsigned char q[4];
+  (void)c;
+  for(r = 0; r < CH; ++r) {
+    desk16(cx, cy * CH + r, q);
+    P0[r] = q[0]; P1[r] = q[1]; P2[r] = q[2]; P3[r] = q[3];
+  }
+  blit_planes(cx, cy);
+#elif defined(GFX_MCGA)
+  /* one colour a row but by the icon column line */
+  unsigned short X = cx * 8, Y = cy * CH;
+  for(r = 0; r < CH; ++r) {
+    unsigned short y = Y + r;
+    memset(pix[r], desk(X, y), 8);
+    if(cx == SEP_X / 8 && !desk_nosep && y >= CH + CH / 2 && y < (SH - 1) * CH - CH / 2) {
+      pix[r][SEP_X & 7] = C_ETCH0;
+      pix[r][(SEP_X + 1) & 7] = C_ETCH1;     /* (in the same cell) */
+    }
+  }
+  (void)c;
+  blit(cx, cy);
 #else
   unsigned short X = cx * 8, Y = cy * CH;
   if(cx == SEP_X / 8 && !desk_nosep) {
@@ -1119,7 +1320,7 @@ outside:
   return desk(X, Y);
 }
 
-#if defined(MONO) || defined(GFX_CGA4) || defined(GFX_TANDY)
+#if defined(MONO) || defined(GFX_CGA4) || defined(PL16) || defined(GFX_MCGA)
 /* Bits of a cell (most significant = leftmost) for the pixels X0..X0+7 that
    fall in [a, b] */
 static const unsigned char span_lo[8] = {
@@ -1463,6 +1664,203 @@ wcell(unsigned char cx, unsigned char cy)
   }
 }
 #define wcell_done() do { } while(0)
+#elif defined(GFX_MCGA)
+/* bytes of a pixel row of pix where the mask has bits */
+static void
+fillm(unsigned char *row, unsigned char m, unsigned char col)
+{
+  unsigned char c;
+  for(c = 0; m; ++c, m <<= 1) {
+    if(m & 0x80) {
+      row[c] = col;
+    }
+  }
+}
+/* wpx() for a whole cell, a row at a time, with masks: the desktop, the
+   shadow in two steps (darker copies of the desktop colours), the frame
+   with its corners cut, the graded bar with its light line and the close
+   box */
+static void
+wcell(unsigned char cx, unsigned char cy)
+{
+  unsigned char r, edge = gactive ? C_EDGE_A : C_EDGE_I;
+  unsigned short X0 = cx * 8, Y0 = cy * CH;
+  unsigned char m_win, m_in, m_ends, m_shr, m_shb, m_s1x, m_far, m_box,
+    m_boxside, m_boxin, m_gloss, m_sep0, m_sep1, boxcol, bar;
+  short mid;
+  m_win = SPAN(X0, gL, gR);
+  m_in = SPAN(X0, gL + 1, gR - 1);
+  m_ends = m_win & ~m_in;
+  m_shr = SPAN(X0, gR + 1, gR + SHX);
+  m_shb = SPAN(X0, gL + 2, gR + SHX);
+  m_s1x = SPAN(X0, gL + 1 + SHX / 2, gR + SHX / 2);
+  m_far = SPAN(X0, gR + SHX, gR + SHX);
+  m_box = SPAN(X0, gbox0, gbox1);
+  m_boxside = SPAN(X0, gbox0, gbox0) | SPAN(X0, gbox1, gbox1);
+  m_boxin = SPAN(X0, gbox0 + 1, gbox1 - 1);
+  m_gloss = SPAN(X0, ggloss0, ggloss1);
+  m_sep0 = desk_nosep ? 0 : SPAN(X0, SEP_X, SEP_X);
+  m_sep1 = desk_nosep ? 0 : SPAN(X0, SEP_X + 1, SEP_X + 1);
+  boxcol = gkf_close ? C_RING : (gactive ? C_HL : C_EDGE_I);
+  bar = gactive ? C_BAR_A : C_BAR_I;
+  mid = (short)((gbox0 + gbox1) / 2) - (short)X0;
+  for(r = 0; r < CH; ++r) {
+    unsigned short Y = Y0 + r;
+    unsigned char *row = pix[r], d = mdesk[Y], seprow;
+    /* the desktop: the colour of the row, the line over the status bar,
+       the icon column line */
+    seprow = Y >= CH + CH / 2 && Y < (SH - 1) * CH - CH / 2;
+    if(Y == (SH - 1) * CH - 1) {
+      memset(row, C_ETCH0, 8);
+    } else {
+      memset(row, d, 8);
+      if(seprow) {
+        fillm(row, m_sep0, C_ETCH0);
+        fillm(row, m_sep1, C_ETCH1);
+      }
+    }
+    if(Y + gabove >= gT + 2 && Y <= gB + SHY) {
+      unsigned char sm = Y <= gB ? m_shr : m_shb;
+      unsigned char s1 = (Y >= gT + 1 + SHY / 2 && Y <= gB + SHY / 2) ? (sm & m_s1x) : 0;
+      unsigned char s2 = sm & ~s1, sp;
+      if(Y == gB + SHY) {
+        s2 &= ~m_far;
+      }
+      /* shade(): one or two steps darker; where the desktop is not a
+         desktop colour (the lines), the last desktop colour darkened */
+      sp = (Y == (SH - 1) * CH - 1) ? 0xff : (seprow ? (m_sep0 | m_sep1) : 0);
+      fillm(row, s2 & ~sp, d + (C_DESK_SH2 - C_DESK));
+      fillm(row, s1 & ~sp, d + (C_DESK_SH1 - C_DESK));
+      fillm(row, s2 & sp, C_DESK + DESK_STEPS - 1 + (C_DESK_SH2 - C_DESK));
+      fillm(row, s1 & sp, C_DESK + DESK_STEPS - 1 + (C_DESK_SH1 - C_DESK));
+    }
+    if(Y >= gT && Y <= gB) {
+      unsigned short rr = Y - gT;
+      if(Y == gT) {
+        /* on 8-pixel cells the bar fills the top row too (the close box
+           starts at row 1) */
+        fillm(row, m_in, bar);
+      } else if(Y == gB) {
+        fillm(row, m_in, edge);
+      } else {
+        fillm(row, m_ends, edge);
+        if(rr >= CH) {
+          fillm(row, m_in, C_PAPER);
+        } else if(rr == CH - 1) {
+          fillm(row, m_in, edge);       /* line under the bar */
+        } else {
+          fillm(row, m_in, bar + rr);
+          if(rr == 1) {
+            fillm(row, m_gloss, gactive ? C_HL : C_ETCH1);
+          }
+          if(m_box && rr >= 1 && rr <= CH - 2) {
+            if(rr == 1 || rr == CH - 2) {
+              fillm(row, m_box, boxcol);
+            } else {
+              short cyy = (short)rr - (short)((CH - 1) / 2), d1 = cyy, d2 = -cyy;
+              unsigned char cm = 0;
+              if(d1 >= -2 && d1 <= 2 && mid + d1 >= 0 && mid + d1 < 8) {
+                cm |= 0x80 >> (mid + d1);
+              }
+              if(d2 >= -2 && d2 <= 2 && mid + d2 >= 0 && mid + d2 < 8) {
+                cm |= 0x80 >> (mid + d2);
+              }
+              fillm(row, m_boxin, gactive ? C_BAR_AB : C_PAPER);
+              fillm(row, m_boxside, boxcol);
+              fillm(row, cm & m_box, gactive ? C_TITLE_A : C_INK);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+#define wcell_done() do { } while(0)
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+/* wpx() for a whole cell, a row at a time, with masks into the four
+   planes: the desktop, the shadow in two steps, the frame with its corners
+   cut, the bar in two halves with its light line and the close box */
+static void
+wcell(unsigned char cx, unsigned char cy)
+{
+  unsigned char r, q0, q1, q2, q3, q[4], edge = gactive ? C_EDGE_A : C_EDGE_I;
+  unsigned short X0 = cx * 8, Y0 = cy * CH;
+  unsigned char m_win, m_in, m_ends, m_shr, m_shb, m_s1x, m_far, m_box,
+    m_boxside, m_boxin, m_gloss, boxcol, top, bot;
+  short mid;
+  m_win = SPAN(X0, gL, gR);
+  m_in = SPAN(X0, gL + 1, gR - 1);
+  m_ends = m_win & ~m_in;
+  m_shr = SPAN(X0, gR + 1, gR + SHX);
+  m_shb = SPAN(X0, gL + 2, gR + SHX);
+  m_s1x = SPAN(X0, gL + 1 + SHX / 2, gR + SHX / 2);
+  m_far = SPAN(X0, gR + SHX, gR + SHX);
+  m_box = SPAN(X0, gbox0, gbox1);
+  m_boxside = SPAN(X0, gbox0, gbox0) | SPAN(X0, gbox1, gbox1);
+  m_boxin = SPAN(X0, gbox0 + 1, gbox1 - 1);
+  m_gloss = SPAN(X0, ggloss0, ggloss1);
+  boxcol = gkf_close ? C_RING : (gactive ? C_HL : C_EDGE_I);
+  top = gactive ? C_BAR_AT : C_BAR_IT;
+  bot = gactive ? C_BAR_AB : C_BAR_IB;
+  mid = (short)((gbox0 + gbox1) / 2) - (short)X0;
+  for(r = 0; r < CH; ++r) {
+    unsigned short Y = Y0 + r;
+    desk16(cx, Y, q);
+    q0 = q[0]; q1 = q[1]; q2 = q[2]; q3 = q[3];
+    if(Y + gabove >= gT + 2 && Y <= gB + SHY) {
+      unsigned char sm = Y <= gB ? m_shr : m_shb;
+      unsigned char s1 = (Y >= gT + 1 + SHY / 2 && Y <= gB + SHY / 2) ? (sm & m_s1x) : 0;
+      unsigned char s2 = sm & ~s1;
+      if(Y == gB + SHY) {
+        s2 &= ~m_far;
+      }
+      FILL16(s2, C_SH2);
+      FILL16(s1, C_SH1);
+    }
+    if(Y >= gT && Y <= gB) {
+      unsigned short rr = Y - gT;
+      if(Y == gT || Y == gB) {
+        FILL16(m_in, edge);             /* the corners stay outside */
+      } else {
+        FILL16(m_ends, edge);
+        if(rr >= CH) {
+          FILL16(m_in, C_PAPER);
+        } else if(rr == CH - 1) {
+          FILL16(m_in, edge);           /* line under the bar */
+        } else {
+          FILL16(m_in, rr < CH / 2 ? top : bot);
+          if(rr == 1) {
+            FILL16(m_gloss, gactive ? C_HL : C_ETCH1);
+          }
+          if(m_box) {
+            if(rr == 1 || rr == CH - 2) {
+              FILL16(m_box, boxcol);
+            } else {
+              /* the cross: pixels mid + d for d = cy, -cy, cy + 1, -cy + 1
+                 within 3 of the middle */
+              short cyy = (short)rr - (short)((CH - 1) / 2), d[4];
+              unsigned char k, cm = 0;
+              d[0] = cyy; d[1] = -cyy; d[2] = cyy + 1; d[3] = 1 - cyy;
+              for(k = 0; k < 4; ++k) {
+                if(d[k] >= -3 && d[k] <= 3) {
+                  short x = mid + d[k];
+                  if(x >= 0 && x < 8) {
+                    cm |= 0x80 >> x;
+                  }
+                }
+              }
+              FILL16(m_boxin, gactive ? C_BAR_AB : C_PAPER);
+              FILL16(m_boxside, boxcol);
+              FILL16(cm & m_box, gactive ? C_TITLE_A : C_INK);
+            }
+          }
+        }
+      }
+    }
+    P0[r] = q0; P1[r] = q1; P2[r] = q2; P3[r] = q3;
+  }
+}
+#define wcell_done() do { } while(0)
 #else
 static void
 wcell(unsigned char cx, unsigned char cy)
@@ -1503,7 +1901,7 @@ title_cell(unsigned char cx)
 #else
   fg = gkf_title ? C_RING : (gactive ? C_TITLE_A : C_TITLE_I);
 #endif
-#if defined(MONO) || (defined(GFX_CGA4) && CGA_BAR == 2) || defined(GFX_TANDY)
+#if defined(MONO) || (defined(GFX_CGA4) && CGA_BAR == 2) || defined(PL16)
   {
     /* letters are 8 pixels wide: the cell takes bytes from at most two of
        them, shifted */
@@ -1537,7 +1935,7 @@ title_cell(unsigned char cx)
       } else {
         mb[r] &= ~b;
       }
-#elif defined(GFX_TANDY)
+#elif defined(PL16)
       {
         unsigned char q0 = P0[r], q1 = P1[r], q2 = P2[r], q3 = P3[r];
         FILL16(b, fg);
@@ -1615,7 +2013,7 @@ title_kind(unsigned char cx)
 static unsigned char cache[2][CH];
 #define SAVE(k) memcpy(cache[k], mb, CH)
 #define PUT(k, cx, cy) blit_bytes(cx, cy, cache[k])
-#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(GFX_TANDY)
+#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(PL16)
 static unsigned char cache[2][sizeof(cb4)];
 #define SAVE(k) do { planes4(); memcpy(cache[k], cb4, sizeof(cb4)); } while(0)
 #define PUT(k, cx, cy) do { memcpy(cb4, cache[k], sizeof(cb4)); write4(cx, cy); } while(0)
@@ -1704,7 +2102,7 @@ top_line(void)
 /* a composed window cell to the screen */
 #if defined(MONO)
 #define BLITW(cx, cy) blit_bytes(cx, cy, mb)
-#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(GFX_TANDY)
+#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(PL16)
 #define BLITW(cx, cy) blit_planes(cx, cy)
 #else
 #define BLITW(cx, cy) blit(cx, cy)
@@ -1768,7 +2166,7 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
         wcell(gx, r);
 #if defined(MONO)
         memcpy(lpix[0], mb, CH);
-#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(GFX_TANDY)
+#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(PL16)
         planes4();
         memcpy(lpix[0], cb4, sizeof(cb4));
 #else
@@ -1777,7 +2175,7 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
         wcell(gxr, r);
 #if defined(MONO)
         memcpy(rpix[0], mb, CH);
-#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(GFX_TANDY)
+#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(PL16)
         planes4();
         memcpy(rpix[0], cb4, sizeof(cb4));
 #else
@@ -1787,7 +2185,7 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
 #if defined(MONO)
       blit_bytes(gx, r, lpix[0]);
       blit_bytes(gxr, r, rpix[0]);
-#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(GFX_TANDY)
+#elif (defined(GFX_CGA4) && CGA_BAR == 2) || defined(PL16)
       memcpy(cb4, lpix[0], sizeof(cb4));
       write4(gx, r);
       memcpy(cb4, rpix[0], sizeof(cb4));
@@ -1846,10 +2244,60 @@ comp_text(unsigned char c, unsigned char fg)
       mb[r] &= ~g[r];
     }
   }
-#elif defined(GFX_TANDY)
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+  /* each plane: the background bit where the letter has none, the
+     colour bit where it has */
+  /* plane k: the background b, with the letter's bits turned to the
+     colour: b ^ (d & m), d = b ^ colour. b and d of the whole cell are
+     kept for the last row colours and colour (they change seldom along a
+     line of text); a space is b, a letter goes through a loop in
+     assembly, two rows at a time, four planes, with word operations */
+  unsigned char eq;
+  {
+    const unsigned char *a = rowbg, *b = tc_bg;
+    unsigned short n = CH;
+    __asm__ volatile ("push %%es\n\tpush %%ds\n\tpop %%es\n\tcld\n\t"
+                      "repe cmpsb\n\tmov $0,%%al\n\tjne 1f\n\tinc %%al\n"
+                      "1:\tpop %%es"
+                      : "=a" (eq), "+S" (a), "+D" (b), "+c" (n)
+                      : : "memory", "cc");
+  }
+  if(!eq || fg != tc_fg) {
+    unsigned char r, k;
+    memcpy(tc_bg, rowbg, CH);
+    tc_fg = fg;
+    for(k = 0; k < 4; ++k) {
+      unsigned char f = (fg >> k) & 1 ? 0xff : 0;
+      for(r = 0; r < CH; ++r) {
+        unsigned char b = (rowbg[r] >> k) & 1 ? 0xff : 0;
+        tc_bd[k * CH + r] = b;
+        tc_bd[(4 + k) * CH + r] = b ^ f;
+      }
+    }
+  }
+  if(c == ' ') {
+    memcpy(cb4, tc_bd, 4 * CH);
+  } else {
+    const unsigned char *g = glyph(c);
+    const unsigned char *bd = tc_bd;
+    unsigned char *op = cb4;
+    unsigned short n = CH / 2;
+    __asm__ volatile ("cld\n"
+                      "1:\tlodsw\n\t"
+                      "mov %%ax,%%dx\n\tand %c[d0](%%bx),%%dx\n\txor (%%bx),%%dx\n\tmov %%dx,(%%di)\n\t"
+                      "mov %%ax,%%dx\n\tand %c[d1](%%bx),%%dx\n\txor %c[c1](%%bx),%%dx\n\tmov %%dx,%c[c1](%%di)\n\t"
+                      "mov %%ax,%%dx\n\tand %c[d2](%%bx),%%dx\n\txor %c[c2](%%bx),%%dx\n\tmov %%dx,%c[c2](%%di)\n\t"
+                      "and %c[d3](%%bx),%%ax\n\txor %c[c3](%%bx),%%ax\n\tmov %%ax,%c[c3](%%di)\n\t"
+                      "add $2,%%bx\n\tadd $2,%%di\n\tloop 1b"
+                      : "+S" (g), "+D" (op), "+c" (n), "+b" (bd)
+                      : [c1] "i" (CH), [c2] "i" (2 * CH), [c3] "i" (3 * CH),
+                        [d0] "i" (4 * CH), [d1] "i" (5 * CH), [d2] "i" (6 * CH), [d3] "i" (7 * CH)
+                      : "ax", "dx", "memory", "cc");
+  }
+#elif defined(PL16)
   unsigned char r;
   const unsigned char *g = c != ' ' ? glyph(c) : NULL;
-  for(r = 0; r < 8; ++r) {
+  for(r = 0; r < CH; ++r) {
     unsigned char bg = rowbg[r];
     unsigned char q0 = (bg & 1) ? 0xff : 0, q1 = (bg & 2) ? 0xff : 0,
       q2 = (bg & 4) ? 0xff : 0, q3 = (bg & 8) ? 0xff : 0;
@@ -1880,7 +2328,7 @@ comp_text(unsigned char c, unsigned char fg)
 }
 #if defined(MONO)
 #define BLITC(cx, cy) blit_bytes(cx, cy, mb)
-#elif defined(GFX_CGA4) || defined(GFX_TANDY)
+#elif defined(GFX_CGA4) || defined(PL16)
 #define BLITC(cx, cy) blit_planes(cx, cy)
 #else
 #define BLITC(cx, cy) blit(cx, cy)
@@ -2106,10 +2554,16 @@ ctk_draw_init(void)
 #endif
 #if defined(GFX_EGA) || defined(GFX_VGA)
   load_bios_font();
-  outb(0x3ce, 5); outb(0x3cf, 2);       /* write mode 2 */
+  outb(0x3ce, 5); outb(0x3cf, 0);       /* write mode 0 */
   outb(0x3ce, 3); outb(0x3cf, 0);       /* replace, no rotation */
-  outb(0x3ce, 1); outb(0x3cf, 0);
-  outb(0x3c4, 2); outb(0x3c5, 0x0f);    /* all planes */
+  outb(0x3ce, 1); outb(0x3cf, 0);       /* no set/reset */
+  outb(0x3ce, 8); outb(0x3cf, 0xff);    /* all bits */
+  outb(0x3c4, 2); outb(0x3c5, 0x0f);    /* map mask: all planes; the index
+                                           stays there for write4() */
+  desk_patterns();
+#endif
+#if defined(GFX_MCGA)
+  mdesk_init();
 #endif
   palette();
   ctk_draw_clear(0, SH);
@@ -2191,6 +2645,26 @@ clear_line(unsigned char line)
     }
     desk_cell(sepc, line);
   }
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+  {
+    /* every cell of a desktop row is alike but the one with the line: the
+       planes of cell 0, each pixel row filled across the screen at once */
+    unsigned char sepc = SEP_X / 8, r, k, q[4], n[4];
+    unsigned short base = (unsigned short)line * (CH * 80);
+    (void)i;
+    for(r = 0; r < CH; r += k) {
+      /* this row and the next ones alike: one fill */
+      desk16(0, line * CH + r, q);
+      for(k = 1; r + k < CH; ++k) {
+        desk16(0, line * CH + r + k, n);
+        if(n[0] != q[0] || n[1] != q[1] || n[2] != q[2] || n[3] != q[3]) {
+          break;
+        }
+      }
+      vrow(base + r * 80, q, 80 * k);
+    }
+    desk_cell(sepc, line);
+  }
 #else
   {
     /* every cell of a desktop row is alike but the one with the line */
@@ -2206,10 +2680,95 @@ clear_line(unsigned char line)
 #endif
 }
 
+#if defined(GFX_EGA) || defined(GFX_VGA)
+/* n bytes copied in video memory from src to dst through the latches
+   (write mode 1), all four planes at once; dst after src repeats the
+   bytes between them */
+static void
+vcopy(unsigned short dst, unsigned short src, unsigned short n)
+{
+  outw(0x3ce, 0x0105);                  /* write mode 1 */
+  __asm__ volatile ("push %%ds\n\tpush %%es\n\tmov %%ax,%%ds\n\tmov %%ax,%%es\n\t"
+                    "cld\n\trep movsb\n\tpop %%es\n\tpop %%ds"
+                    : "+S" (src), "+D" (dst), "+c" (n)
+                    : "a" (0xa000)
+                    : "memory", "cc");
+  outw(0x3ce, 0x0005);                  /* write mode 0 */
+}
+/* the desktop from pixel row y to y2, the icon column line aside: runs of
+   alike rows in one fill, runs of two alternating rows (the checker) as
+   two rows repeated through the latches */
+static void
+desk_fill(unsigned short y, unsigned short y2)
+{
+  /* white down to band 2, the checker of bands 2 and 3, grey below: each
+     as one fill, the checker as its first two rows repeated */
+  static const unsigned short ends[3] = {DESK_B(2), DESK_B(4), 0xffff};
+  unsigned char i, q[4];
+  for(i = 0; i < 3 && y < y2; ++i) {
+    unsigned short e = ends[i] < y2 ? ends[i] : y2;
+    if(y >= e) {
+      continue;
+    }
+    desk16(0, y, q);
+    if(i != 1 || e - y < 2) {
+      vrow(y * 80, q, (e - y) * 80);      /* (or a single row of the checker) */
+    } else {
+      vrow(y * 80, q, 80);
+      desk16(0, y + 1, q);
+      vrow((y + 1) * 80, q, 80);
+      if(e - y > 2) {
+        vcopy((y + 2) * 80, y * 80, (e - y - 2) * 80);
+      }
+    }
+    y = e;
+  }
+}
+#endif
 void
 ctk_draw_clear(unsigned char y1, unsigned char y2)
 {
   unsigned char i;
+#if defined(GFX_MCGA)
+  /* each pixel row of the desktop is one colour: a fill across the screen,
+     then the cells of the icon column line, then the status bar */
+  unsigned char ye = y2 < SH - 1 ? y2 : SH - 1;
+  if(y1 < ye) {
+    unsigned short y, y9 = (unsigned short)ye * CH, k;
+    for(y = (unsigned short)y1 * CH; y < y9; y += k) {
+      unsigned short off = y * 320, n;
+      unsigned char v = desk(0, y);
+      for(k = 1; y + k < y9 && desk(0, y + k) == v; ++k) ;
+      n = k * 320;
+      __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosb\n\tpop %%es"
+                        : "+D" (off), "+c" (n)
+                        : "a" (v), "d" (0xa000)
+                        : "memory", "cc");
+    }
+    for(i = y1; i < ye; ++i) {
+      desk_cell(SEP_X / 8, i);
+    }
+  }
+  if(y2 == SH) {
+    status_line();
+  }
+  return;
+#endif
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  /* the desktop rows at once, then the cells of the icon column line, then
+     the status bar */
+  unsigned char ye = y2 < SH - 1 ? y2 : SH - 1;
+  if(y1 < ye) {
+    desk_fill((unsigned short)y1 * CH, (unsigned short)ye * CH);
+    for(i = y1; i < ye; ++i) {
+      desk_cell(SEP_X / 8, i);
+    }
+  }
+  if(y2 == SH) {
+    status_line();
+  }
+  return;
+#endif
   for(i = y1; i < y2; ++i) {
     clear_line(i);
   }
@@ -2337,6 +2896,30 @@ cap(unsigned char cx, unsigned char cy, unsigned char right,
     return;
   }
 #endif
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  /* in planes, a row at a time: paper, the fill inside, the frame column,
+     the lines at top and bottom with the corners cut, the focus ring */
+  {
+    unsigned char in = right ? 0xe0 : 0x07, fb = 0x80 >> f;
+    unsigned char hl = right ? 0xf0 : 0x0f, rb = 0x80 >> (right ? f + 2 : f - 2);
+    (void)c;
+    for(r = 0; r < CH; ++r) {
+      unsigned char q0 = 0, q1 = 0, q2 = 0, q3 = 0;
+      FILL16(0xff, C_PAPER);
+      FILL16(in, r < CH / 2 ? fill_t : fill_b);
+      FILL16(fb, edge);
+      if(r == 0 || r == CH - 1) {
+        FILL16(hl, edge);
+        FILL16(fb, C_PAPER);
+      } else if(ring && r >= 2 && r <= CH - 3) {
+        FILL16(rb, C_RING);
+      }
+      P0[r] = q0; P1[r] = q1; P2[r] = q2; P3[r] = q3;
+    }
+    write4(cx, cy);
+    return;
+  }
+#endif
   for(r = 0; r < CH; ++r) {
     for(c = 0; c < 8; ++c) {
       unsigned char in = right ? (c < f) : (c > f);
@@ -2426,8 +3009,8 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
 }
 /*---------------------------------------------------------------------------*/
 /* Desktop icons */
-#if defined(GFX_CGA4) || defined(GFX_TANDY)
-#define GFX_PALETTE_ONLY                /* only GFX_ICON_PACKED4 */
+#if defined(GFX_CGA4) || defined(PL16)
+#define GFX_PALETTE_ONLY                /* only GFX_ICON_PACKED4, GFX_ICON_PLANES16 */
 #include "gfx-icons.h"
 #undef GFX_PALETTE_ONLY
 #endif
@@ -2471,6 +3054,30 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
         memcpy(cb4, ic->px + ((unsigned short)j * GFX_ICON_CW + i) * sizeof(cb4), sizeof(cb4));
         write4(xpos + i, cy);
         continue;
+#elif defined(GFX_ICON_PLANES16)
+        /* cells as planes with the mask of the drawing, over the desktop */
+        {
+          /* each row: the desktop's plane bytes (never the line, out of
+             the way of the icons) where the mask has no bits, the icon's
+             where it has */
+          const unsigned char *s = ic->px + ((unsigned short)j * GFX_ICON_CW + i) * (5 * CH);
+          const unsigned char *q = deskrow[Y0];
+          unsigned char *o = cb4;
+          unsigned short n = CH;
+          (void)d0;
+          __asm__ volatile ("cld\n"
+                            "1:\tlodsb\n\tnot %%al\n\tmov %%al,%%ah\n\t"
+                            "mov (%%bx),%%al\n\tand %%ah,%%al\n\tor (%%si),%%al\n\tmov %%al,(%%di)\n\t"
+                            "mov 1(%%bx),%%al\n\tand %%ah,%%al\n\tor 1(%%si),%%al\n\tmov %%al,%c[c1](%%di)\n\t"
+                            "mov 2(%%bx),%%al\n\tand %%ah,%%al\n\tor 2(%%si),%%al\n\tmov %%al,%c[c2](%%di)\n\t"
+                            "mov 3(%%bx),%%al\n\tand %%ah,%%al\n\tor 3(%%si),%%al\n\tmov %%al,%c[c3](%%di)\n\t"
+                            "add $4,%%si\n\tadd $4,%%bx\n\tinc %%di\n\tloop 1b"
+                            : "+S" (s), "+D" (o), "+c" (n), "+b" (q)
+                            : [c1] "i" (CH), [c2] "i" (2 * CH), [c3] "i" (3 * CH)
+                            : "ax", "memory", "cc");
+          write4(xpos + i, cy);
+        }
+        continue;
 #endif
         for(r = 0; r < CH; ++r) {
           unsigned short Y = Y0 + r;
@@ -2495,6 +3102,21 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
             mb[r] = b;
           }
 #else
+#if defined(GFX_MCGA)
+          {
+            /* the desktop behind: one colour a row (the icons stay clear
+               of the icon column line) */
+            unsigned char dv = desk(X0, Y), *o = pix[r];
+            for(c = 0; c < 8; ++c) {
+              short d = d0 + c;
+              unsigned char v = 255;
+              if(row && d >= 0 && d < (short)ic->w) {
+                v = row[d];
+              }
+              o[c] = v == 255 ? dv : v;
+            }
+          }
+#else
           for(c = 0; c < 8; ++c) {
             short d = d0 + c;
             unsigned char v = 255;
@@ -2503,6 +3125,7 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
             }
             pix[r][c] = v == 255 ? desk(X0 + c, Y) : v;
           }
+#endif
 #endif
         }
 #if defined(MONO)
@@ -2577,13 +3200,24 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
       (void)x;
       for(cx = lx / 8; cx <= (lx1 - 1) / 8; ++cx) {
         unsigned short X0 = cx * 8;
+#if defined(GFX_MCGA)
+        /* one desktop colour a row away from the icon column line */
+        unsigned char dv[CH];
+        for(r = 0; r < CH; ++r) {
+          dv[r] = desk(X0, Y0 + r);
+        }
+#endif
         for(c = 0; c < 8; ++c) {
           unsigned short X = X0 + c;
           unsigned char in = X >= lx && X < lx1;
           const unsigned char *g = in ? glyph(title[(X - lx) / 8]) : NULL;
           unsigned char bit = 0x80 >> ((X - lx) & 7);
           for(r = 0; r < CH; ++r) {
+#if defined(GFX_MCGA)
+            unsigned char v = cx == SEP_X / 8 ? desk(X, Y0 + r) : dv[r];
+#else
             unsigned char v = desk(X, Y0 + r);
+#endif
             if(in) {
               if(sel && !((r == 0 || r == CH - 1) && (X == lx || X == lx1 - 1))) {
 #if defined(GFX_MCGA)
@@ -2602,14 +3236,44 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
         blit(cx, ty);
       }
     }
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+    /* in planes: the desktop rows (the line left out), the bar colours of
+       the pill when selected with its ends rounded, the letter */
+    for(i = 0; i < len; ++i) {
+      unsigned short Y0 = ty * CH;
+      const unsigned char *g = glyph(title[i]);
+      unsigned char fg = sel ? C_TITLE_A : C_INK;
+      for(r = 0; r < CH; ++r) {
+        const unsigned char *d = deskrow[Y0 + r];
+        unsigned char q0 = d[0], q1 = d[1], q2 = d[2], q3 = d[3];
+        if(sel) {
+          unsigned char m = 0xff;
+          if((r == 0 || r == CH - 1) && (i == 0 || i == len - 1)) {
+            m = i == 0 ? 0x7f : 0xfe;
+          }
+          FILL16(m, r < CH / 2 ? C_BAR_AT : C_BAR_AB);
+        }
+        FILL16(g[r], fg);
+        P0[r] = q0; P1[r] = q1; P2[r] = q2; P3[r] = q3;
+      }
+      write4(x + i, ty);
+    }
+    (void)c;
 #else
     for(i = 0; i < len; ++i) {
       unsigned short X0 = (x + i) * 8, Y0 = ty * CH;
+#if defined(GFX_MCGA)
+      /* one desktop colour a row (the line is left out here) */
+      for(r = 0; r < CH; ++r) {
+        memset(pix[r], sel ? C_INK : desk(X0, Y0 + r), 8);
+      }
+#else
       for(r = 0; r < CH; ++r) {
         for(c = 0; c < 8; ++c) {
           pix[r][c] = sel ? C_INK : desk(X0 + c, Y0 + r);
         }
       }
+#endif
 #if !defined(MONO)
       if(sel) {
         for(r = 0; r < CH; ++r) {
