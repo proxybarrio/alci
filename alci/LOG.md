@@ -227,3 +227,7 @@
   one the rows it took (CTK patch applied by `make fetch`); the same
   screens as before, the calculator step 4x faster on CGA and Hercules,
   about 2x on EGA, VGA and MCGA. The calculator shows 0 when empty.
+- D7: the desktop of every build filled a pixel row at a time; desktop
+  settled on the 8088 between 0.19 s (CGA) and 0.69 s (VGA 16 colours),
+  same screens (QEMU and 86Box). Byte operands of inline assembly passed
+  as words: ia16-gcc could put them in AH.

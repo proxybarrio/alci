@@ -191,7 +191,8 @@ static void
 outb(unsigned short port, unsigned char v)
 {
   /* "memory": video memory writes must not move across a register write */
-  __asm__ volatile ("outb %%al,%%dx" : : "a" (v), "d" (port) : "memory");
+  /* (v as a word: ia16-gcc may put a byte operand of "a" in AH) */
+  __asm__ volatile ("outb %%al,%%dx" : : "a" ((unsigned short)v), "d" (port) : "memory");
 }
 #if defined(GFX_EGA) || defined(GFX_VGA)
 /* index in the low byte, data in the high byte: both registers at once */
@@ -641,7 +642,7 @@ vset(unsigned short off, unsigned char v, unsigned short n)
 {
   __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosb\n\tpop %%es"
                     : "+D" (off), "+c" (n)
-                    : "a" (v), "d" (0xa000)
+                    : "a" ((unsigned short)v), "d" (0xa000)
                     : "memory", "cc");
 }
 #define blit_planes(cx, cy) write4(cx, cy)
@@ -2729,6 +2730,80 @@ void
 ctk_draw_clear(unsigned char y1, unsigned char y2)
 {
   unsigned char i;
+#if defined(MONO)
+  /* each pixel row of the desktop is one byte across the screen (the
+     wallpaper, or the line over the status bar): a fill a row, where the
+     card keeps it, then the cells of the icon column line, then the
+     status bar */
+  unsigned char ye = y2 < SH - 1 ? y2 : SH - 1;
+  if(y1 < ye) {
+    unsigned short y, y9 = (unsigned short)ye * CH;
+    for(y = (unsigned short)y1 * CH; y < y9; ++y) {
+      unsigned char v = y == (SH - 1) * CH - 1 ? 0xff : wall[y & 7];
+      unsigned short n = SW;
+#if defined(GFX_CGA)
+      unsigned short off = (y & 1) * 0x2000 + (y >> 1) * 80, seg = 0xb800;
+      v = ~v;
+#elif defined(GFX_HERC)
+      unsigned short off = (y & 3) * 0x2000 + (y >> 2) * 90, seg = 0xb000;
+#elif defined(GFX_ATT)
+      unsigned short off = (y & 3) * 0x2000 + (y >> 2) * 80, seg = 0xb800;
+      v = ~v;
+#else
+      unsigned short off = y * 80, seg = 0xa000;
+      v = ~v;
+#endif
+      __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosb\n\tpop %%es"
+                        : "+D" (off), "+c" (n)
+                        : "a" ((unsigned short)v), "d" (seg)
+                        : "memory", "cc");
+    }
+    for(i = y1; i < ye; ++i) {
+      desk_cell(SEP_X / 8, i);
+    }
+  }
+  if(y2 == SH) {
+    status_line();
+  }
+  return;
+#endif
+#if defined(GFX_CGA4) || defined(GFX_TANDY)
+  /* the desktop is one colour, a word repeated across a pixel row (black
+     on CGA, grey on Tandy, the line over the status bar in its colour): a
+     fill a row in the card's banks, then the cells of the icon column
+     line, then the status bar */
+  unsigned char ye = y2 < SH - 1 ? y2 : SH - 1;
+  if(y1 < ye) {
+    unsigned short y, y9 = (unsigned short)ye * CH;
+    for(y = (unsigned short)y1 * CH; y < y9; ++y) {
+      unsigned char line = y == (SH - 1) * CH - 1;
+#if defined(GFX_TANDY4)
+      /* 640x200, four colours: the low then the high plane byte */
+      unsigned short off = (y & 3) * 0x2000 + (y >> 2) * 160, n = 80;
+      unsigned short v = line ? 0x00ff : 0;
+#elif defined(GFX_TANDY)
+      /* 320x200, 16 colours: two pixels a byte */
+      unsigned short off = (y & 3) * 0x2000 + (y >> 2) * 160, n = 80;
+      unsigned short v = line ? C_ETCH0 * 0x1111 : 0x7777;
+#else
+      /* CGA 320x200: four pixels a byte, colour 1 = 01 */
+      unsigned short off = (y & 1) * 0x2000 + (y >> 1) * 80, n = 40;
+      unsigned short v = line ? 0x5555 : 0;
+#endif
+      __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosw\n\tpop %%es"
+                        : "+D" (off), "+c" (n)
+                        : "a" (v), "d" (0xb800)
+                        : "memory", "cc");
+    }
+    for(i = y1; i < ye; ++i) {
+      desk_cell(SEP_X / 8, i);
+    }
+  }
+  if(y2 == SH) {
+    status_line();
+  }
+  return;
+#endif
 #if defined(GFX_MCGA)
   /* each pixel row of the desktop is one colour: a fill across the screen,
      then the cells of the icon column line, then the status bar */
@@ -2742,7 +2817,7 @@ ctk_draw_clear(unsigned char y1, unsigned char y2)
       n = k * 320;
       __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosb\n\tpop %%es"
                         : "+D" (off), "+c" (n)
-                        : "a" (v), "d" (0xa000)
+                        : "a" ((unsigned short)v), "d" (0xa000)
                         : "memory", "cc");
     }
     for(i = y1; i < ye; ++i) {

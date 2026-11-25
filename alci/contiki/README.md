@@ -121,6 +121,27 @@ pixels on screen. With it the step takes 0.17 s on CGA (was 0.72 s),
 0.28 s on Hercules (was 1.10 s), 0.60 s on EGA, 0.67 s on VGA and 0.77 s
 on MCGA; five keys alone take about 0.33 s on EGA.
 
+All the builds after the desktop rows are filled a pixel row at a time
+(one byte or word across the screen, in each card's banks; 2026-11-25,
+same XT, MartyPC with CGA, Hercules, Tandy 1000 or VGA). "Calculator" is
+the calculator window opened and five keys:
+
+| Build | Desktop settled | Background | Calculator |
+| --- | --- | --- | --- |
+| `ctk` CGA 640x200 | 0.19 s (was 0.55) | 0.13 s (was 0.50) | 0.17 s (was 0.72) |
+| `ctk-cga4` CGA 320x200 | 0.27 s (was 0.57) | 0.12 s (was 0.35) | 0.32 s (was 0.88) |
+| `ctk-herc` Hercules | 0.31 s (was 0.83) | 0.21 s (was 0.76) | 0.27 s (was 1.10) |
+| `ctk-ega2` EGA 640x350 | 0.26 s (was 0.81) | 0.18 s (was 0.74) | 0.27 s (was 1.06) |
+| `ctk-vga2` VGA 640x480 | 0.33 s | 0.24 s | 0.25 s |
+| `ctk-tandy` Tandy 320x200 | 0.47 s (was 0.80) | 0.27 s (was 0.55) | 0.67 s (was 1.48) |
+| `ctk-tandy4` Tandy 640x200 | 0.48 s | 0.21 s | 0.34 s |
+| `ctk-ega` EGA 16 colours | 0.44 s | 0.25 s | 0.60 s |
+| `ctk-vga` VGA 16 colours | 0.69 s | 0.32 s | 0.67 s |
+| `ctk-mcga` MCGA 256 colours | 0.68 s | 0.31 s | 0.77 s |
+
+The screens are the same as before: QEMU for the builds it runs, 86Box
+for Hercules, the Olivetti card, Tandy and the IBM EGA and VGA cards.
+
 On EGA and VGA cells are composed as the four bit planes video memory
 keeps, with masks (window borders and shadows, desktop, letters, button
 sides, icon titles), and written a plane at a time in assembly; the
