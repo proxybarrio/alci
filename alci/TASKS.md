@@ -429,8 +429,11 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   the keyboard), editor, up to three shell windows on ptys, and a file
   manager (copy, rename, delete, new directory, open in the editor); the
   desktop icons are Files, Editor, Shell and Calculator, About is in the
-  menu. Timings on the 8088 in `alci/contiki/README.md`. Next: the T1200
-  LCD layer, then the D2 benchmark.
+  menu. Timings on the 8088 in `alci/contiki/README.md`.
+  T1200 LCD (2026-11-26): `ctk-t1200`, the CGA build with the bits as they
+  are (a pixel set is dark on the panel), the T1200 icons and a pointer
+  and shadow for its 0.68 pixels; `desk` finds it by its BIOS. Checked on
+  86Box's T1200; the real machine is part of C2. Next: the D2 benchmark.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

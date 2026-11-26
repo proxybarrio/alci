@@ -3,7 +3,20 @@
 #define GFX_H
 
 /* One build per screen type, chosen with -DGFX_<type> (Makefile). */
-#if defined(GFX_CGA)            /* CGA 640x200, 2 colours, BIOS mode 6 */
+#if defined(GFX_T1200)          /* Toshiba T1200 LCD: CGA 640x200, 2 colours, mode 6 */
+/* The CGA mode on a panel whose pixels are 0.68 as wide as tall (0.42 on
+   a CRT): the CGA build with the T1200 icons (56x32), a pointer and a
+   shadow for that shape, and the bits the other way round, since a pixel
+   set is dark on the LCD and light on a CRT */
+#define GFX_CGA 1
+#define GFX_LCD 1
+#define GFX_SW 80
+#define GFX_SH 25
+#define GFX_CH 8
+#define GFX_ICON_CW 7
+#define GFX_ICON_RH 4
+#define GFX_LABEL "T1200 LCD 640x200"
+#elif defined(GFX_CGA)          /* CGA 640x200, 2 colours, BIOS mode 6 */
 #define GFX_SW 80
 #define GFX_SH 25
 #define GFX_CH 8
@@ -87,7 +100,7 @@
 #define GFX_ICON_RH 4
 #define GFX_LABEL "VGA 640x480 2"
 #else
-#error "define one of GFX_CGA, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA, GFX_TANDY, GFX_TANDY4, GFX_HERC, GFX_ATT, GFX_EGA2, GFX_VGA2"
+#error "define one of GFX_CGA, GFX_T1200, GFX_CGA4, GFX_EGA, GFX_VGA, GFX_MCGA, GFX_TANDY, GFX_TANDY4, GFX_HERC, GFX_ATT, GFX_EGA2, GFX_VGA2"
 #endif
 #if defined(GFX_CGA) || defined(GFX_HERC) || defined(GFX_ATT) || \
     defined(GFX_EGA2) || defined(GFX_VGA2)

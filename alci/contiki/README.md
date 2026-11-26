@@ -21,9 +21,10 @@ asks the video BIOS what is fitted and starts the right one:
 | `ctk-att` | AT&T 6300, Olivetti M24 640x400 (mode 40h) | 80x25 of 8x16 | two-colour style |
 | `ctk-ega2` | EGA 640x350 in two colours (mode 10h, 0Fh on a mono monitor) | 80x25 of 8x14 | two-colour style |
 | `ctk-vga2` | VGA or MCGA 640x480 in two colours (mode 11h) | 80x30 of 8x16 | two-colour style |
+| `ctk-t1200` | Toshiba T1200 LCD: CGA 640x200 on a panel with wider pixels | 80x25 of 8x8 | two-colour style, T1200 icons |
 
 State (2026-11-26): desktop, menus, dialogs, icons, keyboard focus, the
-About dialog, the calculator, the editor, the shell and the file manager work on the nine screens: CGA, EGA, VGA
+About dialog, the calculator, the editor, the shell and the file manager work on the twelve builds: CGA, EGA, VGA
 and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
 Hercules card, and with the Olivetti OGC card); timings of `ctk` and
 `ctk-cga4` on MartyPC (8088). Program sizes, mouse, editor and shell
@@ -34,7 +35,20 @@ included: `ctk` 46.5 KB, `ctk-cga4` 47.1 KB, `ctk-ega` 51.8 KB, `ctk-mcga`
 mouse takes about 3.6 KB of each, the editor and its file dialog about
 8 KB, the shell window about 3.5 KB, the file manager about 4 KB (each
 plus its icon).
-`ctk-tandy` and `ctk-tandy4` were checked on 86Box (Tandy 1000 HX).
+`ctk-tandy` and `ctk-tandy4` were checked on 86Box (Tandy 1000 HX),
+`ctk-t1200` (47.6 KB) on 86Box's Toshiba T1200 with its LCD.
+
+The T1200 shows the CGA 640x200 mode on its LCD, but its pixels are 0.68
+as wide as tall (0.42 on a CRT, `alci/docs/screens.md`) and a pixel set
+is dark on the panel, light on a CRT. `ctk-t1200` is the CGA build with
+the bytes written as they are (the CGA build writes them inverted), the
+T1200 icon set (56x32, 7x4 cells, "Calc" under the calculator), the
+pointer drawn for less tall pixels and a narrower shadow (2 pixels for
+3). On the CGA build the T1200 panel would show a dark desktop with light
+lines. `desk` starts it when the BIOS has "T1200" at F000:E000;
+`DESK=cga desk` for a T1200 on an external monitor. On 86Box's T1200
+(8086 at 9.54 MHz, timings less exact than MartyPC's): a letter typed in
+the editor 23 ms, a page 0.30 s, a line scrolled 146 ms.
 
 ## Looks
 
@@ -303,10 +317,11 @@ one under the other without it.
     . ../../env.sh          # ELKS cross toolchain
     make fetch              # Contiki 1.x at the pinned commit
     make                    # desk, ctk, ctk-cga4, ctk-ega, ctk-vga, ctk-mcga,
-                            # ctk-tandy, ctk-tandy4, ctk-herc, ctk-att, ctk-ega2, ctk-vga2
+                            # ctk-tandy, ctk-tandy4, ctk-herc, ctk-att, ctk-ega2, ctk-vga2,
+                            # ctk-t1200
 
 Copy the programs to `/bin` on an Alci or ELKS system and run `desk` (or
-one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2 desk`
+one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2|t1200 desk`
 chooses by hand. `ctk -d` starts with the calculator open, `ctk -e [file]`
 with the editor, `ctk -t` with a shell, `ctk -f [directory]` with the file
 manager.
@@ -401,6 +416,6 @@ column follow the icon size (see the Makefile).
 
 ## Next steps
 
-1. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
-   the Tandy build on an 8088.
+1. Timings of the tall two-colour builds and of the Tandy build on an
+   8088; the T1200 build on the real machine.
 2. The D2 benchmark against Nano-X and Gem-elks.

@@ -19,9 +19,9 @@ PNG = os.path.join(HERE, '..', 'png')
 SETS = {'cga': 'cga640-mono', 'cga4': 'cga320-4col-32x24', 'ega': 'ega640x350-16col',
         'vga': 'vga640-16col', 'mcga': 'mcga320-256col-32x24', 'tandy': 'tandy320-16col-32x24', 'tandy4': 'tandy640-4col',
         'herc': 'hercules-mono', 'att': 'hires640x400-mono',
-        'ega2': 'hercules-mono', 'vga2': 'hires640x400-mono'}
+        'ega2': 'hercules-mono', 'vga2': 'hires640x400-mono', 't1200': 't1200-lcd-mono'}
 # two-colour screens and the height of their cells
-MONO_CH = {'cga': 8, 'herc': 14, 'att': 16, 'ega2': 14, 'vga2': 16}
+MONO_CH = {'cga': 8, 't1200': 8, 'herc': 14, 'att': 16, 'ega2': 14, 'vga2': 16}
 MCGA_BASE, MCGA_N = 200, 48
 
 

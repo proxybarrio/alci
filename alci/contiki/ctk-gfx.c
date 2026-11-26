@@ -118,7 +118,10 @@ static const unsigned char desk_rgb[2][3] = {{238,242,248},{206,216,232}};
 #endif
 
 /* Shadow width and height in pixels, inside the window's own border cells */
-#if defined(MONO) && CH == 8
+#if defined(GFX_LCD)
+#define SHX 2                   /* wider pixels than on the CRT */
+#define SHY 1
+#elif defined(MONO) && CH == 8
 #define SHX 3
 #define SHY 1
 #elif defined(MONO)
@@ -231,7 +234,18 @@ blit_bytes(unsigned char cx, unsigned char cy, const unsigned char *b)
   if(cx >= SW || cy >= SH) {
     return;
   }
-#if defined(GFX_CGA)
+#if defined(GFX_LCD)
+  /* a pixel set is dark on the LCD: the bytes as they are */
+  p = VRAM + (unsigned short)cy * 320 + cx;
+  p[0]      = b[0];
+  p[0x2000] = b[1];
+  p[80]     = b[2];
+  p[0x2050] = b[3];
+  p[160]    = b[4];
+  p[0x20a0] = b[5];
+  p[240]    = b[6];
+  p[0x20f0] = b[7];
+#elif defined(GFX_CGA)
   p = VRAM + (unsigned short)cy * 320 + cx;
   p[0]      = ~b[0];
   p[0x2000] = ~b[1];
@@ -2541,7 +2555,7 @@ palette(void)
    outline, white inside (the other way round where desktop and windows are
    black), hot spot at the top left. Every drawing entry
    takes it off first; the program puts it back when the drawing is done. */
-#if defined(GFX_CGA) || defined(GFX_TANDY4)
+#if (defined(GFX_CGA) && !defined(GFX_LCD)) || defined(GFX_TANDY4)
 /* 640x200: pixels more than twice as tall as wide */
 static const char *const ptr_shape[] = {
   "X.........",
@@ -2750,8 +2764,9 @@ ctk_gfx_pointer(unsigned short x, unsigned short y)
     wm[0] = (w >> 8) >> sh;
     wm[1] = w >> sh;
     wm[2] = (w << (8 - sh)) & 0xff;
-#if defined(GFX_INVERT) || defined(GFX_CGA4)
-    /* black desktop and windows: a white outline round a black inside */
+#if defined(GFX_INVERT) || defined(GFX_CGA4) || defined(GFX_LCD)
+    /* black desktop and windows: a white outline round a black inside
+       (on the LCD the same bits show a dark outline round a light inside) */
     wm[0] = am[0] & ~wm[0];
     wm[1] = am[1] & ~wm[1];
     wm[2] = am[2] & ~wm[2];
@@ -3049,7 +3064,9 @@ ctk_draw_clear(unsigned char y1, unsigned char y2)
       unsigned short n = SW;
 #if defined(GFX_CGA)
       unsigned short off = (y & 1) * 0x2000 + (y >> 1) * 80, seg = 0xb800;
+#if !defined(GFX_LCD)
       v = ~v;
+#endif
 #elif defined(GFX_HERC)
       unsigned short off = (y & 3) * 0x2000 + (y >> 2) * 90, seg = 0xb000;
 #elif defined(GFX_ATT)
@@ -3395,7 +3412,7 @@ button(unsigned char x, unsigned char y, const char *s, unsigned char len,
 #include "gfx-icons.h"
 #undef GFX_PALETTE_ONLY
 #endif
-#if defined(GFX_ICON_SMALL)
+#if defined(GFX_ICON_SMALL) || defined(GFX_LCD)
 /* titles of the Contiki programs that do not fit in five letters */
 static const char * const short_titles[][2] = {
   {"Calculator", "Calc"}, {"Directory", "Dir"}, {"Editor", "Edit"},
@@ -3521,9 +3538,12 @@ icon(struct ctk_widget *w, unsigned char xpos, unsigned char ypos,
      keeps its first word ("About Contiki" -> "About"). */
   title = w->widget.icon.title;
   len = strlen(title);
-#if defined(GFX_ICON_SMALL)
-  /* five letters at most under the small icons: known long titles have a
-     short form */
+#if defined(GFX_ICON_SMALL) || defined(GFX_LCD)
+  /* five letters at most under the small icons, and no wider than the
+     T1200's icons: known long titles have a short form */
+#if defined(GFX_LCD)
+  if(len > GFX_ICON_CW)
+#endif
   for(i = 0; i < sizeof(short_titles) / sizeof(short_titles[0]); ++i) {
     if(strcmp(title, short_titles[i][0]) == 0) {
       title = short_titles[i][1];

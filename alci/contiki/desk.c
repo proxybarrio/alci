@@ -3,10 +3,11 @@
  * (task D7). Asks the video BIOS what is fitted and runs ctk-vga (VGA),
  * ctk-mcga (MCGA), ctk-ega (EGA), ctk-vga2 or ctk-ega2 (VGA, MCGA or EGA
  * on a monochrome monitor), ctk-herc (Hercules), ctk-att (AT&T 6300,
- * Olivetti M24: an Olivetti BIOS), ctk-tandy (Tandy 1000, PCjr) or ctk (CGA,
- * also LCD and the rest),
+ * Olivetti M24: an Olivetti BIOS), ctk-tandy (Tandy 1000, PCjr), ctk-t1200
+ * (Toshiba T1200: its LCD) or ctk (CGA, also other LCDs and the rest),
  * passing on its arguments.
- * DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2 chooses by hand.
+ * DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2|t1200 chooses
+ * by hand (DESK=cga for a T1200 on an external monitor).
  */
 #include <stdlib.h>
 #include <string.h>
@@ -86,6 +87,15 @@ tandy(void)
          (model == 0xff && *(const unsigned char __far *)0xF000C000UL == 0x21);
 }
 
+/* Toshiba T1200: "T1200" at F000:E000 in its BIOS; the CGA mode shows on
+   its LCD, where a pixel set is dark */
+static int
+t1200(void)
+{
+  const char __far *p = (const char __far *)0xF000E000UL;
+  return p[0] == 'T' && p[1] == '1' && p[2] == '2' && p[3] == '0' && p[4] == '0';
+}
+
 static const char *
 detect(void)
 {
@@ -108,7 +118,7 @@ detect(void)
       return "ega2";
     }
     if(d == 2) {
-      return att() ? "att" : tandy() ? "tandy" : "cga";
+      return att() ? "att" : tandy() ? "tandy" : t1200() ? "t1200" : "cga";
     }
     if(d == 1) {
       return hercules() ? "herc" : "mda";
@@ -126,7 +136,7 @@ detect(void)
   if((equipment() & 0x30) == 0x30) {
     return hercules() ? "herc" : "mda";
   }
-  return att() ? "att" : tandy() ? "tandy" : "cga";
+  return att() ? "att" : tandy() ? "tandy" : t1200() ? "t1200" : "cga";
 }
 
 int

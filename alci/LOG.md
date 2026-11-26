@@ -276,3 +276,8 @@
   file overflowed it after a scroll, and the window was drawn twice.
   A letter now takes 57-86 ms on the 8088, a page on VGA 1.37 s (was
   1.85 s). `ctk -B` times a real scroll (lines up past the top).
+- D7: `ctk-t1200` for the Toshiba T1200 LCD: CGA mode 6 with the bytes
+  not inverted (dark pixels on the panel), the 56x32 T1200 icon set,
+  pointer and shadow for its pixel shape; `desk` recognises the T1200
+  BIOS. Checked on 86Box (desktop, file manager with the mouse, editor,
+  shell, calculator): a letter 23 ms, a page 0.30 s on its 8086.

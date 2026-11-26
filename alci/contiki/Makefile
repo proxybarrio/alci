@@ -2,7 +2,7 @@
 # and "desk", which starts the one that fits the machine:
 #   ctk       CGA 640x200, 2 colours       ctk-cga4  CGA 320x200, 4 colours
 #   ctk-ega   EGA 640x350, 16 colours      ctk-vga   VGA 640x480, 16 colours
-#   ctk-mcga  MCGA 320x200, 256 colours
+#   ctk-mcga  MCGA 320x200, 256 colours  ctk-t1200 Toshiba T1200 LCD (CGA 640x200)
 # Needs the ELKS cross toolchain (. ./env.sh in the ELKS tree).
 # "make fetch" gets Contiki 1.x at the commit this prototype was built with.
 CONTIKI_REPO = https://github.com/adamdunkels/contiki-1.x
@@ -23,7 +23,7 @@ SRCS_col = $(COMMON) ctk-gfx.c
 # icons built into the desktop
 ICONS = directory editor shell calculator
 TARGETS = cga cga4 ega vga mcga
-PROGS = desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-herc ctk-att ctk-ega2 ctk-vga2
+PROGS = desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-herc ctk-att ctk-ega2 ctk-vga2 ctk-t1200
 
 all: $(PROGS)
 
@@ -47,6 +47,7 @@ $(eval $(call target,herc,ctk-herc,col))
 $(eval $(call target,att,ctk-att,col))
 $(eval $(call target,ega2,ctk-ega2,col))
 $(eval $(call target,vga2,ctk-vga2,col))
+$(eval $(call target,t1200,ctk-t1200,col))
 
 # desk: runs the build that fits the screen (asks the video BIOS)
 desk: desk.c
