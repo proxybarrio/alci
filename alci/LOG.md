@@ -245,3 +245,8 @@
   and save through a new file dialog (`filedlg.c`), scrolling both ways,
   a click puts the cursor. Home, End, PgUp, PgDn and Delete read from the
   console.
+- D7: the editor asks before closing an unsaved text (Save, Discard,
+  Cancel).
+- D7: a shell window: /bin/sh on a pseudo-terminal, a separate ELKS
+  process scheduled by the kernel; the event loop waits on its pty only
+  while the window is open. Four icons fit in one column on every screen.

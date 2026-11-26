@@ -26,12 +26,13 @@ State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
 About dialog and the calculator work on the nine screens: CGA, EGA, VGA
 and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
 Hercules card, and with the Olivetti OGC card); timings of `ctk` and
-`ctk-cga4` on MartyPC (8088). Program sizes, mouse and editor included:
-`ctk` 34.1 KB, `ctk-cga4` 34.7 KB, `ctk-ega` 37.8 KB, `ctk-mcga` 34.7 KB,
-`ctk-vga` 47.6 KB (its three built-in icons are 104x80 pixels), `ctk-herc`
-34.3 KB, `ctk-att` 35.2 KB, `ctk-ega2` 34.0 KB, `ctk-vga2` 35.1 KB,
-`ctk-tandy` 35.1 KB, `ctk-tandy4` 34.9 KB, `desk` 1.6 KB; the mouse takes
-about 3.6 KB of each, the editor and its file dialog about 7.5 KB.
+`ctk-cga4` on MartyPC (8088). Program sizes, mouse, editor and shell
+included: `ctk` 38.1 KB, `ctk-cga4` 38.6 KB, `ctk-ega` 43.3 KB, `ctk-mcga`
+39.1 KB, `ctk-vga` 56.4 KB (its four built-in icons are 104x80 pixels),
+`ctk-herc` 38.4 KB, `ctk-att` 39.6 KB, `ctk-ega2` 38.0 KB, `ctk-vga2`
+39.6 KB, `ctk-tandy` 39.2 KB, `ctk-tandy4` 39.2 KB, `desk` 1.6 KB; the
+mouse takes about 3.6 KB of each, the editor and its file dialog about
+7.5 KB, the shell window about 3 KB (plus its icon).
 `ctk-tandy` and `ctk-tandy4` were checked on 86Box (Tandy 1000 HX).
 
 ## Looks
@@ -167,6 +168,8 @@ pixel by pixel and are meant for 286 and later machines.
 
 With the mouse built in, the timed steps are the same (MartyPC, `ctk -b`:
 CGA desktop settled 0.20 s, EGA 0.45 s); `-b` does not open the port.
+With the Editor and Shell icons the desktop has four icons to draw: settled
+in 0.23 s on CGA and 0.56 s on EGA.
 
 ## Editor
 
@@ -193,6 +196,34 @@ through Contiki's file service.
 Checked on QEMU (EGA, VGA, MCGA, CGA two and four colours: open, edit,
 save as, open again, scroll both ways, click) and on 86Box with an 8088
 and Hercules.
+
+## Shell
+
+The Shell icon (or `ctk -t`) opens a window as large as the screen with
+`/bin/sh` on a pseudo-terminal (`/dev/ptyp0`-`3` and `/dev/ttyp0`-`3`, set
+up as telnetd does). The shell and what it runs are ELKS processes of
+their own, scheduled by the kernel like any other: a long job in the
+window goes on while the desktop, the calculator or the editor are used.
+The desktop reads what they write only when the event loop sees data on
+the pty (`watch.h`: the loop's `select()` waits on it too), up to 1 KB at
+a time so that the other windows keep answering, and draws again the
+lines that changed. Keys go to the program as the console would send them
+(arrows `ESC [ A-D`, Home, End, PgUp, PgDn, Backspace 0x08, Delete 0x7f,
+Ctrl-C and the other control keys; Ctrl-Q still leaves the desktop). The
+screen follows CR, LF, Backspace, Tab and the ANSI sequences for the
+cursor (`A B C D H f`) and for clearing (`J K`); colours (`m`) are
+ignored. `TERM=ansi`, `COLUMNS` and `LINES` give the window's size, which
+is 78x21 on EGA and 38x21 on the 320x200 screens: programs that write 80
+columns whatever they are told (`ls`) wrap there. `exit` shows `[ended]`;
+closing the window hangs the program up and waits for it. Nothing is
+opened, and the loop waits on nothing more, until the window opens.
+
+Checked on QEMU (EGA, CGA 320x200: `ls`, `ps`, `yes` stopped with
+Ctrl-C, `exit`) and on 86Box with an 8088 and Hercules.
+
+On screens where four icons in a column would not fit with a free row
+between them (CGA and Tandy 640x200, 640x400, VGA 640x480), they are put
+one under the other without it.
 
 ## Build and run
 
@@ -250,6 +281,8 @@ click, Esc (or F6, Alt-M again) puts it away; other keys work as usual.
   `ESC a-e`), mouse position and buttons for CTK, clock, and the event
   loop, which sleeps in `select()` on the keyboard and the mouse when idle.
 - `edit.c`, `edit-dsc.c`: the editor; `filedlg.c`: its file dialog.
+- `term.c`, `term-dsc.c`: the shell window; `watch.h`: descriptors for the
+  event loop to wait on (main.c).
 - `mouse.c`, `mouse.h`: the ELKS user-mode mouse driver
   (`elkscmd/gui/mouse.c`, from Microwindows) without its messages and test
   program; a Microsoft packet restarts at any byte with the sixth bit set,

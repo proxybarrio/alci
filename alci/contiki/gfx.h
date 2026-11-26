@@ -105,7 +105,13 @@
 #define GFX_SEP_GAP 0           /* the line in the cell left of the icons */
 #else
 #define CTK_ICONX_FROM_RIGHT (GFX_ICON_CW + 2)
+/* a free row between an icon's title and the next icon, where the four
+   icons (About, Calculator, Editor, Shell) still fit in one column */
+#if GFX_SH >= 4 * GFX_ICON_RH + 11
 #define CTK_ICONY_STEP       (GFX_ICON_RH + 2)
+#else
+#define CTK_ICONY_STEP       (GFX_ICON_RH + 1)
+#endif
 #define CTK_ICONY_FROM_BOTTOM (GFX_ICON_RH + 5)
 #define GFX_SEP_GAP 3
 #endif

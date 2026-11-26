@@ -20,6 +20,7 @@
 #include "about-dsc.h"
 #include "calc-dsc.h"
 #include "edit-dsc.h"
+#include "term-dsc.h"
 #include "gfx.h"
 #include "gfx-icons.h"            /* Alci icons of this screen type (icons/tools/mkgfx.py) */
 #include "ctk-mouse.h"
@@ -29,7 +30,8 @@ void ctk_cga_exit(void);
 void calc_init(char *arg);
 void about_init(char *arg);
 void edit_init(char *arg);
-extern struct ctk_icon about_icon, calc_icon, edit_icon;
+void term_init(char *arg);
+extern struct ctk_icon about_icon, calc_icon, edit_icon, term_icon;
 
 /* Give a program's desktop icon the Alci drawing of the same name. */
 static void
@@ -210,6 +212,39 @@ push(unsigned char c)
   }
 }
 /*---------------------------------------------------------------------------*/
+/* Other descriptors the loop waits on (a terminal's pty, watch.h): when one
+   has data its event is posted to its process, and it is left out of the
+   wait until the process asks again, once it has read. */
+#define NWATCH 4
+static struct {
+  int fd;
+  ek_id_t id;
+  ek_event_t ev;
+} watched[NWATCH];
+static unsigned char nwatched;
+
+void
+watch_fd(int fd, ek_id_t id, ek_event_t ev)
+{
+  if(nwatched < NWATCH) {
+    watched[nwatched].fd = fd;
+    watched[nwatched].id = id;
+    watched[nwatched].ev = ev;
+    ++nwatched;
+  }
+}
+void
+unwatch_fd(int fd)
+{
+  unsigned char i;
+  for(i = 0; i < nwatched; ++i) {
+    if(watched[i].fd == fd) {
+      watched[i] = watched[--nwatched];
+      return;
+    }
+  }
+}
+
 /* Read whatever the console has, without blocking longer than "ms".
    ELKS console: arrows are ESC [ A..D, Home and End ESC [ H and F, PgUp and
    PgDn ESC [ 5 ~ and 6 ~, F1..F10 ESC a..j, Delete 0x7f, Backspace 0x08. */
@@ -221,18 +256,34 @@ poll_keys(int ms)
   unsigned char b[16];
   int n, i;
 
+  int maxfd = 0;
+
   FD_ZERO(&fds);
   FD_SET(0, &fds);
   if(mouse_fd >= 0) {
     FD_SET(mouse_fd, &fds);
+    maxfd = mouse_fd;
+  }
+  for(i = 0; i < nwatched; ++i) {
+    FD_SET(watched[i].fd, &fds);
+    if(watched[i].fd > maxfd) {
+      maxfd = watched[i].fd;
+    }
   }
   tv.tv_sec = 0;
   tv.tv_usec = (long)ms * 1000;
-  if(select(mouse_fd >= 0 ? mouse_fd + 1 : 1, &fds, NULL, NULL, &tv) <= 0) {
+  if(select(maxfd + 1, &fds, NULL, NULL, &tv) <= 0) {
     return;
   }
   if(mouse_fd >= 0 && FD_ISSET(mouse_fd, &fds)) {
     mouse_read();
+  }
+  for(i = 0; i < nwatched; ++i) {
+    if(FD_ISSET(watched[i].fd, &fds)) {
+      ek_post(watched[i].id, watched[i].ev, NULL);
+      watched[i] = watched[--nwatched];
+      --i;
+    }
   }
   if(!FD_ISSET(0, &fds)) {
     return;
@@ -362,9 +413,11 @@ main(int argc, char **argv)
   set_icon(&about_icon, "about");
   set_icon(&calc_icon, "calculator");
   set_icon(&edit_icon, "editor");
+  set_icon(&term_icon, "shell");
   program_handler_add(&about_dsc, "About", 1);
   program_handler_add(&calc_dsc, "Calculator", 1);
   program_handler_add(&edit_dsc, "Editor", 1);
+  program_handler_add(&term_dsc, "Shell", 1);
 
   if(argc > 1 && strcmp(argv[1], "-b") == 0) {
     /* Benchmark: timings in ms, printed after going back to text mode. */
@@ -406,6 +459,10 @@ main(int argc, char **argv)
     /* the editor open, on a file if one is named */
     while(ek_run()) ;
     edit_init(argc > 2 ? argv[2] : NULL);
+  }
+  if(argc > 1 && strcmp(argv[1], "-t") == 0) {
+    while(ek_run()) ;                   /* a terminal open */
+    term_init(NULL);
   }
   if(argc > 1 && strcmp(argv[1], "-q") == 0) {
     while(ek_run()) ;                   /* draw the desktop, then quit */
