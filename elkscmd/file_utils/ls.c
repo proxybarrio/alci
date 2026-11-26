@@ -48,8 +48,16 @@
 #include <time.h>
 #include <limits.h>
 
-/* klugde */
-#define COLS 80
+/* the terminal's width: COLUMNS when set (the desktop's shell windows set
+   it), else 80 */
+static int
+screen_cols(void)
+{
+    char *s = getenv("COLUMNS");
+    int n = s ? atoi(s) : 0;
+    return (n >= 20 && n <= 255) ? n : 80;
+}
+#define COLS screen_cols()
 
 #ifdef S_ISLNK
 #    define LSTAT lstat
@@ -433,6 +441,8 @@ static void setfmt(struct stack *pstack, int flags)
         maxlen += 2;
         maxlen2 = flags & LSF_INODE? maxlen + 6: maxlen;
         cols = (COLS - 1) / maxlen2;
+        if (cols < 1)
+            cols = 1;
         sprintf (fmt, "%%-%d.%ds", maxlen, maxlen);
     }
 }

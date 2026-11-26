@@ -214,12 +214,21 @@ screen follows CR, LF, Backspace, Tab and the ANSI sequences for the
 cursor (`A B C D H f`) and for clearing (`J K`); colours (`m`) are
 ignored. `TERM=ansi`, `COLUMNS` and `LINES` give the window's size, which
 is 78x21 on EGA and 38x21 on the 320x200 screens: programs that write 80
-columns whatever they are told (`ls`) wrap there. `exit` shows `[ended]`;
-closing the window hangs the program up and waits for it. Nothing is
-opened, and the loop waits on nothing more, until the window opens.
+columns whatever they are told wrap there; `ls` and `ps` follow `COLUMNS`
+(Alci's versions: `ls` lays its columns out to the width, `ps` under 60
+columns shows only PID, TTY, state, CPU, size and command). `exit` shows
+`[ended]`; closing the window hangs the program up and waits for it.
+
+Up to three Shell windows at once ("Shell 1" to "Shell 3", from the icon
+or the menu, F3 to go from one to the other), each with its own pty and
+shell. A window's text is taken from far memory and its lines as drawn
+from the heap (2 KB at most) when it opens, and given back when it
+closes; nothing is opened, and the loop waits on nothing more, until a
+window opens. Each `/bin/sh` takes about 65 KB of the machine's memory.
 
 Checked on QEMU (EGA, CGA 320x200: `ls`, `ps`, `yes` stopped with
-Ctrl-C, `exit`) and on 86Box with an 8088 and Hercules.
+Ctrl-C, `exit`, three windows at once) and on 86Box with an 8088 and
+Hercules.
 
 On screens where four icons in a column would not fit with a free row
 between them (CGA and Tandy 640x200, 640x400, VGA 640x480), they are put

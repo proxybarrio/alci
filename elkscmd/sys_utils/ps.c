@@ -125,6 +125,8 @@ int main(int argc, char **argv)
     int f_listall = 0;
     char *progname;
     int f_uptime;
+    int narrow;
+    char *cols;
     struct task_struct task_table;
 
     if ((progname = strrchr(argv[0], '/')) != NULL)
@@ -185,6 +187,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    /* under 60 columns (COLUMNS, set by the desktop's shell windows):
+       PID, TTY, STAT, CPU, SIZE and COMMAND only */
+    cols = getenv("COLUMNS");
+    narrow = !f_listall && cols && atoi(cols) > 0 && atoi(cols) < 60;
+    if (narrow) {
+        printf("  PID  TTY S CPU   SIZE COMMAND\n");
+    } else {
     printf("  PID");
     if (f_listall) printf("  PPID");
     printf("   GRP  TTY USER STAT ");
@@ -192,6 +201,7 @@ int main(int argc, char **argv)
     printf(" ");
     if (f_listall) printf("CSEG DSEG ");
     printf(" HEAP  FREE   SIZE COMMAND\n");
+    }
     for (j = 0; j < maxtasks; j++) {
         if (memread(fd, off + j*sizeof(struct task_struct), ds, &task_table, sizeof(task_table)) != sizeof(task_table)) {
             printf("no memread\n");
@@ -215,6 +225,23 @@ int main(int argc, char **argv)
         }
 
         pwent = getpwuid(task_table.uid);
+
+        if (narrow) {
+            unsigned long cpu_percent = (task_table.average + FIXED_HALF) >> 1;
+            printf("%5d %4s %c %3d", task_table.pid,
+                tty_name(fd, (unsigned int)task_table.tty, ds), c,
+                FIXED_INT(cpu_percent));
+            cseg = (word_t)task_table.mm[SEG_CODE];
+            dseg = (word_t)task_table.mm[SEG_DATA];
+            if (dseg) {
+                segext_t size = getword(fd, (word_t)cseg+offsetof(segment_s, size), ds)
+                                + getword(fd, (word_t)dseg+offsetof(segment_s, size), ds);
+                printf(" %6ld ", (long)size << 4);
+                process_name(fd, task_table.t_begstack, task_table.t_regs.ss);
+            }
+            printf("\n");
+            continue;
+        }
 
         /* pid grp tty user stat*/
         printf("%5d", task_table.pid);

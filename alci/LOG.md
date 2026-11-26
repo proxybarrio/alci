@@ -250,3 +250,7 @@
 - D7: a shell window: /bin/sh on a pseudo-terminal, a separate ELKS
   process scheduled by the kernel; the event loop waits on its pty only
   while the window is open. Four icons fit in one column on every screen.
+- D7: up to three shell windows at once, text in far memory and drawn
+  lines in the heap while open (desktop heap 12 KB). `ls` and `ps` follow
+  `COLUMNS`, so their output stays in columns in the 38-column windows of
+  the 320x200 screens.

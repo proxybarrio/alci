@@ -14,7 +14,7 @@ CFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff \
 	-Os -fno-inline -Wall -Wno-unused-parameter \
 	-I elks -I . -I$(TOPDIR)/include -I$(TOPDIR)/libc/include -I$(TOPDIR)/elks/include \
 	-I$(CONTIKI)/ek -I$(CONTIKI)/ctk -I$(CONTIKI)/lib -I$(CONTIKI)/apps
-LDFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff -maout-heap=0x2000 -maout-stack=0x1000
+LDFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff -maout-heap=0x3000 -maout-stack=0x1000
 VPATH = $(CONTIKI)/ctk $(CONTIKI)/ek $(CONTIKI)/lib $(CONTIKI)/apps
 COMMON = main.c ctk.c ek.c arg.c timer.c \
 	program-handler.c petsciiconv.c about.c about-dsc.c calc.c calc-dsc.c mouse.c \
