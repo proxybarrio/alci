@@ -50,6 +50,9 @@ if [ ! -x $ROOT/86box/86box/build/src/86Box ]; then
      -DRTMIDI=OFF -DFLUIDSYNTH=OFF -DMUNT=OFF -DSOUNDCANVAS=OFF -DDISCORD=OFF > $ROOT/work/cmake86.log 2>&1 && \
    ninja -C build > $ROOT/work/ninja86.log 2>&1) || echo "86Box build failed, see $ROOT/work/ninja86.log"
 fi
+# MartyPC's EGA configuration needs the IBM EGA BIOS, taken from 86Box's ROM set
+E=$ROOT/86box/roms/video/ega/ibm_6277356_ega_card_u44_27128.bin
+[ -f $MPC/media/roms/EGA/$(basename $E) ] || { [ -f $E ] && mkdir -p $MPC/media/roms/EGA && cp $E $MPC/media/roms/EGA/; }
 # PicoMEM for 86Box: os8088's 86Box patch and libpmhost (MIT; see alci/RELATED.md)
 if [ ! -f $ROOT/os8088/build/picomem/v2/libpmhost-v2.so ]; then
   [ -d $ROOT/os8088 ] || { GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 --filter=blob:none --sparse \
