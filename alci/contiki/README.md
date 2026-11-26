@@ -26,12 +26,12 @@ State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
 About dialog and the calculator work on the nine screens: CGA, EGA, VGA
 and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
 Hercules card, and with the Olivetti OGC card); timings of `ctk` and
-`ctk-cga4` on MartyPC (8088). Program sizes, mouse included: `ctk` 26.3 KB,
-`ctk-cga4` 27.0 KB, `ctk-ega` 28.5 KB, `ctk-mcga` 26.4 KB, `ctk-vga`
-35.0 KB (its two built-in icons are 104x80 pixels), `ctk-herc` 26.4 KB,
-`ctk-att` 27.0 KB, `ctk-ega2` 26.0 KB, `ctk-vga2` 26.9 KB, `ctk-tandy`
-27.1 KB, `ctk-tandy4` 26.8 KB, `desk` 1.6 KB; the mouse takes about 3.6 KB
-of each.
+`ctk-cga4` on MartyPC (8088). Program sizes, mouse and editor included:
+`ctk` 34.1 KB, `ctk-cga4` 34.7 KB, `ctk-ega` 37.8 KB, `ctk-mcga` 34.7 KB,
+`ctk-vga` 47.6 KB (its three built-in icons are 104x80 pixels), `ctk-herc`
+34.3 KB, `ctk-att` 35.2 KB, `ctk-ega2` 34.0 KB, `ctk-vga2` 35.1 KB,
+`ctk-tandy` 35.1 KB, `ctk-tandy4` 34.9 KB, `desk` 1.6 KB; the mouse takes
+about 3.6 KB of each, the editor and its file dialog about 7.5 KB.
 `ctk-tandy` and `ctk-tandy4` were checked on 86Box (Tandy 1000 HX).
 
 ## Looks
@@ -168,6 +168,32 @@ pixel by pixel and are meant for 286 and later machines.
 With the mouse built in, the timed steps are the same (MartyPC, `ctk -b`:
 CGA desktop settled 0.20 s, EGA 0.45 s); `-b` does not open the port.
 
+## Editor
+
+The Editor icon (or `ctk -e [file]`) opens a window as large as the
+screen: Open, Save and New, the file's name (`*` when changed) with the
+line and column, then the text. Arrows, Home, End, PgUp, PgDn, Backspace,
+Delete and Enter edit; Ctrl-O opens, Ctrl-S saves (asking for a name the
+first time), Ctrl-N starts a new text; a click in the text puts the cursor
+there. Lines end with a newline, tabs stop every eight columns, long lines
+scroll sideways. The text is kept in a gap buffer taken from far memory
+when the editor starts (60 KB, less on a machine short of memory) and
+given back when it closes, so files up to 60 KB open; the desktop's own
+data stay under 64 KB on every build. Only the lines that change are drawn
+again; the cursor is a label character with its top bit set, which the
+drawing layer shows reversed.
+
+The file dialog (`filedlg.c`) lists the current directory, directories
+first with a `/` (choosing one goes into it), with a line for the name and
+the button; arrows, PgUp, PgDn, Home and End choose, letters type a name,
+Enter takes it, Esc cancels; a click chooses a line, a second click on it
+takes it. It replaces Contiki's `ctk-filedialog`, which reads directories
+through Contiki's file service.
+
+Checked on QEMU (EGA, VGA, MCGA, CGA two and four colours: open, edit,
+save as, open again, scroll both ways, click) and on 86Box with an 8088
+and Hercules.
+
 ## Build and run
 
     . ../../env.sh          # ELKS cross toolchain
@@ -179,7 +205,7 @@ Copy the programs to `/bin` on an Alci or ELKS system and run `desk` (or
 one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2 desk`
 chooses by hand. `ctk -d` starts with the calculator open.
 
-Keys: F1 opens the menu (arrows and Enter to choose), Tab and F5 move
+Keys (desktop): F1 opens the menu (arrows and Enter to choose), Tab and F5 move
 between widgets, F3 switches window, Enter presses a button, Ctrl-Q goes
 back to the text console.
 
@@ -223,6 +249,7 @@ click, Esc (or F6, Alt-M again) puts it away; other keys work as usual.
 - `main.c`: keyboard (ELKS console in raw mode: arrows `ESC [ A-D`, F1-F5
   `ESC a-e`), mouse position and buttons for CTK, clock, and the event
   loop, which sleeps in `select()` on the keyboard and the mouse when idle.
+- `edit.c`, `edit-dsc.c`: the editor; `filedlg.c`: its file dialog.
 - `mouse.c`, `mouse.h`: the ELKS user-mode mouse driver
   (`elkscmd/gui/mouse.c`, from Microwindows) without its messages and test
   program; a Microsoft packet restarts at any byte with the sixth bit set,
@@ -261,7 +288,8 @@ column follow the icon size (see the Makefile).
 
 ## Next steps
 
-1. Editor, then the file manager (Contiki's "Directory" is minimal).
+1. The file manager (Contiki's "Directory" is minimal), with the file
+   dialog's list.
 2. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
    the Tandy build on an 8088.
 3. The D2 benchmark against Nano-X and Gem-elks.

@@ -19,6 +19,7 @@
 
 #include "about-dsc.h"
 #include "calc-dsc.h"
+#include "edit-dsc.h"
 #include "gfx.h"
 #include "gfx-icons.h"            /* Alci icons of this screen type (icons/tools/mkgfx.py) */
 #include "ctk-mouse.h"
@@ -27,7 +28,8 @@
 void ctk_cga_exit(void);
 void calc_init(char *arg);
 void about_init(char *arg);
-extern struct ctk_icon about_icon, calc_icon;
+void edit_init(char *arg);
+extern struct ctk_icon about_icon, calc_icon, edit_icon;
 
 /* Give a program's desktop icon the Alci drawing of the same name. */
 static void
@@ -209,7 +211,8 @@ push(unsigned char c)
 }
 /*---------------------------------------------------------------------------*/
 /* Read whatever the console has, without blocking longer than "ms".
-   ELKS console: arrows are ESC [ A..D, F1..F10 are ESC a..j. */
+   ELKS console: arrows are ESC [ A..D, Home and End ESC [ H and F, PgUp and
+   PgDn ESC [ 5 ~ and 6 ~, F1..F10 ESC a..j, Delete 0x7f, Backspace 0x08. */
 static void
 poll_keys(int ms)
 {
@@ -263,8 +266,15 @@ poll_keys(int ms)
         case 'B': push(CH_CURS_DOWN); break;
         case 'C': push(CH_CURS_RIGHT); break;
         case 'D': push(CH_CURS_LEFT); break;
+        case 'H': push(CH_HOME); break;
+        case 'F': push(CH_END); break;
+        case '5': push(CH_PGUP); break;
+        case '6': push(CH_PGDN); break;
         }
         i += 2;
+        if(i + 1 < n && b[i + 1] == '~') {    /* ESC [ 5 ~ and the like */
+          ++i;
+        }
         continue;
       }
       if(d >= 'a' && d <= 'e') {
@@ -287,8 +297,8 @@ poll_keys(int ms)
     if(c == '\n') {
       c = '\r';
     }
-    if(c == 0x7f) {
-      c = CH_DEL;
+    if(c == 0x7f) {                     /* the Delete key on the console */
+      c = CH_DELFWD;
     }
     push(c);
   }
@@ -351,8 +361,10 @@ main(int argc, char **argv)
   program_handler_init();
   set_icon(&about_icon, "about");
   set_icon(&calc_icon, "calculator");
+  set_icon(&edit_icon, "editor");
   program_handler_add(&about_dsc, "About", 1);
   program_handler_add(&calc_dsc, "Calculator", 1);
+  program_handler_add(&edit_dsc, "Editor", 1);
 
   if(argc > 1 && strcmp(argv[1], "-b") == 0) {
     /* Benchmark: timings in ms, printed after going back to text mode. */
@@ -389,6 +401,11 @@ main(int argc, char **argv)
     /* Demonstration: the calculator already open */
     while(ek_run()) ;
     calc_init(NULL);
+  }
+  if(argc > 1 && strcmp(argv[1], "-e") == 0) {
+    /* the editor open, on a file if one is named */
+    while(ek_run()) ;
+    edit_init(argc > 2 ? argv[2] : NULL);
   }
   if(argc > 1 && strcmp(argv[1], "-q") == 0) {
     while(ek_run()) ;                   /* draw the desktop, then quit */

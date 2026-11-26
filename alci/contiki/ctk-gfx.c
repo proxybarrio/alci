@@ -2347,6 +2347,37 @@ text(const char *s, unsigned char len, unsigned char fg)
     text_cell((unsigned char)*s++, fg);
   }
 }
+/* a label's text: a character with the top bit set is shown as a cursor
+   (the editor's), drawn as the cursor of a text entry */
+static void
+label_text(const char *s, unsigned char len)
+{
+  while(len && *s) {
+    unsigned char k = 0;
+    while(k < len && s[k] && !((unsigned char)s[k] & 0x80)) {
+      ++k;
+    }
+    if(k) {
+      text(s, k, C_INK);
+      s += k;
+      len -= k;
+    }
+    if(len && *s) {
+      rows_solid(C_INK);
+#if !defined(MONO)
+      rows_bar(1);
+#endif
+#if defined(MONO)
+      text_cell((unsigned char)*s & 0x7f, C_PAPER);
+#else
+      text_cell((unsigned char)*s & 0x7f, C_TITLE_A);
+#endif
+      rows_solid(C_PAPER);
+      ++s;
+      --len;
+    }
+  }
+}
 static void
 blank(unsigned char len)
 {
@@ -3645,7 +3676,7 @@ draw_widget(struct ctk_widget *w, unsigned char x, unsigned char y,
     for(i = 0; i < w->h; ++i) {
       if(ypos >= clipy1 && ypos < clipy2) {
         gotoxy(xpos, ypos);
-        text(s, w->w, C_INK);
+        label_text(s, w->w);
         tmp = w->w - (cursx - xpos);
         if(tmp > 0 && tmp <= w->w) {
           blank(tmp);

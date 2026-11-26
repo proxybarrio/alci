@@ -240,3 +240,8 @@
   shifts wrong there.
 - D7: the pointer from the keyboard (F6 or Alt-M; arrows, Space or Enter,
   Esc) for machines with no mouse.
+- D7: a text editor on the desktop, written for Alci (`edit.c`): window as
+  large as the screen, gap buffer in far memory (files up to 60 KB), open
+  and save through a new file dialog (`filedlg.c`), scrolling both ways,
+  a click puts the cursor. Home, End, PgUp, PgDn and Delete read from the
+  console.

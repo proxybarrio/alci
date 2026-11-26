@@ -14,6 +14,11 @@ ctk_arch_key_t ctk_arch_getkey(void);
 #define CH_F3         0x86
 #define CH_F4         0x87
 #define CH_F5         0x88
+#define CH_HOME       0x89
+#define CH_END        0x8a
+#define CH_PGUP       0x8b
+#define CH_PGDN       0x8c
+#define CH_DELFWD     0x8d      /* Delete (CH_DEL is Backspace) */
 #define CH_ENTER      '\r'
 #define CH_TAB        '\t'
 #define CH_DEL        0x08
