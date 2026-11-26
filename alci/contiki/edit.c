@@ -67,6 +67,14 @@ static unsigned char modified;
 static char filename[FILEDLG_NAMELEN + 1];
 static char *message;                   /* shown once in the status */
 static unsigned char dialog;            /* 1: open, 2: save */
+static unsigned char quitting;          /* closing once the text is saved */
+
+/* asked when the window is closed with the text not saved */
+static struct ctk_window confirm;
+static struct ctk_label confirmlabel = {CTK_LABEL(0, 0, 24, 1, "The text is not saved.")};
+static struct ctk_button csavebutton = {CTK_BUTTON(0, 2, 4, "Save")};
+static struct ctk_button cdropbutton = {CTK_BUTTON(7, 2, 7, "Discard")};
+static struct ctk_button ccancelbutton = {CTK_BUTTON(17, 2, 6, "Cancel")};
 
 /*---------------------------------------------------------------------------*/
 /* The gap buffer */
@@ -510,6 +518,19 @@ edit_quit(void)
   LOADER_UNLOAD();
 }
 
+static void
+ask_before_closing(void)
+{
+  ctk_window_open(&window);             /* CTK has closed it: back it comes */
+  ctk_dialog_new(&confirm, 24, 3);
+  CTK_WIDGET_ADD(&confirm, &confirmlabel);
+  CTK_WIDGET_ADD(&confirm, &csavebutton);
+  CTK_WIDGET_ADD(&confirm, &cdropbutton);
+  CTK_WIDGET_ADD(&confirm, &ccancelbutton);
+  CTK_WIDGET_FOCUS(&confirm, &csavebutton);
+  ctk_dialog_open(&confirm);
+}
+
 EK_EVENTHANDLER(edit_eventhandler, ev, data)
 {
   unsigned char r;
@@ -524,6 +545,40 @@ EK_EVENTHANDLER(edit_eventhandler, ev, data)
     }
     if(r != FILEDLG_BUSY) {
       dialog = 0;
+      if(quitting && !modified) {
+        ctk_window_close(&window);
+        edit_quit();
+        return;
+      }
+      quitting = 0;
+      show();
+    }
+    return;
+  }
+  if(quitting && ev == ctk_signal_widget_activate) {
+    ctk_dialog_close();
+    if(data == (ek_data_t)&cdropbutton) {
+      ctk_window_close(&window);
+      edit_quit();
+    } else if(data == (ek_data_t)&csavebutton) {
+      save();                           /* asks for a name if there is none */
+      if(!dialog && !modified) {
+        ctk_window_close(&window);
+        edit_quit();
+      } else if(!dialog) {
+        quitting = 0;                   /* could not save: stay */
+        show();
+      }
+    } else {
+      quitting = 0;
+      show();
+    }
+    return;
+  }
+  if(quitting && (ev == ctk_signal_keypress || ev == ctk_signal_pointer_button)) {
+    if(ev == ctk_signal_keypress && (ctk_arch_key_t)(unsigned short)data == CH_ESC) {
+      ctk_dialog_close();
+      quitting = 0;
       show();
     }
     return;
@@ -560,7 +615,12 @@ EK_EVENTHANDLER(edit_eventhandler, ev, data)
       key(0x0e);
     }
   } else if(ev == ctk_signal_window_close && data == (ek_data_t)&window) {
-    edit_quit();
+    if(modified) {
+      quitting = 1;
+      ask_before_closing();
+    } else {
+      edit_quit();
+    }
   } else if(ev == EK_EVENT_REQUEST_EXIT) {
     ctk_window_close(&window);
     edit_quit();
