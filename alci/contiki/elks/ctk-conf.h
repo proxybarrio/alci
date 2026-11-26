@@ -2,7 +2,7 @@
 #ifndef __CTK_CONF_H__
 #define __CTK_CONF_H__
 
-#define CTK_CONF_MOUSE_SUPPORT        0
+#define CTK_CONF_MOUSE_SUPPORT        1
 #define CTK_CONF_MENU_KEY             CH_F1
 #define CTK_CONF_WINDOWSWITCH_KEY     CH_F3
 #define CTK_CONF_WIDGETDOWN_KEY       CH_TAB

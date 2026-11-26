@@ -231,3 +231,10 @@
   settled on the 8088 between 0.19 s (CGA) and 0.69 s (VGA 16 colours),
   same screens (QEMU and 86Box). Byte operands of inline assembly passed
   as words: ia16-gcc could put them in AH.
+- D7: mouse on the desktop of every build: Microsoft, PC or PS/2 mouse
+  through the ELKS user-mode driver, pointer drawn by the drawing layer
+  with the screen under it kept, opened after the desktop is drawn. Clicks
+  open icons, press buttons, open menus, close and move windows. Checked
+  on QEMU and 86Box (automation socket): the screen comes back pixel for
+  pixel. The pointer masks use 16-bit arithmetic: ia16-gcc got the 32-bit
+  shifts wrong there.

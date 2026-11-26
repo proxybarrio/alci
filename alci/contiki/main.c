@@ -1,6 +1,6 @@
 /*
  * Contiki 1.x desktop (CTK) on ELKS/Alci, CGA prototype (task D7).
- * Main loop, keyboard and clock for ELKS. Ctrl-Q quits.
+ * Main loop, keyboard, mouse and clock for ELKS. Ctrl-Q quits.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,6 +21,8 @@
 #include "calc-dsc.h"
 #include "gfx.h"
 #include "gfx-icons.h"            /* Alci icons of this screen type (icons/tools/mkgfx.py) */
+#include "ctk-mouse.h"
+#include "mouse.h"
 
 void ctk_cga_exit(void);
 void calc_init(char *arg);
@@ -32,6 +34,10 @@ static void
 set_icon(struct ctk_icon *icon, const char *name)
 {
   unsigned char i;
+  /* the area the mouse finds it in: the drawing's cells and the title row
+     under them (CTK counts both ends) */
+  icon->w = GFX_ICON_CW - 1;
+  icon->h = GFX_ICON_RH;
   for(i = 0; i < GFX_ICON_COUNT; ++i) {
     if(strcmp(gfx_icon_names[i], name) == 0) {
       icon->bitmap = (unsigned char *)&gfx_icons[i];
@@ -49,6 +55,85 @@ static unsigned char keybuf[16];
 static unsigned char khead, ktail;
 
 /*---------------------------------------------------------------------------*/
+/* Mouse (mouse.c): a Microsoft serial mouse on /dev/ttyS0 unless MOUSE_TYPE
+   (ms, pc, ps2, none) and MOUSE_PORT say otherwise. The pointer appears with
+   the first movement, so a port with no mouse changes nothing. */
+void ctk_gfx_pointer(unsigned short x, unsigned short y);
+void ctk_gfx_pointer_off(void);
+#define MPW ((unsigned short)GFX_SW * 8)        /* screen, pixels */
+#define MPH ((unsigned short)GFX_SH * GFX_CH)
+/* the position in half pixels; a mouse count is a pixel across on 640
+   pixel screens, half a pixel on 320; a pixel down on 200 lines, two on
+   taller screens, about the same distance either way on the glass */
+#if GFX_SW * 8 >= 640
+#define MDX 2
+#else
+#define MDX 1
+#endif
+#if GFX_SH * GFX_CH > 200
+#define MDY 2
+#else
+#define MDY 1
+#endif
+static int mfx = MPW, mfy = MPH;        /* half pixels: the middle of the screen */
+static unsigned char mbut, mseen, mwant;
+
+void
+ctk_mouse_init(void)
+{
+  /* the port is opened once the desktop is on the screen (main): on a
+     floppy, finding /dev/ttyS0 can take a second */
+}
+/* 0, 0 until the mouse first moves, where CTK starts it: no movement (and
+   no redraw) for the desktop to act on before that */
+unsigned short ctk_mouse_x(void) { return mseen ? mfx >> 1 : 0; }
+unsigned short ctk_mouse_y(void) { return mseen ? mfy >> 1 : 0; }
+unsigned char ctk_mouse_xtoc(unsigned short x) { return x >> 3; }
+unsigned char ctk_mouse_ytoc(unsigned short y) { return y / GFX_CH; }
+unsigned char ctk_mouse_button(void) { return mbut; }
+void ctk_mouse_hide(void) { mwant = 0; }
+void ctk_mouse_show(void) { mwant = 1; }
+
+/* the packets waiting; stops at a change of the buttons, so that the
+   desktop sees each press and each release */
+static void
+mouse_read(void)
+{
+  int dx, dy, dz, b;
+  while(read_mouse(&dx, &dy, &dz, &b) == 1) {
+    if(dx != 0 || dy != 0 || b != 0) {
+      mseen = 1;
+    }
+    mfx += dx * MDX;
+    mfy += dy * MDY;
+    if(mfx < 0) {
+      mfx = 0;
+    } else if(mfx > 2 * MPW - 1) {
+      mfx = 2 * MPW - 1;
+    }
+    if(mfy < 0) {
+      mfy = 0;
+    } else if(mfy > 2 * MPH - 1) {
+      mfy = 2 * MPH - 1;
+    }
+    if(b != mbut) {
+      mbut = b;
+      break;
+    }
+  }
+}
+/* the pointer drawn where the mouse is, once the desktop has drawn */
+static void
+mouse_sync(void)
+{
+  if(mseen && mwant) {
+    ctk_gfx_pointer(mfx >> 1, mfy >> 1);
+  } else {
+    ctk_gfx_pointer_off();
+  }
+}
+
+/*---------------------------------------------------------------------------*/
 clock_time_t
 clock_time(void)
 {
@@ -60,6 +145,7 @@ clock_time(void)
 static void
 quit(void)
 {
+  close_mouse();
   ctk_cga_exit();
   tcsetattr(0, TCSANOW, &saved);
   exit(0);
@@ -87,9 +173,18 @@ poll_keys(int ms)
 
   FD_ZERO(&fds);
   FD_SET(0, &fds);
+  if(mouse_fd >= 0) {
+    FD_SET(mouse_fd, &fds);
+  }
   tv.tv_sec = 0;
   tv.tv_usec = (long)ms * 1000;
-  if(select(1, &fds, NULL, NULL, &tv) <= 0) {
+  if(select(mouse_fd >= 0 ? mouse_fd + 1 : 1, &fds, NULL, NULL, &tv) <= 0) {
+    return;
+  }
+  if(mouse_fd >= 0 && FD_ISSET(mouse_fd, &fds)) {
+    mouse_read();
+  }
+  if(!FD_ISSET(0, &fds)) {
     return;
   }
   n = read(0, b, sizeof(b));
@@ -227,9 +322,12 @@ main(int argc, char **argv)
     quit();
   }
 
+  while(ek_run()) ;                     /* the desktop first, then the mouse */
+  open_mouse();                         /* no mouse: mouse_fd stays -1 */
   for(;;) {
     if(ek_run() == 0 && khead == ktail) {
-      poll_keys(50);                    /* idle: wait for a key, no busy loop */
+      mouse_sync();
+      poll_keys(50);                    /* idle: wait for a key or the mouse, no busy loop */
     }
   }
   return 0;

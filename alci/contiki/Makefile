@@ -17,7 +17,7 @@ CFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff \
 LDFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff -maout-heap=0x2000 -maout-stack=0x1000
 VPATH = $(CONTIKI)/ctk $(CONTIKI)/ek $(CONTIKI)/lib $(CONTIKI)/apps
 COMMON = main.c ctk.c ek.c arg.c timer.c \
-	program-handler.c petsciiconv.c about.c about-dsc.c calc.c calc-dsc.c
+	program-handler.c petsciiconv.c about.c about-dsc.c calc.c calc-dsc.c mouse.c
 SRCS_col = $(COMMON) ctk-gfx.c
 # icons built into the desktop
 ICONS = about calculator
@@ -30,7 +30,7 @@ define target
 obj-$(1)/gfx-icons.h: icons/tools/mkgfx.py
 	mkdir -p obj-$(1)
 	python3 icons/tools/mkgfx.py $(1) $$@ $(ICONS)
-obj-$(1)/%.o: %.c obj-$(1)/gfx-icons.h gfx.h
+obj-$(1)/%.o: %.c obj-$(1)/gfx-icons.h gfx.h elks/ctk-conf.h mouse.h
 	$(CC) $(CFLAGS) -DGFX_$(shell echo $(1) | tr a-z A-Z) -I obj-$(1) -include gfx.h -c -o $$@ $$<
 $(2): $(patsubst %.c,obj-$(1)/%.o,$(SRCS_$(3)))
 	$(CC) $(LDFLAGS) -o $$@ $$^

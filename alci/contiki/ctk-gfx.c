@@ -2505,6 +2505,240 @@ palette(void)
 #endif
 }
 
+/*---------------------------------------------------------------------------*/
+/* Mouse pointer: drawn over the screen with the bytes under it kept, black
+   outline, white inside (the other way round where desktop and windows are
+   black), hot spot at the top left. Every drawing entry
+   takes it off first; the program puts it back when the drawing is done. */
+#if defined(GFX_CGA) || defined(GFX_TANDY4)
+/* 640x200: pixels more than twice as tall as wide */
+static const char *const ptr_shape[] = {
+  "X.........",
+  "XXX.......",
+  "XoooXX....",
+  "XoooooXX..",
+  "XoooooooXX",
+  "XoooXXXX..",
+  "XoXXooX...",
+  "XX..XooX..",
+  ".....XX...",
+};
+#else
+static const char *const ptr_shape[] = {
+  "X.......",
+  "XX......",
+  "XoX.....",
+  "XooX....",
+  "XoooX...",
+  "XooooX..",
+  "XoooooX.",
+  "XooooooX",
+  "XooXXXXX",
+  "XoXXoX..",
+  "XX.XoX..",
+  "X...XoX.",
+  "....XoX.",
+  ".....XX.",
+};
+#endif
+#define PTR_H (sizeof(ptr_shape) / sizeof(ptr_shape[0]))
+#define PTR_PW ((unsigned short)SW * 8)
+#define PTR_PH ((unsigned short)SH * CH)
+/* bytes kept for eight pixels of a row, and their step in video memory */
+#if defined(MONO)
+#define GB 1
+#define GSTEP 1
+#elif defined(GFX_CGA4)                 /* and Tandy 640x200 */
+#define GB 2
+#define GSTEP 2
+#elif defined(GFX_TANDY)
+#define GB 4
+#define GSTEP 4
+#elif defined(GFX_MCGA)
+#define GB 8
+#define GSTEP 8
+#else                                   /* EGA, VGA: a byte in each plane */
+#define GB 4
+#define GSTEP 1
+#endif
+#if defined(MONO)
+#define PTR_WHITE 1
+#elif defined(GFX_CGA4)
+#define PTR_WHITE 3
+#elif defined(GFX_TANDY)
+#define PTR_WHITE 15
+#else
+#define PTR_WHITE 1                     /* EGA, VGA, MCGA: colour 1 */
+#endif
+
+static unsigned char ptr_on;            /* drawn */
+static unsigned short ptr_x, ptr_y;
+static unsigned char ptr_save[PTR_H][3][GB];
+static unsigned char ptr_used[PTR_H];   /* the groups of eight pixels kept, a bit each */
+
+/* video memory offset of pixel row Y */
+static unsigned short
+ptr_row(unsigned short Y)
+{
+#if defined(GFX_TANDY) || defined(GFX_TANDY4)
+  return (Y & 3) * 0x2000 + (Y >> 2) * 160;
+#elif defined(GFX_CGA) || defined(GFX_CGA4)
+  return (Y & 1) * 0x2000 + (Y >> 1) * 80;
+#elif defined(GFX_HERC)
+  return (Y & 3) * 0x2000 + (Y >> 2) * 90;
+#elif defined(GFX_ATT)
+  return (Y & 3) * 0x2000 + (Y >> 2) * 80;
+#elif defined(GFX_MCGA)
+  return Y * 320;
+#else
+  return Y * 80;
+#endif
+}
+static void
+ptr_get(unsigned short off, unsigned char *b)
+{
+  unsigned char k;
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  for(k = 0; k < 4; ++k) {
+    outw(0x3ce, ((unsigned short)k << 8) | 4);       /* read map select */
+    b[k] = VRAM[off];
+  }
+  outw(0x3ce, 4);
+#else
+  for(k = 0; k < GB; ++k) {
+    b[k] = VRAM[off + k];
+  }
+#endif
+}
+static void
+ptr_put(unsigned short off, const unsigned char *b)
+{
+  unsigned char k;
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  for(k = 0; k < 4; ++k) {
+    outb(0x3c5, 1 << k);                /* map mask */
+    VRAM[off] = b[k];
+  }
+  outb(0x3c5, 0x0f);
+#else
+  for(k = 0; k < GB; ++k) {
+    VRAM[off + k] = b[k];
+  }
+#endif
+}
+/* eight pixels s with the pixels of a black, those of w white, into d */
+static void
+ptr_mask(const unsigned char *s, unsigned char a, unsigned char w,
+         unsigned char *d)
+{
+#if defined(MONO)
+  d[0] = (s[0] & ~a) | w;
+#elif defined(GFX_TANDY4) || defined(GFX_EGA) || defined(GFX_VGA)
+  /* bit planes: white has the bits of PTR_WHITE */
+  unsigned char k;
+  for(k = 0; k < GB; ++k) {
+    d[k] = (s[k] & ~a) | (((PTR_WHITE >> k) & 1) ? w : 0);
+  }
+#else
+  /* packed pixels: 2, 4 or 8 bits, the left pixel in the high bits */
+  unsigned char i, m = 0x80;
+  memcpy(d, s, GB);
+  for(i = 0; i < 8; ++i, m >>= 1) {
+    if(a & m) {
+      unsigned char v = (w & m) ? PTR_WHITE : 0;
+#if defined(GFX_CGA4)
+      unsigned char sh = 6 - 2 * (i & 3);
+      d[i >> 2] = (d[i >> 2] & ~(3 << sh)) | (v << sh);
+#elif defined(GFX_TANDY)
+      unsigned char sh = (i & 1) ? 0 : 4;
+      d[i >> 1] = (d[i >> 1] & ~(15 << sh)) | (v << sh);
+#else
+      d[i] = v;
+#endif
+    }
+  }
+#endif
+}
+
+void
+ctk_gfx_pointer_off(void)
+{
+  unsigned char r, g, gx = ptr_x >> 3;
+  if(!ptr_on) {
+    return;
+  }
+  for(r = 0; r < PTR_H; ++r) {
+    unsigned short off = ptr_row(ptr_y + r) + gx * GSTEP;
+    for(g = 0; g < 3; ++g) {
+      if(ptr_used[r] & (1 << g)) {
+        ptr_put(off + g * GSTEP, ptr_save[r][g]);
+      }
+    }
+  }
+  ptr_on = 0;
+}
+#define PTR_OFF() do { if(ptr_on) ctk_gfx_pointer_off(); } while(0)
+
+/* the pointer at pixel x, y (taken off where it was) */
+void
+ctk_gfx_pointer(unsigned short x, unsigned short y)
+{
+  unsigned char r, g, c, gx = x >> 3;
+  unsigned char out[GB];
+  if(ptr_on && x == ptr_x && y == ptr_y) {
+    return;
+  }
+  ctk_gfx_pointer_off();
+  if(x >= PTR_PW || y >= PTR_PH) {
+    return;
+  }
+  ptr_x = x;
+  ptr_y = y;
+  for(r = 0; r < PTR_H; ++r) {
+    const char *s = ptr_shape[r];
+    unsigned short a = 0, w = 0, off;
+    unsigned char sh = x & 7, am[3], wm[3];
+    ptr_used[r] = 0;
+    if(y + r >= PTR_PH) {
+      continue;
+    }
+    /* the row as 16 bits, its first pixel in the top bit, then spread over
+       the three bytes of eight pixels it can touch (16-bit arithmetic: the
+       long shifts went wrong with ia16-gcc) */
+    for(c = 0; s[c]; ++c) {
+      if(s[c] != '.') {
+        a |= 0x8000U >> c;
+        if(s[c] == 'o') {
+          w |= 0x8000U >> c;
+        }
+      }
+    }
+    am[0] = (a >> 8) >> sh;
+    am[1] = a >> sh;
+    am[2] = (a << (8 - sh)) & 0xff;
+    wm[0] = (w >> 8) >> sh;
+    wm[1] = w >> sh;
+    wm[2] = (w << (8 - sh)) & 0xff;
+#if defined(GFX_INVERT) || defined(GFX_CGA4)
+    /* black desktop and windows: a white outline round a black inside */
+    wm[0] = am[0] & ~wm[0];
+    wm[1] = am[1] & ~wm[1];
+    wm[2] = am[2] & ~wm[2];
+#endif
+    off = ptr_row(y + r) + gx * GSTEP;
+    for(g = 0; g < 3 && gx + g < SW; ++g) {
+      unsigned char a8 = am[g], w8 = wm[g];
+      if(a8) {
+        ptr_get(off + g * GSTEP, ptr_save[r][g]);
+        ptr_mask(ptr_save[r][g], a8, w8, out);
+        ptr_put(off + g * GSTEP, out);
+        ptr_used[r] |= 1 << g;
+      }
+    }
+  }
+  ptr_on = 1;
+}
+
 void
 ctk_draw_init(void)
 {
@@ -2730,6 +2964,7 @@ void
 ctk_draw_clear(unsigned char y1, unsigned char y2)
 {
   unsigned char i;
+  PTR_OFF();
 #if defined(MONO)
   /* each pixel row of the desktop is one byte across the screen (the
      wallpaper, or the line over the status bar): a fill a row, where the
@@ -3572,6 +3807,7 @@ ctk_draw_widget(struct ctk_widget *w, unsigned char focus,
                 unsigned char clipy1, unsigned char clipy2)
 {
   struct ctk_window *win = w->window;
+  PTR_OFF();
   if(w == win->focused) {
     focus |= CTK_FOCUS_WIDGET;
   }
@@ -3583,6 +3819,7 @@ ctk_draw_clear_window(struct ctk_window *window, unsigned char focus,
                       unsigned char clipy1, unsigned char clipy2)
 {
   unsigned char i, h = window->y + 2 + window->h;
+  PTR_OFF();
   rows_solid(C_PAPER);
   for(i = window->y + 2; i < h; ++i) {
     if(i >= clipy1 && i <= clipy2) {
@@ -3599,6 +3836,7 @@ ctk_draw_window(struct ctk_window *window, unsigned char focus,
 {
   struct ctk_widget *w;
   unsigned char x = window->x, y = window->y + 1, wf;
+  PTR_OFF();
 
   ++clipy2;
   if(clipy2 <= y) {
@@ -3628,6 +3866,7 @@ ctk_draw_dialog(struct ctk_window *dialog)
   struct ctk_widget *w;
   unsigned char x = dialog->x, y = dialog->y + 1, i, wf;
   unsigned char x1 = x + 1, y1 = y + 1, y2 = y1 + dialog->h;
+  PTR_OFF();
 
   draw_windowborders(x, y, dialog->w, dialog->h, 0, SH,
                      CTK_FOCUS_DIALOG, dialog->title, dialog->titlelen);
@@ -3742,6 +3981,7 @@ ctk_draw_menus(struct ctk_menus *menus)
   struct ctk_menu *m;
   unsigned char fg = menubar_fg();
 
+  PTR_OFF();
   menubar_rows();
   gotoxy(0, 0);
   barfont = 1;

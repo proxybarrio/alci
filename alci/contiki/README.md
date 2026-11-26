@@ -26,10 +26,12 @@ State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
 About dialog and the calculator work on the nine screens: CGA, EGA, VGA
 and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
 Hercules card, and with the Olivetti OGC card); timings of `ctk` and
-`ctk-cga4` on MartyPC (8088). Program sizes: `ctk` 22.4 KB, `ctk-cga4`
-23.0 KB, `ctk-ega` 24.5 KB, `ctk-mcga` 22.5 KB, `ctk-vga` 31.1 KB (its two
-built-in icons are 104x80 pixels), `ctk-herc` 22.5 KB, `ctk-att` 23.0 KB,
-`ctk-ega2` 22.2 KB, `ctk-vga2` 23.0 KB, `ctk-tandy` 23.2 KB, `ctk-tandy4` 22.8 KB, `desk` 1.6 KB.
+`ctk-cga4` on MartyPC (8088). Program sizes, mouse included: `ctk` 26.3 KB,
+`ctk-cga4` 27.0 KB, `ctk-ega` 28.5 KB, `ctk-mcga` 26.4 KB, `ctk-vga`
+35.0 KB (its two built-in icons are 104x80 pixels), `ctk-herc` 26.4 KB,
+`ctk-att` 27.0 KB, `ctk-ega2` 26.0 KB, `ctk-vga2` 26.9 KB, `ctk-tandy`
+27.1 KB, `ctk-tandy4` 26.8 KB, `desk` 1.6 KB; the mouse takes about 3.6 KB
+of each.
 `ctk-tandy` and `ctk-tandy4` were checked on 86Box (Tandy 1000 HX).
 
 ## Looks
@@ -163,6 +165,9 @@ The Tandy 16-colour build works the same way on four planes, packed into
 4-bit pixels by two tables. The EGA, VGA and MCGA builds compose cells
 pixel by pixel and are meant for 286 and later machines.
 
+With the mouse built in, the timed steps are the same (MartyPC, `ctk -b`:
+CGA desktop settled 0.20 s, EGA 0.45 s); `-b` does not open the port.
+
 ## Build and run
 
     . ../../env.sh          # ELKS cross toolchain
@@ -177,6 +182,25 @@ chooses by hand. `ctk -d` starts with the calculator open.
 Keys: F1 opens the menu (arrows and Enter to choose), Tab and F5 move
 between widgets, F3 switches window, Enter presses a button, Ctrl-Q goes
 back to the text console.
+
+Mouse: a Microsoft serial mouse on `/dev/ttyS0` by default;
+`MOUSE_TYPE=ms|pc|ps2|none` and `MOUSE_PORT=/dev/ttyS1` choose another
+(`ps2` reads `/dev/psaux`), as for the ELKS `mouse` test program. The port
+is opened once the desktop is drawn (on a floppy, finding the device can
+take a second) and left alone when it is the terminal the program runs on;
+the pointer appears with the first movement, so a port with no mouse
+changes nothing on the screen. The left button opens icons, presses
+buttons, opens the menus from the bar, closes a window from its box and
+brings a window to the front; a click on a title starts moving the window,
+which follows the mouse until the next click (CTK's own mouse handling).
+The pointer is drawn by the drawing layer with the bytes under it kept
+(black outline and white inside, the other way round on the black
+desktops of CGA four colours, Tandy 640x200 and Hercules); every drawing
+call takes it off first and the event loop puts it back when the desktop
+is idle. Checked on QEMU (Microsoft mouse on COM2) for the seven builds it
+can show, and on 86Box for Hercules, 640x400, Tandy 320x200 and 640x200:
+the screen is the same, pixel for pixel, after the pointer has gone
+round it and to the corners, and the same as before without a mouse.
 
 ## Files
 
@@ -193,8 +217,12 @@ back to the text console.
   word and the Hercules status port, "OLIVETTI" in the BIOS for 640x400,
   the model byte for Tandy 1000 and PCjr).
 - `main.c`: keyboard (ELKS console in raw mode: arrows `ESC [ A-D`, F1-F5
-  `ESC a-e`), clock, and the event loop, which sleeps in `select()` when
-  idle.
+  `ESC a-e`), mouse position and buttons for CTK, clock, and the event
+  loop, which sleeps in `select()` on the keyboard and the mouse when idle.
+- `mouse.c`, `mouse.h`: the ELKS user-mode mouse driver
+  (`elkscmd/gui/mouse.c`, from Microwindows) without its messages and test
+  program; a Microsoft packet restarts at any byte with the sixth bit set,
+  so the "M" a mouse sends when the port opens is skipped.
 - `elks/`: configuration headers (`ctk-conf.h`, `ctk-arch.h` written for
   ELKS; `ek-conf.h`, `cc-conf.h`, `clock-conf.h`, `log-conf.h`,
   `program-handler-conf.h` from the Contiki 1.x GTK port),
@@ -220,6 +248,9 @@ notices are kept in every file taken or adapted. font8x8: public domain.
 clR6x6, clB8x14 and clB8x16 (Schumacher Clean, used for `elks/font-bar.h`
 and `elks/font-tall*.h`): Copyright 1989 Dale Schumacher, free to use,
 copy, modify and distribute with the notice.
+`mouse.c`: from the ELKS mouse driver, Microwindows, Copyright (c) 1999
+Greg Haerr, portions Copyright (c) 1991 David I. Bell, free to use,
+distribute or modify with the notice, which the file keeps.
 The Contiki sources themselves are not copied here: `make fetch` downloads
 them, drops a `static` that current compilers reject and makes the icon
 column follow the icon size (see the Makefile).
@@ -227,7 +258,6 @@ column follow the icon size (see the Makefile).
 ## Next steps
 
 1. Editor, then the file manager (Contiki's "Directory" is minimal).
-2. Mouse (ELKS mouse driver).
-3. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
+2. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
    the Tandy build on an 8088.
-4. The D2 benchmark against Nano-X and Gem-elks.
+3. The D2 benchmark against Nano-X and Gem-elks.
