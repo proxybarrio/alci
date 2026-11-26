@@ -76,7 +76,42 @@ void ctk_gfx_pointer_off(void);
 #define MDY 1
 #endif
 static int mfx = MPW, mfy = MPH;        /* half pixels: the middle of the screen */
-static unsigned char mbut, mseen, mwant;
+static unsigned char mbut, mseen, mwant, mreal;   /* mreal: a mouse has moved */
+
+/* The pointer from the keyboard, for a machine with no mouse: F6 or Alt-M
+   turns it on and off; the arrows move it a cell at a time, Space or Enter
+   click, Esc leaves. CTK finds things by cell, so a cell is enough. */
+static unsigned char kmode;             /* arrows move the pointer */
+static unsigned char kclick;            /* 1: press given, 2: seen by CTK */
+static void
+kmode_toggle(void)
+{
+  kmode = !kmode;
+  if(kmode) {
+    /* where the mouse is, or the middle of the screen, on a cell */
+    mfx = ((mfx >> 4) << 4) + 6;        /* 3 pixels into the cell */
+    mfy = (mfy / (2 * GFX_CH)) * 2 * GFX_CH + GFX_CH / 2 * 2;
+    mseen = 1;
+    mwant = 1;
+  }
+}
+static void
+kmode_move(int dx, int dy)
+{
+  mfx += dx * 16;                       /* half pixels: 8 pixels a cell */
+  mfy += dy * 2 * GFX_CH;
+  if(mfx < 0) {
+    mfx += 16;
+  } else if(mfx > 2 * MPW - 1) {
+    mfx -= 16;
+  }
+  if(mfy < 0) {
+    mfy += 2 * GFX_CH;
+  } else if(mfy > 2 * MPH - 1) {
+    mfy -= 2 * GFX_CH;
+  }
+  mwant = 1;
+}
 
 void
 ctk_mouse_init(void)
@@ -90,7 +125,14 @@ unsigned short ctk_mouse_x(void) { return mseen ? mfx >> 1 : 0; }
 unsigned short ctk_mouse_y(void) { return mseen ? mfy >> 1 : 0; }
 unsigned char ctk_mouse_xtoc(unsigned short x) { return x >> 3; }
 unsigned char ctk_mouse_ytoc(unsigned short y) { return y / GFX_CH; }
-unsigned char ctk_mouse_button(void) { return mbut; }
+unsigned char
+ctk_mouse_button(void)
+{
+  if(kclick == 1) {
+    kclick = 2;                         /* CTK has seen the press */
+  }
+  return mbut;
+}
 void ctk_mouse_hide(void) { mwant = 0; }
 void ctk_mouse_show(void) { mwant = 1; }
 
@@ -103,6 +145,7 @@ mouse_read(void)
   while(read_mouse(&dx, &dy, &dz, &b) == 1) {
     if(dx != 0 || dy != 0 || b != 0) {
       mseen = 1;
+      mreal = 1;
     }
     mfx += dx * MDX;
     mfy += dy * MDY;
@@ -126,7 +169,11 @@ mouse_read(void)
 static void
 mouse_sync(void)
 {
-  if(mseen && mwant) {
+  if(kclick == 2) {                     /* a click from the keyboard: release */
+    kclick = 0;
+    mbut = 0;
+  }
+  if(mseen && mwant && (mreal || kmode)) {
     ctk_gfx_pointer(mfx >> 1, mfy >> 1);
   } else {
     ctk_gfx_pointer_off();
@@ -195,6 +242,21 @@ poll_keys(int ms)
     }
     if(c == 0x1b && i + 1 < n) {
       unsigned char d = b[i + 1];
+      if(d == '[' && i + 2 < n && kmode) {
+        switch(b[i + 2]) {
+        case 'A': kmode_move(0, -1); break;
+        case 'B': kmode_move(0, 1); break;
+        case 'C': kmode_move(1, 0); break;
+        case 'D': kmode_move(-1, 0); break;
+        }
+        i += 2;
+        continue;
+      }
+      if(d == 'f' || d == 'M') {        /* F6, Alt-M: the pointer from the keys */
+        kmode_toggle();
+        i += 1;
+        continue;
+      }
       if(d == '[' && i + 2 < n) {
         switch(b[i + 2]) {
         case 'A': push(CH_CURS_UP); break;
@@ -210,6 +272,17 @@ poll_keys(int ms)
         i += 1;
         continue;
       }
+    }
+    if(kmode && c == 0x1b) {            /* Esc alone leaves */
+      kmode = 0;
+      continue;
+    }
+    if(kmode && (c == ' ' || c == '\r' || c == '\n')) {
+      if(kclick == 0) {                 /* press now, release once CTK has seen it */
+        mbut = BUTTON_L;
+        kclick = 1;
+      }
+      continue;
     }
     if(c == '\n') {
       c = '\r';

@@ -202,6 +202,10 @@ can show, and on 86Box for Hercules, 640x400, Tandy 320x200 and 640x200:
 the screen is the same, pixel for pixel, after the pointer has gone
 round it and to the corners, and the same as before without a mouse.
 
+Without a mouse, F6 or Alt-M brings the pointer up on the keyboard: the
+arrows move it a cell at a time (CTK finds widgets by cell), Space or Enter
+click, Esc (or F6, Alt-M again) puts it away; other keys work as usual.
+
 ## Files
 
 - `ctk-gfx.c`: the drawing layer for every screen type. Same structure as

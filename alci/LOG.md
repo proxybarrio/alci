@@ -238,3 +238,5 @@
   on QEMU and 86Box (automation socket): the screen comes back pixel for
   pixel. The pointer masks use 16-bit arithmetic: ia16-gcc got the 32-bit
   shifts wrong there.
+- D7: the pointer from the keyboard (F6 or Alt-M; arrows, Space or Enter,
+  Esc) for machines with no mouse.
