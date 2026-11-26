@@ -259,3 +259,13 @@
   66-104 ms (was 380-630), the changed cells only; the shell draws a busy
   window five times a second and scrolls in video memory, `cat` of an
   80-line file as fast as on the text console.
+## 2026-11-26
+
+- D7: file manager (`files.c`, Files icon, `ctk -f [dir]`): sorted list in
+  far memory, open (directories entered, files to the editor), copy,
+  rename, delete with Cancel as default, new directory; keys, buttons and
+  mouse. About moves to the menu, so four icons stay in the column. The
+  editor moves its rows in video memory when the view scrolls by less
+  than half a window (a line past the bottom: 365 ms on CGA, 467 ms on
+  EGA on the 8088); `ctk_gfx_scroll` works both ways. The file dialog
+  returns full paths.

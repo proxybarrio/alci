@@ -2771,10 +2771,11 @@ ctk_gfx_pointer(unsigned short x, unsigned short y)
 }
 
 /*---------------------------------------------------------------------------*/
-/* Cell rows y1 + n .. y2 - 1, columns x1 .. x2 - 1, moved up n rows in video
-   memory (screen cells); what was in the last n rows stays, for the caller
-   to draw over. For a window in front with nothing over it: the shell
-   window scrolls this way instead of drawing all its lines again. */
+/* Cell rows y1 .. y2 - 1, columns x1 .. x2 - 1, moved n rows in video
+   memory (screen cells): up for n > 0, down for n < 0; the n rows left
+   behind keep what they showed, for the caller to draw over. For a window
+   in front with nothing over it: the shell and the editor scroll this way
+   instead of drawing all their lines again. */
 static void
 vmove(unsigned short dst, unsigned short src, unsigned short n)
 {
@@ -2786,16 +2787,23 @@ vmove(unsigned short dst, unsigned short src, unsigned short n)
 }
 void
 ctk_gfx_scroll(unsigned char x1, unsigned char x2, unsigned char y1,
-               unsigned char y2, unsigned char n)
+               unsigned char y2, signed char n)
 {
-  unsigned short Y, end = (unsigned short)(y2 - n) * CH, d = (unsigned short)n * CH;
+  unsigned short Y, d = (unsigned short)(n > 0 ? n : -n) * CH;
+  unsigned short top = (unsigned short)y1 * CH, bottom = (unsigned short)y2 * CH;
   unsigned short len = (unsigned short)(x2 - x1) * GSTEP, off = (unsigned short)x1 * GSTEP;
   PTR_OFF();
 #if defined(GFX_EGA) || defined(GFX_VGA)
   outw(0x3ce, 0x0105);                  /* write mode 1: the four planes through the latches */
 #endif
-  for(Y = (unsigned short)y1 * CH; Y < end; ++Y) {
-    vmove(ptr_row(Y) + off, ptr_row(Y + d) + off, len);
+  if(n > 0) {
+    for(Y = top; Y + d < bottom; ++Y) {
+      vmove(ptr_row(Y) + off, ptr_row(Y + d) + off, len);
+    }
+  } else {
+    for(Y = bottom; Y-- > top + d; ) {
+      vmove(ptr_row(Y) + off, ptr_row(Y - d) + off, len);
+    }
   }
 #if defined(GFX_EGA) || defined(GFX_VGA)
   outw(0x3ce, 0x0005);                  /* write mode 0 */

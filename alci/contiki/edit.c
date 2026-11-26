@@ -35,6 +35,10 @@
 #include "gfx.h"
 #include "filedlg.h"
 
+unsigned char ctk_window_isfront(struct ctk_window *w);
+void ctk_gfx_scroll(unsigned char x1, unsigned char x2, unsigned char y1,
+                    unsigned char y2, signed char n);
+
 #define TW (GFX_SW - 2)                 /* the text: columns */
 #define TH (GFX_SH - 5)                 /* and lines */
 #define TABW 8
@@ -69,7 +73,7 @@ static unsigned short topline;          /* its number, from 0 */
 static unsigned short left;             /* first column on the screen */
 static unsigned short want;             /* column kept going up and down */
 static unsigned char modified;
-static char filename[FILEDLG_NAMELEN + 1];
+static char filename[FILEDLG_PATHLEN + 1];
 static char *message;                   /* shown once in the status */
 static unsigned char dialog;            /* 1: open, 2: save */
 static unsigned char quitting;          /* closing once the text is saved */
@@ -314,6 +318,32 @@ show(void)
   }
   r = count_lines(top, cl);             /* the cursor's row */
 
+  if(top != drawn_top && drawn_top != 0xffff && left == drawn_left &&
+     !lines_changed && ctk_window_isfront(&window)) {
+    /* the view moved a few lines: the rows that stay moved in video
+       memory and in "shown" (labels' lengths with them); the rows left
+       behind still show what they showed, and are compared below */
+    unsigned short k = top > drawn_top ? count_lines(drawn_top, top)
+                                       : count_lines(top, drawn_top);
+    if(2 * k < TH) {                    /* more than half: all drawn again anyway */
+      unsigned char y, wx = window.x + 1, wy = window.y + 3;
+      if(top > drawn_top) {
+        ctk_gfx_scroll(wx, wx + TW, wy, wy + TH, (signed char)k);
+        memmove(shown[0], shown[k], (TH - k) * TW);
+        for(y = 0; y + k < TH; ++y) {
+          linelabels[y].w = linelabels[y + k].w;
+        }
+      } else {
+        ctk_gfx_scroll(wx, wx + TW, wy, wy + TH, -(signed char)k);
+        memmove(shown[k], shown[0], (TH - k) * TW);
+        for(y = TH; y-- > k; ) {
+          linelabels[y].w = linelabels[y - k].w;
+        }
+      }
+      drawn_top = top;
+      lines_changed = 1;                /* every row compared below */
+    }
+  }
   if(top != drawn_top || left != drawn_left || lines_changed) {
     p = top;
     for(drawn_row = 0; drawn_row < TH; ++drawn_row) {
@@ -729,8 +759,8 @@ LOADER_INIT_FUNC(edit_init, arg)
     }
     filename[0] = 0;
     if(arg != NULL) {
-      strncpy(filename, arg, FILEDLG_NAMELEN);
-      filename[FILEDLG_NAMELEN] = 0;
+      strncpy(filename, arg, FILEDLG_PATHLEN);
+      filename[FILEDLG_PATHLEN] = 0;
     }
     start_over();
     id = ek_start(&p);
@@ -743,4 +773,11 @@ unsigned char
 edit_unsaved(void)
 {
   return id != EK_ID_NONE && modified;
+}
+
+/* for the file manager: the editor is open */
+unsigned char
+edit_open(void)
+{
+  return id != EK_ID_NONE;
 }

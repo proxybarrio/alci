@@ -425,6 +425,12 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Clean Bold 8x14 and 8x16. Checked on QEMU and on 86Box (Turbo XT with
   Hercules and with the Olivetti OGC card); `desk` now finds Hercules, mono
   EGA/VGA monitors and Olivetti BIOSes.
+  Applications (2026-11-26): mouse (serial, PC, PS/2, and a pointer from
+  the keyboard), editor, up to three shell windows on ptys, and a file
+  manager (copy, rename, delete, new directory, open in the editor); the
+  desktop icons are Files, Editor, Shell and Calculator, About is in the
+  menu. Timings on the 8088 in `alci/contiki/README.md`. Next: the T1200
+  LCD layer, then the D2 benchmark.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

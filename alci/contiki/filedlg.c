@@ -145,6 +145,21 @@ filedlg_open(char *title, char *button, char *name)
     CTK_WIDGET_ADD(&dlg, &rowlabels[r]);
   }
   CTK_WIDGET_ADD(&dlg, &namelabel);
+  {
+    /* a path: its directory, then its name in the entry */
+    char *slash = strrchr(name, '/');
+    if(slash != NULL) {
+      char dir[FILEDLG_PATHLEN + 1];
+      unsigned char n = slash - name;
+      memcpy(dir, name, n);
+      dir[n ? n : 1] = 0;
+      if(n == 0) {
+        dir[0] = '/';
+      }
+      chdir(dir);
+      name = slash + 1;
+    }
+  }
   strncpy(entrytext, name, FILEDLG_NAMELEN);
   entrytext[FILEDLG_NAMELEN] = 0;
   entry.xpos = strlen(entrytext);
@@ -196,8 +211,19 @@ take(void)
     }
     return FILEDLG_BUSY;
   }
-  strncpy(result, name, FILEDLG_NAMELEN);
-  result[FILEDLG_NAMELEN] = 0;
+  if(name[0] == '/') {
+    strncpy(result, name, FILEDLG_PATHLEN);
+  } else {
+    /* the directory shown, then the name */
+    if(getcwd(result, FILEDLG_PATHLEN - 1) == NULL) {
+      result[0] = 0;
+    }
+    if(result[0] == 0 || result[strlen(result) - 1] != '/') {
+      strcat(result, "/");
+    }
+    strncat(result, name, FILEDLG_PATHLEN - strlen(result));
+  }
+  result[FILEDLG_PATHLEN] = 0;
   return done(FILEDLG_OK);
 }
 

@@ -18,10 +18,10 @@ LDFLAGS = -melks-libc -mtune=i8086 -mcmodel=small -mno-segment-relocation-stuff 
 VPATH = $(CONTIKI)/ctk $(CONTIKI)/ek $(CONTIKI)/lib $(CONTIKI)/apps
 COMMON = main.c ctk.c ek.c arg.c timer.c \
 	program-handler.c petsciiconv.c about.c about-dsc.c calc.c calc-dsc.c mouse.c \
-	edit.c edit-dsc.c filedlg.c term.c term-dsc.c
+	edit.c edit-dsc.c filedlg.c term.c term-dsc.c files.c files-dsc.c
 SRCS_col = $(COMMON) ctk-gfx.c
 # icons built into the desktop
-ICONS = about calculator editor shell
+ICONS = directory editor shell calculator
 TARGETS = cga cga4 ega vga mcga
 PROGS = desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-herc ctk-att ctk-ega2 ctk-vga2
 

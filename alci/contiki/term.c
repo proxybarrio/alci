@@ -75,7 +75,7 @@ static char envcols[12], envlines[10];
 
 unsigned char ctk_window_isfront(struct ctk_window *w);
 void ctk_gfx_scroll(unsigned char x1, unsigned char x2, unsigned char y1,
-                    unsigned char y2, unsigned char n);
+                    unsigned char y2, signed char n);
 
 #define ROW(t, y) ((unsigned char)((t)->top + (y)) >= TH ? \
                    (t)->top + (y) - TH : (t)->top + (y))

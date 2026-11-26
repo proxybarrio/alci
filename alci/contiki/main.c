@@ -21,6 +21,7 @@
 #include "calc-dsc.h"
 #include "edit-dsc.h"
 #include "term-dsc.h"
+#include "files-dsc.h"
 #include "gfx.h"
 #include "gfx-icons.h"            /* Alci icons of this screen type (icons/tools/mkgfx.py) */
 #include "ctk-mouse.h"
@@ -31,7 +32,8 @@ void calc_init(char *arg);
 void about_init(char *arg);
 void edit_init(char *arg);
 void term_init(char *arg);
-extern struct ctk_icon about_icon, calc_icon, edit_icon, term_icon;
+void files_init(char *arg);
+extern struct ctk_icon about_icon, calc_icon, edit_icon, term_icon, files_icon;
 
 /* Give a program's desktop icon the Alci drawing of the same name. */
 static void
@@ -491,14 +493,16 @@ main(int argc, char **argv)
   ek_init();
   ctk_init();
   program_handler_init();
-  set_icon(&about_icon, "about");
-  set_icon(&calc_icon, "calculator");
+  set_icon(&files_icon, "directory");
   set_icon(&edit_icon, "editor");
   set_icon(&term_icon, "shell");
-  program_handler_add(&about_dsc, "About", 1);
-  program_handler_add(&calc_dsc, "Calculator", 1);
+  set_icon(&calc_icon, "calculator");
+  /* four icons fit in the column of every screen: About is in the menu */
+  program_handler_add(&files_dsc, "Files", 1);
   program_handler_add(&edit_dsc, "Editor", 1);
   program_handler_add(&term_dsc, "Shell", 1);
+  program_handler_add(&calc_dsc, "Calculator", 1);
+  program_handler_add(&about_dsc, "About", 0);
 
   if(argc > 1 && strcmp(argv[1], "-b") == 0) {
     /* Benchmark: timings in ms, printed after going back to text mode. */
@@ -536,7 +540,7 @@ main(int argc, char **argv)
        /bin/long.txt): ms, printed after going back to text mode. -Be
        times the editor alone, -Bt the shell alone. */
     char part = argv[1][2];
-    clock_time_t t[10];
+    clock_time_t t[11];
     unsigned char k;
     const char *cmd = "cat /bin/long.txt\r";
     const char *p;
@@ -562,6 +566,11 @@ main(int argc, char **argv)
       settle();
     }
     t[4] = clock_time();
+    for(k = 0; k < 10; ++k) {           /* ten lines down at the bottom: the view scrolls */
+      push(CH_CURS_DOWN);
+      settle();
+    }
+    t[10] = clock_time();
     }
     if(part != 'e') {
     t[4] = clock_time();
@@ -579,8 +588,8 @@ main(int argc, char **argv)
     term_stop_all();
     ctk_cga_exit();
     tcsetattr(0, TCSANOW, &saved);
-    printf("ctk ms: edit open %lu key %lu down %lu page %lu\n", t[1] - t[0],
-           (t[2] - t[1]) / 10, (t[3] - t[2]) / 10, (t[4] - t[3]) / 3);
+    printf("ctk ms: edit open %lu key %lu down %lu page %lu scroll %lu\n", t[1] - t[0],
+           (t[2] - t[1]) / 10, (t[3] - t[2]) / 10, (t[4] - t[3]) / 3, (t[10] - t[4]) / 10);
     printf("ctk ms: shell prompt %lu cat %lu cat again %lu\n", t[5] - t[4],
            t[7] - t[6], t[9] - t[8]);
     return 0;
@@ -594,6 +603,10 @@ main(int argc, char **argv)
     /* the editor open, on a file if one is named */
     while(ek_run()) ;
     edit_init(argc > 2 ? argv[2] : NULL);
+  }
+  if(argc > 1 && strcmp(argv[1], "-f") == 0) {
+    while(ek_run()) ;                   /* the file manager open, on a directory if one is named */
+    files_init(argc > 2 ? argv[2] : NULL);
   }
   if(argc > 1 && strcmp(argv[1], "-t") == 0) {
     while(ek_run()) ;                   /* a terminal open */

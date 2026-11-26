@@ -22,17 +22,18 @@ asks the video BIOS what is fitted and starts the right one:
 | `ctk-ega2` | EGA 640x350 in two colours (mode 10h, 0Fh on a mono monitor) | 80x25 of 8x14 | two-colour style |
 | `ctk-vga2` | VGA or MCGA 640x480 in two colours (mode 11h) | 80x30 of 8x16 | two-colour style |
 
-State (2026-11-24): desktop, menus, dialogs, icons, keyboard focus, the
-About dialog and the calculator work on the nine screens: CGA, EGA, VGA
+State (2026-11-26): desktop, menus, dialogs, icons, keyboard focus, the
+About dialog, the calculator, the editor, the shell and the file manager work on the nine screens: CGA, EGA, VGA
 and MCGA on QEMU, Hercules and 640x400 on 86Box (a Turbo XT with a
 Hercules card, and with the Olivetti OGC card); timings of `ctk` and
 `ctk-cga4` on MartyPC (8088). Program sizes, mouse, editor and shell
-included: `ctk` 38.1 KB, `ctk-cga4` 38.6 KB, `ctk-ega` 43.3 KB, `ctk-mcga`
-39.1 KB, `ctk-vga` 56.4 KB (its four built-in icons are 104x80 pixels),
-`ctk-herc` 38.4 KB, `ctk-att` 39.6 KB, `ctk-ega2` 38.0 KB, `ctk-vga2`
-39.6 KB, `ctk-tandy` 39.2 KB, `ctk-tandy4` 39.2 KB, `desk` 1.6 KB; the
+included: `ctk` 46.5 KB, `ctk-cga4` 47.1 KB, `ctk-ega` 51.8 KB, `ctk-mcga`
+47.5 KB, `ctk-vga` 64.8 KB (its four built-in icons are 104x80 pixels),
+`ctk-herc` 46.8 KB, `ctk-att` 48.0 KB, `ctk-ega2` 46.5 KB, `ctk-vga2`
+48.0 KB, `ctk-tandy` 47.7 KB, `ctk-tandy4` 47.6 KB, `desk` 1.6 KB; the
 mouse takes about 3.6 KB of each, the editor and its file dialog about
-7.5 KB, the shell window about 3 KB (plus its icon).
+8 KB, the shell window about 3.5 KB, the file manager about 4 KB (each
+plus its icon).
 `ctk-tandy` and `ctk-tandy4` were checked on 86Box (Tandy 1000 HX).
 
 ## Looks
@@ -184,13 +185,15 @@ when the editor starts (60 KB, less on a machine short of memory) and
 given back when it closes, so files up to 60 KB open; the desktop's own
 data stay under 64 KB on every build. Only the lines that change are drawn
 again; the cursor is a label character with its top bit set, which the
-drawing layer shows reversed.
+drawing layer shows reversed. Closing the window with a text not saved
+asks first (Save, Discard, Cancel).
 
 The file dialog (`filedlg.c`) lists the current directory, directories
 first with a `/` (choosing one goes into it), with a line for the name and
 the button; arrows, PgUp, PgDn, Home and End choose, letters type a name,
 Enter takes it, Esc cancels; a click chooses a line, a second click on it
-takes it. It replaces Contiki's `ctk-filedialog`, which reads directories
+takes it. It gives back the full path (79 characters at most), so the
+editor keeps the file's place whatever directory is current afterwards. It replaces Contiki's `ctk-filedialog`, which reads directories
 through Contiki's file service.
 
 Checked on QEMU (EGA, VGA, MCGA, CGA two and four colours: open, edit,
@@ -211,6 +214,13 @@ window, some with tabs):
 | a line down | 76 ms | 87 ms | 98 ms | 101 ms |
 | a page down | 0.73 s | 0.88 s | 1.17 s | 1.48 s |
 | `cat` of the file in the shell | 3.2 s | 3.5 s | 3.6 s | 3.9 s |
+| a line down past the bottom (view scrolls) | 365 ms | 453 ms | 467 ms | |
+
+When the view moves by less than half a window (a line down past the
+bottom, a line up past the top) and the window is in front, the rows
+that stay are moved in video memory (`ctk_gfx_scroll`, either way) and
+only the new ones drawn; a page down draws the window again, which on
+these screens is quicker than moving most of it.
 
 The same `cat` on ELKS's text console takes 3.5 s (much of it is loading
 `cat` from the floppy). Before these changes a letter took 380 to 630 ms
@@ -254,6 +264,30 @@ Checked on QEMU (EGA, CGA 320x200: `ls`, `ps`, `yes` stopped with
 Ctrl-C, `exit`, three windows at once) and on 86Box with an 8088 and
 Hercules.
 
+## File manager
+
+The Files icon (or `ctk -f [directory]`) opens a window as large as the
+screen: Open, Copy, Ren, Del and Mkdir, the directory's path (or the
+result of the last operation), then its entries, directories first with a
+`/` and files with their size, sorted by name. Arrows, PgUp, PgDn, Home
+and End choose, a letter goes to the first name starting with it, Enter
+opens (a directory is entered, a file goes to the editor), Backspace goes
+to the directory above, Delete deletes (asking first, Cancel chosen, so
+Enter alone deletes nothing; a directory must be empty), Ctrl-C copies
+(asking for the new path, relative to the directory shown), Ctrl-R
+renames (the old name offered for editing), Ctrl-N makes a directory. A
+click chooses an entry, a second click opens it; the buttons do the same
+as the keys.
+
+Up to 200 entries are read into far memory when the directory is shown
+and given back when the window closes; the file manager keeps its own
+path and leaves the desktop's current directory alone. Copies go through
+a 256-byte buffer and keep the mode.
+
+Checked on QEMU (EGA and CGA 320x200: listing, letters, copy into `/tmp`,
+rename, delete of a file, refusal on a directory not empty, new
+directory, a file opened in the editor by Enter and by a double click).
+
 On screens where four icons in a column would not fit with a free row
 between them (CGA and Tandy 640x200, 640x400, VGA 640x480), they are put
 one under the other without it.
@@ -267,7 +301,12 @@ one under the other without it.
 
 Copy the programs to `/bin` on an Alci or ELKS system and run `desk` (or
 one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2 desk`
-chooses by hand. `ctk -d` starts with the calculator open.
+chooses by hand. `ctk -d` starts with the calculator open, `ctk -e [file]`
+with the editor, `ctk -t` with a shell, `ctk -f [directory]` with the file
+manager.
+
+The desktop shows four icons (Files, Editor, Shell, Calculator); About is
+in the F1 menu with them.
 
 Keys (desktop): F1 opens the menu (arrows and Enter to choose), Tab and F5 move
 between widgets, F3 switches window, Enter presses a button, Ctrl-Q goes
@@ -315,6 +354,7 @@ click, Esc (or F6, Alt-M again) puts it away; other keys work as usual.
   `ESC a-e`), mouse position and buttons for CTK, clock, and the event
   loop, which sleeps in `select()` on the keyboard and the mouse when idle.
 - `edit.c`, `edit-dsc.c`: the editor; `filedlg.c`: its file dialog.
+- `files.c`, `files-dsc.c`: the file manager.
 - `term.c`, `term-dsc.c`: the shell window; `watch.h`: descriptors for the
   event loop to wait on (main.c).
 - `mouse.c`, `mouse.h`: the ELKS user-mode mouse driver
@@ -335,7 +375,7 @@ click, Esc (or F6, Alt-M again) puts it away; other keys work as usual.
   screen (`obj-<type>/gfx-icons.h`); the MCGA icons come from the set drawn
   for it, with 40 colours of their own. On the 320x200 screens (CGA four
   colours, Tandy 16 colours, MCGA) the icons are 32x24 in a column of five
-  cells, with titles of five letters at most ("Calc", "Dir", "Edit"),
+  cells, with titles of five letters at most ("Calc", "Files", "Edit"),
   centred to the pixel; windows can be moved over the column. Wallpapers (`ctk -w dots|pairs|slash|none`, default dots,
   or `CTK_WALLPAPER`) exist on two colours.
 
@@ -355,8 +395,6 @@ column follow the icon size (see the Makefile).
 
 ## Next steps
 
-1. The file manager (Contiki's "Directory" is minimal), with the file
-   dialog's list.
-2. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
+1. A drawing layer for the T1200 LCD (its icon set exists); timings of the tall two-colour builds and of
    the Tandy build on an 8088.
-3. The D2 benchmark against Nano-X and Gem-elks.
+2. The D2 benchmark against Nano-X and Gem-elks.
