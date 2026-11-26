@@ -540,7 +540,7 @@ main(int argc, char **argv)
        /bin/long.txt): ms, printed after going back to text mode. -Be
        times the editor alone, -Bt the shell alone. */
     char part = argv[1][2];
-    clock_time_t t[11];
+    clock_time_t t[12];
     unsigned char k;
     const char *cmd = "cat /bin/long.txt\r";
     const char *p;
@@ -566,16 +566,21 @@ main(int argc, char **argv)
       settle();
     }
     t[4] = clock_time();
-    for(k = 0; k < 10; ++k) {           /* ten lines down at the bottom: the view scrolls */
-      push(CH_CURS_DOWN);
+    for(k = 0; k < GFX_SH; ++k) {       /* up to the top row (not timed) */
+      push(CH_CURS_UP);
       settle();
     }
-    t[10] = clock_time();
+    t[9] = clock_time();
+    for(k = 0; k < 10; ++k) {           /* ten lines up at the top: the view scrolls */
+      push(CH_CURS_UP);
+      settle();
+    }
+    t[10] = clock_time() - t[9];
     }
     if(part != 'e') {
-    t[4] = clock_time();
+    t[11] = clock_time();
     term_init(NULL);                    /* a shell, until its prompt */
-    t[5] = quiet_reads(t[4]);
+    t[5] = quiet_reads(t[11]);
     for(k = 0; k < 2; ++k) {            /* the file shown twice: from the disk, then from the cache */
       for(p = cmd; *p; ++p) {
         push(*p == '\r' ? CH_ENTER : (unsigned char)*p);
@@ -588,9 +593,11 @@ main(int argc, char **argv)
     term_stop_all();
     ctk_cga_exit();
     tcsetattr(0, TCSANOW, &saved);
+    if(part != 't')
     printf("ctk ms: edit open %lu key %lu down %lu page %lu scroll %lu\n", t[1] - t[0],
-           (t[2] - t[1]) / 10, (t[3] - t[2]) / 10, (t[4] - t[3]) / 3, (t[10] - t[4]) / 10);
-    printf("ctk ms: shell prompt %lu cat %lu cat again %lu\n", t[5] - t[4],
+           (t[2] - t[1]) / 10, (t[3] - t[2]) / 10, (t[4] - t[3]) / 3, t[10] / 10);
+    if(part != 'e')
+    printf("ctk ms: shell prompt %lu cat %lu cat again %lu\n", t[5] - t[11],
            t[7] - t[6], t[9] - t[8]);
     return 0;
   }

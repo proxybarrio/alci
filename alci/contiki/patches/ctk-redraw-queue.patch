@@ -1,0 +1,14 @@
+--- a/contiki/ctk/ctk.c
++++ b/contiki/ctk/ctk.c
+@@ -1948,8 +1948,10 @@
+       ctk_window_redraw(&desktop_window);	
+     }
+   } else if(redraw & REDRAW_WIDGETS) {
++    /* only the widgets queued since the last redraw: a redraw of the
++       whole screen or window leaves the queue's old entries behind */
+     widgetptr = redraw_widgets;
+-    for(i = 0; i < MAX_REDRAWWIDGETS; ++i) {
++    for(i = 0; i < redraw_widgetptr; ++i) {
+       widget_redraw(*widgetptr);
+       *widgetptr = NULL;
+       ++widgetptr;

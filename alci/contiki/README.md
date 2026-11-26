@@ -210,17 +210,23 @@ window, some with tabs):
 
 | | CGA | Hercules | EGA | VGA |
 |---|---|---|---|---|
-| a letter typed | 66 ms | 83 ms | 98 ms | 104 ms |
-| a line down | 76 ms | 87 ms | 98 ms | 101 ms |
-| a page down | 0.73 s | 0.88 s | 1.17 s | 1.48 s |
+| a letter typed | 57 ms | 68 ms | 81 ms | 86 ms |
+| a line down | 77 ms | 87 ms | 98 ms | 101 ms |
+| a page down | 0.76 s | 0.91 s | 1.20 s | 1.37 s |
+| a line up past the top (view scrolls) | 320 ms | 412 ms | 425 ms | 530 ms |
 | `cat` of the file in the shell | 3.2 s | 3.5 s | 3.6 s | 3.9 s |
-| a line down past the bottom (view scrolls) | 365 ms | 453 ms | 467 ms | |
 
 When the view moves by less than half a window (a line down past the
 bottom, a line up past the top) and the window is in front, the rows
 that stay are moved in video memory (`ctk_gfx_scroll`, either way) and
 only the new ones drawn; a page down draws the window again, which on
-these screens is quicker than moving most of it.
+these screens is quicker than moving most of it. CTK's queue of widgets
+to draw holds 16 (4 in Contiki), so the rows drawn after a scroll fit in
+it; past it CTK draws the whole window again. CTK also used to draw, with
+the widgets queued, the old entries a redraw of the whole window had left
+in the queue (patches/ctk-redraw-queue.patch): two lines of the editor
+for every key, which is why a letter is quicker here than in earlier
+measurements.
 
 The same `cat` on ELKS's text console takes 3.5 s (much of it is loading
 `cat` from the floppy). Before these changes a letter took 380 to 630 ms

@@ -269,3 +269,10 @@
   than half a window (a line past the bottom: 365 ms on CGA, 467 ms on
   EGA on the 8088); `ctk_gfx_scroll` works both ways. The file dialog
   returns full paths.
+- D7: two fixes found by the timings. CTK drew, with every queue of
+  widgets, the old entries a redraw of the whole window had left behind
+  (`patches/ctk-redraw-queue.patch`): two editor lines more for every key.
+  The queue holds 16 widgets (was 4): on VGA the short last page of a
+  file overflowed it after a scroll, and the window was drawn twice.
+  A letter now takes 57-86 ms on the 8088, a page on VGA 1.37 s (was
+  1.85 s). `ctk -B` times a real scroll (lines up past the top).

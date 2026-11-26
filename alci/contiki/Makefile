@@ -70,6 +70,12 @@ fetch:
 	git -C contiki-1.x apply ../patches/ctk-partial-redraw.patch
 	# a window's owner can ask whether it is in front with nothing over it
 	git -C contiki-1.x apply ../patches/ctk-front-window.patch
+	# the queued widgets drawn are the ones queued since the last redraw,
+	# not old entries left by a redraw of the whole window
+	git -C contiki-1.x apply ../patches/ctk-redraw-queue.patch
+	# room for the rows an editor or shell window draws after a scroll; past
+	# it CTK draws the whole window again
+	sed -i 's/^#define MAX_REDRAWWIDGETS 4$$/#define MAX_REDRAWWIDGETS 16/' contiki-1.x/contiki/ctk/ctk.c
 
 clean:
 	rm -rf $(PROGS) obj-*
