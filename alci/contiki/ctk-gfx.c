@@ -2770,6 +2770,38 @@ ctk_gfx_pointer(unsigned short x, unsigned short y)
   ptr_on = 1;
 }
 
+/*---------------------------------------------------------------------------*/
+/* Cell rows y1 + n .. y2 - 1, columns x1 .. x2 - 1, moved up n rows in video
+   memory (screen cells); what was in the last n rows stays, for the caller
+   to draw over. For a window in front with nothing over it: the shell
+   window scrolls this way instead of drawing all its lines again. */
+static void
+vmove(unsigned short dst, unsigned short src, unsigned short n)
+{
+  __asm__ volatile ("push %%ds\n\tpush %%es\n\tmov %%ax,%%ds\n\tmov %%ax,%%es\n\t"
+                    "cld\n\trep movsb\n\tpop %%es\n\tpop %%ds"
+                    : "+S" (src), "+D" (dst), "+c" (n)
+                    : "a" ((unsigned short)((unsigned long)VRAM >> 16))
+                    : "memory", "cc");
+}
+void
+ctk_gfx_scroll(unsigned char x1, unsigned char x2, unsigned char y1,
+               unsigned char y2, unsigned char n)
+{
+  unsigned short Y, end = (unsigned short)(y2 - n) * CH, d = (unsigned short)n * CH;
+  unsigned short len = (unsigned short)(x2 - x1) * GSTEP, off = (unsigned short)x1 * GSTEP;
+  PTR_OFF();
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  outw(0x3ce, 0x0105);                  /* write mode 1: the four planes through the latches */
+#endif
+  for(Y = (unsigned short)y1 * CH; Y < end; ++Y) {
+    vmove(ptr_row(Y) + off, ptr_row(Y + d) + off, len);
+  }
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  outw(0x3ce, 0x0005);                  /* write mode 0 */
+#endif
+}
+
 void
 ctk_draw_init(void)
 {

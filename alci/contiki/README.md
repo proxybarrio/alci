@@ -197,6 +197,26 @@ Checked on QEMU (EGA, VGA, MCGA, CGA two and four colours: open, edit,
 save as, open again, scroll both ways, click) and on 86Box with an 8088
 and Hercules.
 
+A key draws only what it changes: the cells of the line from the first
+difference to the last (two labels laid over the line for that), and the
+status when it changes. A line's label is as long as its text, the window
+being cleared under its labels when it is drawn whole. `ctk -B [file]`
+times the editor and the shell on the machine (`-Be`, `-Bt` one of them);
+on MartyPC's 8088 with `/bin/long.txt` (80 lines, some longer than the
+window, some with tabs):
+
+| | CGA | Hercules | EGA | VGA |
+|---|---|---|---|---|
+| a letter typed | 66 ms | 83 ms | 98 ms | 104 ms |
+| a line down | 76 ms | 87 ms | 98 ms | 101 ms |
+| a page down | 0.73 s | 0.88 s | 1.17 s | 1.48 s |
+| `cat` of the file in the shell | 3.2 s | 3.5 s | 3.6 s | 3.9 s |
+
+The same `cat` on ELKS's text console takes 3.5 s (much of it is loading
+`cat` from the floppy). Before these changes a letter took 380 to 630 ms
+and the `cat` 7 to 8 s. The shell's prompt comes 4 to 9 s after its window
+opens: `/bin/sh` (65 KB) is read from the floppy.
+
 ## Shell
 
 The Shell icon (or `ctk -t`) opens a window as large as the screen with
@@ -207,7 +227,11 @@ window goes on while the desktop, the calculator or the editor are used.
 The desktop reads what they write only when the event loop sees data on
 the pty (`watch.h`: the loop's `select()` waits on it too), up to 1 KB at
 a time so that the other windows keep answering, and draws again the
-lines that changed. Keys go to the program as the console would send them
+lines that changed; a program writing a lot is drawn at most five times a
+second, the lines it scrolls moved up in video memory (`ctk_gfx_scroll`,
+when the window is in front with nothing over it, which CTK tells through
+`ctk_window_isfront`, patches/ctk-front-window.patch) and only the new ones
+drawn. Keys go to the program as the console would send them
 (arrows `ESC [ A-D`, Home, End, PgUp, PgDn, Backspace 0x08, Delete 0x7f,
 Ctrl-C and the other control keys; Ctrl-Q still leaves the desktop). The
 screen follows CR, LF, Backspace, Tab and the ANSI sequences for the
@@ -247,7 +271,8 @@ chooses by hand. `ctk -d` starts with the calculator open.
 
 Keys (desktop): F1 opens the menu (arrows and Enter to choose), Tab and F5 move
 between widgets, F3 switches window, Enter presses a button, Ctrl-Q goes
-back to the text console.
+back to the text console; with a text not saved in the editor or a
+program in a shell it asks first (Quit, Cancel; Ctrl-Q again quits).
 
 Mouse: a Microsoft serial mouse on `/dev/ttyS0` by default;
 `MOUSE_TYPE=ms|pc|ps2|none` and `MOUSE_PORT=/dev/ttyS1` choose another

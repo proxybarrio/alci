@@ -1,0 +1,25 @@
+--- a/contiki/ctk/ctk.c
++++ b/contiki/ctk/ctk.c
+@@ -748,6 +748,22 @@
+ }
+ /*-----------------------------------------------------------------------------------*/
+ /**
++ * Whether a window is in front with nothing over it (no dialog, no open
++ * menu, not being moved), so that its owner may draw into it directly:
++ * Alci's shell window scrolls its text in video memory.
++ */
++/*-----------------------------------------------------------------------------------*/
++unsigned char
++ctk_window_isfront(struct ctk_window *w)
++{
++  return mode == CTK_MODE_NORMAL && dialog == NULL &&
++#if CTK_CONF_MENUS
++    menus.open == NULL &&
++#endif /* CTK_CONF_MENUS */
++    windows == w;
++}
++/*-----------------------------------------------------------------------------------*/
++/**
+  * \internal Creates a new window.
+  *
+  * \param window The window to be created.

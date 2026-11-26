@@ -254,3 +254,8 @@
   lines in the heap while open (desktop heap 12 KB). `ls` and `ps` follow
   `COLUMNS`, so their output stays in columns in the 38-column windows of
   the 320x200 screens.
+- D7: Ctrl-Q asks first when the editor has a text not saved or a shell a
+  program. Editor and shell timed on the 8088 (`ctk -B`): a key drawn in
+  66-104 ms (was 380-630), the changed cells only; the shell draws a busy
+  window five times a second and scrolls in video memory, `cat` of an
+  80-line file as fast as on the text console.

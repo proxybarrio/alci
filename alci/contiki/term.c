@@ -36,10 +36,12 @@
 #include "gfx.h"
 #include "watch.h"
 #include "mouse.h"
+#include "clock.h"
 
 #define TW (GFX_SW - 2)                 /* a window: columns */
 #define TH (GFX_SH - 4)                 /* and lines */
 #define NTERM 3                         /* windows at once */
+#define DRAW_EVERY 200                  /* ms between drawings of a busy window */
 
 struct term {
   struct ctk_window window;
@@ -48,12 +50,17 @@ struct term {
   char __far *screen;                   /* the text, TH lines of TW */
   char *shown;                          /* the lines as drawn, cursor included */
   unsigned char cx, cy;                 /* cursor */
+  unsigned char top;                    /* the text's line shown first: scrolling
+                                           moves it, not the text */
+  unsigned char scrolled;               /* lines scrolled since last drawn */
   unsigned char esc, npar;              /* escape sequence: state, parameters */
   unsigned char par[2];
   int ptyfd;
   pid_t child;
   ek_id_t id;
   unsigned char used;
+  unsigned char pending;                /* read but not yet drawn */
+  clock_time_t drawn;                   /* when it was last drawn */
 };
 static struct term terms[NTERM];
 
@@ -63,9 +70,16 @@ EK_PROCESS(p1, "Shell", EK_PRIO_NORMAL, term_eventhandler, NULL, &terms[1]);
 EK_PROCESS(p2, "Shell", EK_PRIO_NORMAL, term_eventhandler, NULL, &terms[2]);
 static struct ek_proc * const procs[NTERM] = {&p0, &p1, &p2};
 static ek_event_t ev_data;              /* a pty has something to read */
+unsigned short term_reads;              /* reads and drawings so far (main.c's -B) */
 static char envcols[12], envlines[10];
 
-#define CELL(t, y, x) ((t)->screen[(unsigned short)(y) * TW + (x)])
+unsigned char ctk_window_isfront(struct ctk_window *w);
+void ctk_gfx_scroll(unsigned char x1, unsigned char x2, unsigned char y1,
+                    unsigned char y2, unsigned char n);
+
+#define ROW(t, y) ((unsigned char)((t)->top + (y)) >= TH ? \
+                   (t)->top + (y) - TH : (t)->top + (y))
+#define CELL(t, y, x) ((t)->screen[(unsigned short)ROW(t, y) * TW + (x)])
 
 /*---------------------------------------------------------------------------*/
 /* The screen */
@@ -79,12 +93,15 @@ clear_line(struct term *t, unsigned char y, unsigned char from, unsigned char to
 static void
 newline(struct term *t)
 {
-  unsigned short i;
   if(t->cy + 1 < TH) {
     ++t->cy;
   } else {
-    for(i = 0; i < (TH - 1) * TW; ++i) {
-      t->screen[i] = t->screen[i + TW];
+    /* the first line becomes the last, cleared */
+    if(++t->top == TH) {
+      t->top = 0;
+    }
+    if(t->scrolled < TH) {
+      ++t->scrolled;
     }
     clear_line(t, TH - 1, 0, TW);
   }
@@ -194,6 +211,17 @@ show(struct term *t)
 {
   unsigned char y, x;
   char line[TW];
+  t->pending = 0;
+  ++term_reads;
+  t->drawn = clock_time();
+  if(t->scrolled > 0 && t->scrolled < TH - 1 && ctk_window_isfront(&t->window)) {
+    /* the lines that stay moved up in video memory, and in "shown"; the
+       last rows still show what they showed, and are drawn over below */
+    unsigned char k = t->scrolled, wx = t->window.x + 1, wy = t->window.y + 2;
+    ctk_gfx_scroll(wx, wx + TW, wy, wy + TH, k);
+    memmove(t->shown, t->shown + k * TW, (TH - k) * TW);
+  }
+  t->scrolled = 0;
   for(y = 0; y < TH; ++y) {
     for(x = 0; x < TW; ++x) {
       line[x] = CELL(t, y, x);
@@ -202,7 +230,12 @@ show(struct term *t)
       line[t->cx < TW ? t->cx : TW - 1] |= 0x80;
     }
     if(memcmp(line, t->shown + y * TW, TW) != 0) {
-      memcpy(t->shown + y * TW, line, TW);
+      /* the label as long as its text, or as what it covers up */
+      char *o = t->shown + y * TW;
+      for(x = TW - 1; x > 0 && line[x] == o[x] && line[x] == ' '; --x) {
+      }
+      memcpy(o, line, TW);
+      t->labels[y].w = x + 1;
       CTK_WIDGET_REDRAW(&t->labels[y]);
     }
   }
@@ -300,6 +333,7 @@ read_pty(struct term *t)
 {
   char b[64];
   int n, i, st, total = 0;
+  ++term_reads;
   while(total < 1024 && (n = read(t->ptyfd, b, sizeof(b))) > 0) {
     for(i = 0; i < n; ++i) {
       put(t, b[i]);
@@ -312,10 +346,17 @@ read_pty(struct term *t)
     t->child = 0;
     stop(t);
     say(t, "[ended]");
+    show(t);
   } else {
     watch_fd(t->ptyfd, t->id, ev_data);
+    /* a program writing a lot is drawn five times a second, not at each
+       read: the rest waits for term_idle() */
+    if(clock_time() - t->drawn >= DRAW_EVERY) {
+      show(t);
+    } else {
+      t->pending = 1;
+    }
   }
-  show(t);
 }
 static void
 send(struct term *t, const char *s, unsigned char n)
@@ -378,7 +419,7 @@ EK_EVENTHANDLER(term_eventhandler, ev, data)
       clear_line(t, y, 0, TW);
     }
     memset(t->shown, ' ', TH * TW);
-    t->cx = t->cy = t->esc = 0;
+    t->cx = t->cy = t->esc = t->top = 0;
     start(t);
     if(t->ptyfd < 0) {
       say(t, "No free pty");
@@ -445,4 +486,42 @@ LOADER_INIT_FUNC(term_init, arg)
   t->ptyfd = -1;
   t->used = 1;
   ek_start(procs[i]);
+}
+
+/* for Ctrl-Q (main.c): shells with their program still there */
+unsigned char
+term_running(void)
+{
+  unsigned char i, n = 0;
+  for(i = 0; i < NTERM; ++i) {
+    if(terms[i].used && terms[i].ptyfd >= 0) {
+      ++n;
+    }
+  }
+  return n;
+}
+/* the programs of every shell window hung up, before leaving */
+void
+term_stop_all(void)
+{
+  unsigned char i;
+  for(i = 0; i < NTERM; ++i) {
+    if(terms[i].used) {
+      stop(&terms[i]);
+    }
+  }
+}
+
+/* from the event loop when the desktop is idle (main.c): what was read and
+   not drawn, drawn once the program pauses or DRAW_EVERY has passed */
+void
+term_idle(void)
+{
+  unsigned char i;
+  for(i = 0; i < NTERM; ++i) {
+    if(terms[i].used && terms[i].pending &&
+       clock_time() - terms[i].drawn >= DRAW_EVERY) {
+      show(&terms[i]);
+    }
+  }
 }

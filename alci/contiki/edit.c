@@ -48,9 +48,14 @@ static struct ctk_button openbutton = {CTK_BUTTON(0, 0, 4, "Open")};
 static struct ctk_button savebutton = {CTK_BUTTON(7, 0, 4, "Save")};
 static struct ctk_button newbutton = {CTK_BUTTON(14, 0, 3, "New")};
 #define STATUS_X 19
-static char statustext[TW - STATUS_X];
+#define STATUS_W (TW - STATUS_X < 26 ? TW - STATUS_X : 26)
+static char statustext[STATUS_W];
 static struct ctk_label statuslabel =
-  {CTK_LABEL(STATUS_X, 0, TW - STATUS_X, 1, statustext)};
+  {CTK_LABEL(STATUS_X, 0, STATUS_W, 1, statustext)};
+/* two labels laid over the part of a line that changed, so that a key
+   draws a few cells, not the whole line; between keys they show what the
+   line shows there */
+static struct ctk_label spans[2];
 static char shown[TH][TW];              /* the lines as on the screen */
 static struct ctk_label linelabels[TH];
 static char line[TW];
@@ -180,8 +185,9 @@ put_num(char *o, unsigned short v)
 static void
 show_status(unsigned short row, unsigned short col)
 {
-  char t[sizeof(statustext) + 12], *o;
+  char t[sizeof(statustext) + 12], *o, before[sizeof(statustext)];
   unsigned char n;
+  memcpy(before, statustext, sizeof(statustext));
   memset(statustext, ' ', sizeof(statustext));
   if(message != NULL) {
     strcpy(t, message);
@@ -205,16 +211,90 @@ show_status(unsigned short row, unsigned short col)
   } else {
     memcpy(statustext, t, n);
   }
-  CTK_WIDGET_REDRAW(&statuslabel);
+  if(memcmp(before, statustext, sizeof(statustext)) != 0) {
+    CTK_WIDGET_REDRAW(&statuslabel);
+  }
 }
+
+/* the line starting at p on screen row r, the cursor in it at column cc
+   when it is the cursor's line cl; the next line's start, or LEN() + 1
+   past the end */
+static unsigned short
+show_line(unsigned char r, unsigned short p, unsigned short cl,
+          unsigned short cc, unsigned char span)
+{
+  unsigned char a, b, k;
+  unsigned short n = LEN(), c = 0, q, gap = ge - gs;
+  char ch;
+  memset(line, ' ', TW);
+  if(p <= n) {
+    /* straight through the buffer: before the gap, then after it */
+    for(q = p; q < n; ++q) {
+      ch = buf[q < gs ? q : q + gap];
+      if(ch == '\n') {
+        break;
+      }
+      if(c >= left && c < left + TW) {
+        line[c - left] = (ch >= ' ' && ch < 0x7f) ? ch : (ch == '\t' ? ' ' : '?');
+      }
+      c = next_col(c, ch);
+      if(c >= left + TW && ch != '\t') {
+        /* past the window: only the end of the line is needed */
+        q = line_end(q);
+        break;
+      }
+    }
+    if(cl == p && cc >= left && cc < left + TW) {
+      line[cc - left] |= 0x80;
+    }
+    p = q + 1;
+  } else {
+    p = n + 1;
+  }
+  if(memcmp(line, shown[r], TW) != 0) {
+    if(span < 2) {
+      /* only the cells from the first difference to the last */
+      for(a = 0; line[a] == shown[r][a]; ++a) {
+      }
+      for(b = TW - 1; line[b] == shown[r][b]; --b) {
+      }
+      memcpy(shown[r], line, TW);
+      /* the line's own label still covers all its text */
+      for(k = TW - 1; k > 0 && line[k] == ' '; --k) {
+      }
+      if(linelabels[r].w < k + 1) {
+        linelabels[r].w = k + 1;
+      }
+      spans[span].x = a;
+      spans[span].y = r + 1;
+      spans[span].w = b - a + 1;
+      spans[span].text = shown[r] + a;
+      CTK_WIDGET_REDRAW(&spans[span]);
+    } else {
+      /* the label as long as its text, or as what it covers up: the
+         window is cleared under its labels when it is drawn whole */
+      for(b = TW - 1; b > 0 && line[b] == shown[r][b] && line[b] == ' '; --b) {
+      }
+      memcpy(shown[r], line, TW);
+      linelabels[r].w = b + 1;
+      CTK_WIDGET_REDRAW(&linelabels[r]);
+    }
+  }
+  return p;
+}
+
+/* what was drawn last: the first line, the column, the cursor's line and
+   its row; a change of these, or of the lines (a newline typed or
+   deleted, a file read), draws every row again, otherwise only the rows
+   the cursor left and reached */
+static unsigned short drawn_top = 0xffff, drawn_left, drawn_cl;
+static unsigned char drawn_row, lines_changed;
 
 /* the cursor in view, then the lines that changed drawn again */
 static void
 show(void)
 {
-  unsigned short cl = line_start(gs), cc = col_of(gs), r, p, n, c, q;
-  unsigned char more;
-  char ch;
+  unsigned short cl = line_start(gs), cc = col_of(gs), r, p;
 
   if(cl < top) {
     topline -= count_lines(cl, top);
@@ -232,33 +312,25 @@ show(void)
   } else if(cc >= left + TW) {
     left = cc - TW + TABW;
   }
+  r = count_lines(top, cl);             /* the cursor's row */
 
-  p = top;
-  n = LEN();
-  more = 1;
-  for(r = 0; r < TH; ++r) {
-    memset(line, ' ', TW);
-    if(more) {
-      c = 0;
-      for(q = p; q < n && (ch = at(q)) != '\n'; ++q) {
-        unsigned short c2 = next_col(c, ch);
-        if(c >= left && c < left + TW) {
-          line[c - left] = (ch >= ' ' && ch < 0x7f) ? ch : (ch == '\t' ? ' ' : '?');
-        }
-        c = c2;
-      }
-      if(cl == p && cc >= left && cc < left + TW) {
-        line[cc - left] |= 0x80;
-      }
-      more = q < n;
-      p = q + 1;
+  if(top != drawn_top || left != drawn_left || lines_changed) {
+    p = top;
+    for(drawn_row = 0; drawn_row < TH; ++drawn_row) {
+      p = show_line(drawn_row, p, cl, cc, 2);
     }
-    if(memcmp(line, shown[r], TW) != 0) {
-      memcpy(shown[r], line, TW);
-      CTK_WIDGET_REDRAW(&linelabels[r]);
+  } else {
+    if(drawn_cl != cl) {
+      show_line(drawn_row, drawn_cl, cl, cc, 1);  /* the cursor taken off */
     }
+    show_line(r, cl, cl, cc, 0);
   }
-  show_status(topline + count_lines(top, cl), cc);
+  drawn_top = top;
+  drawn_left = left;
+  drawn_cl = cl;
+  drawn_row = r;
+  lines_changed = 0;
+  show_status(topline + r, cc);
 }
 
 /*---------------------------------------------------------------------------*/
@@ -272,6 +344,9 @@ insert(char ch)
   }
   buf[gs++] = ch;
   modified = 1;
+  if(ch == '\n') {
+    lines_changed = 1;
+  }
 }
 static void
 backspace(void)
@@ -281,6 +356,9 @@ backspace(void)
   }
   --gs;
   modified = 1;
+  if(buf[gs] == '\n') {
+    lines_changed = 1;
+  }
   if(gs < top) {                        /* the newline before the first line */
     top = line_start(gs);
     --topline;
@@ -290,6 +368,9 @@ static void
 delete_forward(void)
 {
   if(ge < bufsize) {
+    if(buf[ge] == '\n') {
+      lines_changed = 1;
+    }
     ++ge;
     modified = 1;
   }
@@ -317,6 +398,7 @@ start_over(void)
   ge = bufsize;
   top = topline = left = want = 0;
   modified = 0;
+  lines_changed = 1;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -593,6 +675,10 @@ EK_EVENTHANDLER(edit_eventhandler, ev, data)
       CTK_LABEL_NEW(&linelabels[r], 0, r + 1, TW, 1, shown[r]);
       CTK_WIDGET_ADD(&window, &linelabels[r]);
     }
+    for(r = 0; r < 2; ++r) {
+      CTK_LABEL_NEW(&spans[r], 0, 1, 0, 1, shown[0]);
+      CTK_WIDGET_ADD(&window, &spans[r]);
+    }
     memset(shown, ' ', sizeof(shown));
     if(filename[0]) {
       load(filename);
@@ -650,4 +736,11 @@ LOADER_INIT_FUNC(edit_init, arg)
     id = ek_start(&p);
   }
   arg_free(arg);
+}
+
+/* for Ctrl-Q (main.c): the editor is open with a text not saved */
+unsigned char
+edit_unsaved(void)
+{
+  return id != EK_ID_NONE && modified;
 }

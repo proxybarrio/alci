@@ -68,6 +68,8 @@ fetch:
 	# opening a window redraws that window and the one it covers, closing
 	# one the rows it took, instead of the whole screen
 	git -C contiki-1.x apply ../patches/ctk-partial-redraw.patch
+	# a window's owner can ask whether it is in front with nothing over it
+	git -C contiki-1.x apply ../patches/ctk-front-window.patch
 
 clean:
 	rm -rf $(PROGS) obj-*

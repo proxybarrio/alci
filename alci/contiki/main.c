@@ -193,9 +193,16 @@ clock_time(void)
   return (clock_time_t)tv.tv_sec * 1000 + tv.tv_usec / 1000;
 }
 /*---------------------------------------------------------------------------*/
+unsigned char edit_unsaved(void);
+unsigned char term_running(void);
+void term_stop_all(void);
+void term_idle(void);
+extern unsigned short term_reads;
+
 static void
 quit(void)
 {
+  term_stop_all();
   close_mouse();
   ctk_cga_exit();
   tcsetattr(0, TCSANOW, &saved);
@@ -211,6 +218,76 @@ push(unsigned char c)
     khead = n;
   }
 }
+/* for -B: runs the desktop until nothing is left to do or to draw (CTK
+   draws in its poll, after the events) */
+static void
+settle(void)
+{
+  do {
+    while(ek_run() || khead != ktail) ;
+  } while(ek_run());
+  ek_run();
+}
+/* for -B: runs the desktop until the shells have been quiet for 1.5 s;
+   the time of their last output */
+static void poll_keys(int ms);
+static clock_time_t
+quiet_reads(clock_time_t last)
+{
+  unsigned short r = term_reads;
+  for(;;) {
+    while(ek_run()) ;
+    term_idle();
+    poll_keys(20);
+    if(term_reads != r) {
+      r = term_reads;
+      last = clock_time();
+    } else if(clock_time() - last > 1500) {
+      return last;
+    }
+  }
+}
+
+/*---------------------------------------------------------------------------*/
+/* Ctrl-Q with a text not saved or programs in the shells: a question first
+   (Quit, Cancel; Ctrl-Q again also quits) */
+static unsigned char quit_wanted, quit_asking;
+static struct ctk_window quitdialog;
+static struct ctk_label quitlabel = {CTK_LABEL(0, 0, 26, 1, "Leave the desktop?")};
+static struct ctk_label editlabel = {CTK_LABEL(0, 1, 26, 1, "The text is not saved.")};
+static struct ctk_label termlabel = {CTK_LABEL(0, 2, 26, 1, "A shell is still running.")};
+static struct ctk_button quitbutton = {CTK_BUTTON(0, 4, 4, "Quit")};
+static struct ctk_button cancelbutton = {CTK_BUTTON(18, 4, 6, "Cancel")};
+EK_EVENTHANDLER(quit_eventhandler, ev, data);
+EK_PROCESS(quitp, "Quit", EK_PRIO_NORMAL, quit_eventhandler, NULL, NULL);
+
+EK_EVENTHANDLER(quit_eventhandler, ev, data)
+{
+  if(ev == EK_EVENT_INIT) {
+    ctk_dialog_new(&quitdialog, 27, 5);
+    CTK_WIDGET_ADD(&quitdialog, &quitlabel);
+    if(edit_unsaved()) {
+      CTK_WIDGET_ADD(&quitdialog, &editlabel);
+    }
+    if(term_running()) {
+      termlabel.y = edit_unsaved() ? 2 : 1;
+      CTK_WIDGET_ADD(&quitdialog, &termlabel);
+    }
+    CTK_WIDGET_ADD(&quitdialog, &quitbutton);
+    CTK_WIDGET_ADD(&quitdialog, &cancelbutton);
+    CTK_WIDGET_FOCUS(&quitdialog, &cancelbutton);
+    ctk_dialog_open(&quitdialog);
+    quit_asking = 1;
+  } else if((ev == ctk_signal_widget_activate && data == (ek_data_t)&quitbutton)) {
+    quit();
+  } else if((ev == ctk_signal_widget_activate && data == (ek_data_t)&cancelbutton) ||
+            (ev == ctk_signal_keypress && (ctk_arch_key_t)(unsigned short)data == CH_ESC)) {
+    ctk_dialog_close();
+    quit_asking = 0;
+    ek_exit();
+  }
+}
+
 /*---------------------------------------------------------------------------*/
 /* Other descriptors the loop waits on (a terminal's pty, watch.h): when one
    has data its event is posted to its process, and it is left out of the
@@ -292,7 +369,11 @@ poll_keys(int ms)
   for(i = 0; i < n; ++i) {
     unsigned char c = b[i];
     if(c == 0x11) {                      /* Ctrl-Q */
-      quit();
+      if(quit_asking || (!edit_unsaved() && !term_running())) {
+        quit();                         /* nothing to lose, or asked twice */
+      }
+      quit_wanted = 1;                  /* the loop opens the question */
+      continue;
     }
     if(c == 0x1b && i + 1 < n) {
       unsigned char d = b[i + 1];
@@ -450,6 +531,60 @@ main(int argc, char **argv)
     printf("ctk ms: rows %lu status %lu\n", t[6] - t[5], t[7] - t[6]);
     return 0;
   }
+  if(argc > 1 && strncmp(argv[1], "-B", 2) == 0) {
+    /* Benchmark of the editor and the shell (a text file named, or
+       /bin/long.txt): ms, printed after going back to text mode. -Be
+       times the editor alone, -Bt the shell alone. */
+    char part = argv[1][2];
+    clock_time_t t[10];
+    unsigned char k;
+    const char *cmd = "cat /bin/long.txt\r";
+    const char *p;
+    while(ek_run()) ;
+    memset(t, 0, sizeof(t));
+    t[0] = clock_time();
+    if(part != 't') {
+    edit_init(argc > 2 ? argv[2] : "/bin/long.txt");   /* open, read, draw */
+    settle();
+    t[1] = clock_time();
+    for(k = 0; k < 10; ++k) {           /* ten letters typed */
+      push('x');
+      settle();
+    }
+    t[2] = clock_time();
+    for(k = 0; k < 10; ++k) {           /* ten lines down */
+      push(CH_CURS_DOWN);
+      settle();
+    }
+    t[3] = clock_time();
+    for(k = 0; k < 3; ++k) {            /* three pages down */
+      push(CH_PGDN);
+      settle();
+    }
+    t[4] = clock_time();
+    }
+    if(part != 'e') {
+    t[4] = clock_time();
+    term_init(NULL);                    /* a shell, until its prompt */
+    t[5] = quiet_reads(t[4]);
+    for(k = 0; k < 2; ++k) {            /* the file shown twice: from the disk, then from the cache */
+      for(p = cmd; *p; ++p) {
+        push(*p == '\r' ? CH_ENTER : (unsigned char)*p);
+        while(ek_run() || khead != ktail) ;
+      }
+      t[6 + 2 * k] = clock_time();
+      t[7 + 2 * k] = quiet_reads(t[6 + 2 * k]);
+    }
+    }
+    term_stop_all();
+    ctk_cga_exit();
+    tcsetattr(0, TCSANOW, &saved);
+    printf("ctk ms: edit open %lu key %lu down %lu page %lu\n", t[1] - t[0],
+           (t[2] - t[1]) / 10, (t[3] - t[2]) / 10, (t[4] - t[3]) / 3);
+    printf("ctk ms: shell prompt %lu cat %lu cat again %lu\n", t[5] - t[4],
+           t[7] - t[6], t[9] - t[8]);
+    return 0;
+  }
   if(argc > 1 && strcmp(argv[1], "-d") == 0) {
     /* Demonstration: the calculator already open */
     while(ek_run()) ;
@@ -472,7 +607,14 @@ main(int argc, char **argv)
   while(ek_run()) ;                     /* the desktop first, then the mouse */
   open_mouse();                         /* no mouse: mouse_fd stays -1 */
   for(;;) {
+    if(quit_wanted) {
+      quit_wanted = 0;
+      if(!quit_asking) {
+        ek_start(&quitp);
+      }
+    }
     if(ek_run() == 0 && khead == ktail) {
+      term_idle();
       mouse_sync();
       poll_keys(50);                    /* idle: wait for a key or the mouse, no busy loop */
     }
