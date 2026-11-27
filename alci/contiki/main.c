@@ -414,6 +414,15 @@ poll_keys(int ms)
         }
         continue;
       }
+      if(d == 0x1b && i + 2 < n && b[i + 2] >= 'a' && b[i + 2] <= 'j') {
+        /* Alt and a function key (ESC ESC a .. j, from the Alci kernel
+           when it switches no console): Alt-F4 closes the window */
+        if(b[i + 2] == 'd') {
+          push(CH_CLOSEWIN);
+        }
+        i += 2;
+        continue;
+      }
       if(d >= 'a' && d <= 'e') {
         push(CH_F1 + (d - 'a'));
         i += 1;

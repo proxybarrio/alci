@@ -3126,6 +3126,26 @@ ctk_gfx_copy_whole(unsigned char x1, unsigned char x2, unsigned char y1,
   return 1;
 }
 
+/* CTK's title and close buttons where this screen draws them, for the
+   mouse: the close box on the left (cells x+1, x+2) in two colours, on
+   the right (x+w-1, x+w) in colour, the title button over the rest of
+   the bar. (A button of width n at column c takes c .. c+n+1 of the
+   window, one cell right of the border.) */
+void
+ctk_gfx_window_buttons(struct ctk_window *w)
+{
+  unsigned char rest = w->w > 3 ? w->w - 3 : 0;
+#if defined(MONO)
+  w->closebutton.x = 0;
+  w->titlebutton.x = 2;
+#else
+  w->titlebutton.x = 0;
+  w->closebutton.x = w->w - 2;
+#endif
+  w->closebutton.w = 1;
+  w->titlebutton.w = rest;
+}
+
 /* cells x1 .. x2 - 1, y1 .. y2 - 1 left alone by what is drawn next, until
    called again with an empty rectangle: icons drawn around a window just
    moved, without drawing over it */

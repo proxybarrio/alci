@@ -207,11 +207,11 @@ static void ScrollDown(Console * C, int y)
  * CAUTION: It *WILL* break if the console driver doesn't get tty0-X.
  */
 
-void Console_set_vc(int N)
+int Console_set_vc(int N)
 {
     Console *C = &Con[N];
     if ((N >= NumConsoles) || glock)
-        return;
+        return 0;
 
     Visible[C->display] = C;
     SetDisplayPage(C);
@@ -219,6 +219,7 @@ void Console_set_vc(int N)
     DisplayCursor(&Con[Current_VCminor], 0); */
     Current_VCminor = N;
     /* DisplayCursor(&Con[Current_VCminor], 1); */
+    return 1;
 }
 
 struct tty_ops dircon_ops = {

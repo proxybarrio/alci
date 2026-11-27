@@ -1,6 +1,6 @@
 --- a/contiki/ctk/ctk.c
 +++ b/contiki/ctk/ctk.c
-@@ -87,6 +87,28 @@
+@@ -87,6 +87,30 @@
     front, closing one the rows it took; not the whole screen */
  #define REDRAW_OPEN         32
  #define REDRAW_ROWS         64
@@ -9,6 +9,7 @@
 +#define REDRAW_MOVE         128
 +static unsigned char move_ox, move_oy;  /* where the window was */
 +static unsigned char move_done;        /* the move by the title ended: the frame drawn */
++static unsigned char move_grab;        /* column of the title taken by the mouse */
 +void ctk_gfx_move(unsigned char x1, unsigned char x2, unsigned char y1,
 +                  unsigned char y2, signed char dx, signed char dy);
 +void ctk_gfx_desk_rect(unsigned char x1, unsigned char x2, unsigned char y1,
@@ -19,6 +20,7 @@
 +unsigned char ctk_gfx_copy_whole(unsigned char x1, unsigned char x2,
 +                                 unsigned char y1, unsigned char y2,
 +                                 signed char dx, signed char dy);
++void ctk_gfx_window_buttons(struct ctk_window *w);
 +void ctk_gfx_window_frame(struct ctk_window *w, unsigned char focus,
 +                          unsigned char above);
 +void ctk_gfx_skip(unsigned char x1, unsigned char x2, unsigned char y1,
@@ -29,7 +31,15 @@
  static struct ctk_window *redraw_prev;  /* front window before an open */
  static unsigned char redraw_y1 = 255, redraw_y2;
  
-@@ -677,9 +699,7 @@
+@@ -565,6 +589,7 @@
+ 		3, 1, "   ");
+ #endif /* CTK_CONF_WINDOWCLOSE */  
+   CTK_WIDGET_ADD(window, &window->closebutton);
++  ctk_gfx_window_buttons(window);       /* Alci: where they are drawn */
+ }
+ /*-----------------------------------------------------------------------------------*/
+ /**
+@@ -677,9 +702,7 @@
      }
  
      /* Draw focused window */
@@ -40,7 +50,7 @@
      ctk_draw_clear_window(windows, focus, clipy1, clipy2);
      ctk_draw_window(windows, focus, clipy1, clipy2, 1);
    }
-@@ -694,6 +714,156 @@
+@@ -694,6 +717,156 @@
  #endif /* CTK_CONF_MENUS */
  }
  /*-----------------------------------------------------------------------------------*/
@@ -197,7 +207,7 @@
  /**
   * Redraw the entire desktop.
   *
-@@ -1233,7 +1403,8 @@
+@@ -1233,7 +1406,8 @@
      } else if(w == (struct ctk_widget *)&windows->titlebutton) {
  #if CTK_CONF_WINDOWMOVE
        mode = CTK_MODE_WINDOWMOVE;
@@ -207,7 +217,7 @@
  #endif /* CTK_CONF_WINDOWMOVE */
      } else {
        ek_post(w->window->owner, ctk_signal_widget_activate, w);
-@@ -1404,6 +1575,7 @@
+@@ -1404,6 +1578,7 @@
    case CH_ENTER:
      return activate_menu();
  
@@ -215,7 +225,39 @@
    case CTK_CONF_MENU_KEY:
      lastmenu = menus.open;
      menus.open = NULL;
-@@ -1824,6 +1996,8 @@
+@@ -1716,6 +1891,7 @@
+ 			(ek_data_t)mouse_button);
+ 		if(mouse_clicked && widget != NULL) {
+ 		  select_widget(widget);
++		  move_grab = mxc + ctk_draw_windowborder_width;  /* Alci */
+ 		  redraw |= activate(widget);
+ 		}
+ 	      }
+@@ -1743,6 +1919,23 @@
+       }
+       
+       widget = window->focused;
++
++#if CTK_CONF_WINDOWCLOSE && defined(CTK_CONF_WINDOWCLOSE_KEY)
++      if(c == CTK_CONF_WINDOWCLOSE_KEY) {
++	/* Alci: the window in front closed, as by its close button */
++	if(dialog == NULL && windows != NULL) {
++#if CTK_CONF_MENUS
++	  if(menus.open != NULL) {
++	    lastmenu = menus.open;
++	    menus.open = NULL;
++	    redraw |= REDRAW_MENUPART;
++	  }
++#endif /* CTK_CONF_MENUS */
++	  redraw |= activate((struct ctk_widget *)&windows->closebutton);
++	}
++	continue;
++      }
++#endif /* CTK_CONF_WINDOWCLOSE_KEY */
+ 	  
+       if(widget != NULL &&
+ 	 widget->type == CTK_WIDGET_TEXTENTRY &&
+@@ -1824,16 +2017,19 @@
      redraw = 0;
  
      window = windows;
@@ -224,7 +266,20 @@
  
  #if CTK_CONF_MOUSE_SUPPORT
  
-@@ -1846,8 +2020,6 @@
+     /* If the mouse has moved, we move the window as well. */
+     if(mouse_moved) {
++      unsigned char gx = mxc >= move_grab ? mxc - move_grab : 0;
+ 
+-      if(window->w + mxc + 2 >= width) {
++      if(window->w + gx + 2 >= width) {
+ 	window->x = width - 2 - window->w;
+       } else {
+-	window->x = mxc;
++	window->x = gx;
+       }
+ 
+       if(window->h + myc + ctk_draw_windowtitle_height +
+@@ -1846,8 +2042,6 @@
        if(window->y > 0) {
  	--window->y;
        }
@@ -233,7 +288,7 @@
      }		  
      
      /* Check if the mouse has been clicked, and stop moving the window
-@@ -1855,7 +2027,6 @@
+@@ -1855,7 +2049,6 @@
      if(mouse_button_changed &&
         mouse_button == 0) {
        mode = CTK_MODE_NORMAL;
@@ -241,7 +296,7 @@
      }
  #endif /* CTK_CONF_MOUSE_SUPPORT */
      
-@@ -1871,38 +2042,40 @@
+@@ -1871,38 +2064,43 @@
  	if(window->x + window->w + 1 >= width) {
  	  --window->x;
  	}
@@ -276,6 +331,9 @@
 +       mode == CTK_MODE_NORMAL) {       /* moved, or the frame back as in front */
 +      redraw |= REDRAW_MOVE;
 +      move_done = mode == CTK_MODE_NORMAL;
++      if(move_done) {
++        move_grab = 0;                  /* the keys move from the left edge */
++      }
 +    }
  #endif /* CTK_CONF_WINDOWMOVE */
    }

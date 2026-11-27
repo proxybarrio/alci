@@ -11,4 +11,4 @@ void nosound(void);
 void bell(void);
 
 /* for direct and bios consoles only*/
-void Console_set_vc(int N);
+int Console_set_vc(int N);	/* 0: no such console, or locked */

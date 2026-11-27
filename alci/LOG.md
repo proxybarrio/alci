@@ -298,3 +298,11 @@
   shading band, 245 ms down to 9 ms for 48 cells). Escape now closes a
   menu: the benchmark pressed it and left the menu open in two rounds of
   four, so the first CTK row of D2 is replaced (`RESULTS.md`).
+- D7: the whole title bar moves a window and the close box answers where
+  it is drawn (left on the two-colour screens, right on the colour ones;
+  CTK put both buttons at fixed places, so most clicks on a mono title
+  missed). A dragged window keeps the point where it was taken. Alt-F4
+  closes the window in front: the kernel's keyboard driver passes Alt and
+  a function key on as `ESC ESC a`..`j` when it does not switch console
+  (`Console_set_vc` now says whether it did); before, Alt-F1 to F8 were
+  always swallowed.

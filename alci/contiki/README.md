@@ -347,10 +347,15 @@ in the F1 menu with them.
 
 Keys (desktop): F1 opens the menu (arrows and Enter to choose, Escape or
 F1 closes it), Tab and F5 move between widgets, F3 switches window, Enter
-presses a button; Enter on a window's title lets the arrows move the
-window and any other key puts it down (with the mouse: a click on the
-title, then the window follows the pointer until the next click). Ctrl-Q
-goes back to the text console; with a text not saved in the editor or a
+presses a button, Alt-F4 closes the window in front (as its close box
+does); Enter on a window's title lets the arrows move the window and any
+other key puts it down. With the mouse: a click anywhere on the title bar,
+then the window follows the pointer until the next click; a click on the
+close box (left on the two-colour screens, right on the colour ones)
+closes it. Alt-F4 needs the Alci kernel, which passes Alt and a function
+key to the program as `ESC ESC a`..`j` when it switches no console (there
+is no fourth console, or a program holds the screen); ELKS keeps Alt-F1
+to F8 for itself. Ctrl-Q goes back to the text console; with a text not saved in the editor or a
 program in a shell it asks first (Quit, Cancel; Ctrl-Q again quits).
 
 Mouse: a Microsoft serial mouse on `/dev/ttyS0` by default;

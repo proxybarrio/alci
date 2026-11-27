@@ -12,6 +12,7 @@
 #define CTK_CONF_ICON_TEXTMAPS        0
 #define CTK_CONF_WINDOWMOVE           1
 #define CTK_CONF_WINDOWCLOSE          1
+#define CTK_CONF_WINDOWCLOSE_KEY      CH_CLOSEWIN
 #define CTK_CONF_MENUS                1
 #define CTK_CONF_MENUWIDTH            16
 #define CTK_CONF_MAXMENUITEMS         10

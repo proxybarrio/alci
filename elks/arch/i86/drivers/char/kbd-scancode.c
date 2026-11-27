@@ -277,11 +277,13 @@ static void keyboard_irq(int irq, struct pt_regs *regs)
     /* F11 and F12 function keys need 89 byte table like keys-de.h */
     /* function keys are not posix standard here */
     
-	/* AltF1-F8 are console switch (downstream Console_set_vc validates
-	 * against NumConsoles, so unwired keys are silently ignored).*/
-	if ((ModeState & ALT) && code <= SCAN_F1+7) {
-	    Console_set_vc(code - SCAN_F1);
-	    return;
+	/* AltF1-F8 are console switch. Alci: when that console does not
+	 * exist, or a graphics program holds the console, the key goes to
+	 * the program as ESC and the function key (Alt-F4 = ESC ESC d).*/
+	if (ModeState & ALT) {
+	    if (code <= SCAN_F1+7 && Console_set_vc(code - SCAN_F1))
+		return;
+	    Console_conin(ESC);
 	}
 
 	Console_conin(ESC);		/* F1 = ESC a, F2 = ESC b, etc*/

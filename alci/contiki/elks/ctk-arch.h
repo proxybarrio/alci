@@ -19,6 +19,7 @@ ctk_arch_key_t ctk_arch_getkey(void);
 #define CH_PGUP       0x8b
 #define CH_PGDN       0x8c
 #define CH_DELFWD     0x8d      /* Delete (CH_DEL is Backspace) */
+#define CH_CLOSEWIN   0x8e      /* Alt-F4: close the window in front */
 #define CH_ENTER      '\r'
 #define CH_TAB        '\t'
 #define CH_DEL        0x08
