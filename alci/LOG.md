@@ -289,3 +289,12 @@
   40 ms on CGA; Nano-X 6.6 s, 2.2 s, 0.45 s; Gem-elks 17.6 s, 4.7 s,
   3.1 s, and leaves 21K free. Gem-elks needs a font fix for CGA, at the
   128 KB code limit. Results in `RESULTS.md`, `alci/docs/gui-study.md`.
+- D7: a window in front is moved by copying it in video memory, as
+  Nano-X does (`patches/ctk-window-move.patch`, `ctk_gfx_move`): only the
+  desktop it uncovers and its frame are drawn, and the frame too is copied
+  when the desktop round it is the same at both places. The D2 move takes
+  177 ms on CGA and 465 ms on EGA on the 8088 (was 1077 and 2515; Nano-X
+  842 and 1000). The desktop is filled a row at a time (EGA: a block per
+  shading band, 245 ms down to 9 ms for 48 cells). Escape now closes a
+  menu: the benchmark pressed it and left the menu open in two rounds of
+  four, so the first CTK row of D2 is replaced (`RESULTS.md`).

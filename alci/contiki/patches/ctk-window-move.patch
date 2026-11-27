@@ -1,0 +1,289 @@
+--- a/contiki/ctk/ctk.c
++++ b/contiki/ctk/ctk.c
+@@ -87,6 +87,28 @@
+    front, closing one the rows it took; not the whole screen */
+ #define REDRAW_OPEN         32
+ #define REDRAW_ROWS         64
++/* Alci: a window moved is copied in video memory and only the desktop it
++   uncovers and its frame are drawn (ctk-gfx.c), as Nano-X does */
++#define REDRAW_MOVE         128
++static unsigned char move_ox, move_oy;  /* where the window was */
++static unsigned char move_done;        /* the move by the title ended: the frame drawn */
++void ctk_gfx_move(unsigned char x1, unsigned char x2, unsigned char y1,
++                  unsigned char y2, signed char dx, signed char dy);
++void ctk_gfx_desk_rect(unsigned char x1, unsigned char x2, unsigned char y1,
++                       unsigned char y2);
++void ctk_gfx_window_extent(struct ctk_window *w, unsigned char *x1,
++                           unsigned char *x2, unsigned char *y1,
++                           unsigned char *y2);
++unsigned char ctk_gfx_copy_whole(unsigned char x1, unsigned char x2,
++                                 unsigned char y1, unsigned char y2,
++                                 signed char dx, signed char dy);
++void ctk_gfx_window_frame(struct ctk_window *w, unsigned char focus,
++                          unsigned char above);
++void ctk_gfx_skip(unsigned char x1, unsigned char x2, unsigned char y1,
++                  unsigned char y2);
++void ctk_gfx_icon_extent(struct ctk_widget *w, unsigned char *x1,
++                         unsigned char *x2, unsigned char *y1,
++                         unsigned char *y2);
+ static struct ctk_window *redraw_prev;  /* front window before an open */
+ static unsigned char redraw_y1 = 255, redraw_y2;
+ 
+@@ -677,9 +699,7 @@
+     }
+ 
+     /* Draw focused window */
+-    focus = mode == CTK_MODE_WINDOWMOVE?
+-	    CTK_FOCUS_WIDGET|CTK_FOCUS_WINDOW:
+-	    CTK_FOCUS_WINDOW;
++    focus = CTK_FOCUS_WINDOW;           /* Alci: the same look while moving */
+     ctk_draw_clear_window(windows, focus, clipy1, clipy2);
+     ctk_draw_window(windows, focus, clipy1, clipy2, 1);
+   }
+@@ -694,6 +714,156 @@
+ #endif /* CTK_CONF_MENUS */
+ }
+ /*-----------------------------------------------------------------------------------*/
++/* Alci: the front window moved from move_ox, move_oy: its inside and title
++   bar copied in video memory, the desktop it uncovers and the icons there
++   drawn (not over the window), then the rest of its frame. Another
++   window near it, or a dialog or a menu: the rows. */
++static unsigned char
++meets(unsigned char ax1, unsigned char ax2, unsigned char ay1,
++      unsigned char ay2, unsigned char bx1, unsigned char bx2,
++      unsigned char by1, unsigned char by2)
++{
++  return ax1 < bx2 && bx1 < ax2 && ay1 < by2 && by1 < ay2;
++}
++/* the desktop and its icons in x1 .. x2 - 1, y1 .. y2 - 1; the icons
++   without the cells under the window (ctk_gfx_skip) */
++static void
++desk_part(unsigned char x1, unsigned char x2, unsigned char y1,
++          unsigned char y2)
++{
++  struct ctk_widget *widget;
++  if(x1 >= x2 || y1 >= y2) {
++    return;
++  }
++  ctk_gfx_desk_rect(x1, x2, y1, y2);
++  for(widget = desktop_window.active; widget != NULL; widget = widget->next) {
++    unsigned char a1, a2, b1, b2;
++    ctk_gfx_icon_extent(widget, &a1, &a2, &b1, &b2);
++    if(meets(a1, a2, b1, b2, x1, x2, y1, y2)) {
++      ctk_draw_widget(widget, 0, 1, height);
++    }
++  }
++}
++static void
++do_move(void)
++{
++  struct ctk_window *w = windows, *w2;
++  struct ctk_widget *wi;
++  unsigned char ox1, ox2, oy1, oy2, nx1, nx2, ny1, ny2, ux1, ux2, uy1, uy2;
++  unsigned char s1, s2, whole, x = w->x, y = w->y;
++  signed char dx = x - move_ox, dy = y - move_oy;
++
++  ctk_gfx_window_extent(w, &nx1, &nx2, &ny1, &ny2);
++  w->x = move_ox;
++  w->y = move_oy;
++  ctk_gfx_window_extent(w, &ox1, &ox2, &oy1, &oy2);
++  w->x = x;
++  w->y = y;
++  ux1 = ox1 < nx1 ? ox1 : nx1;
++  ux2 = ox2 > nx2 ? ox2 : nx2;
++  uy1 = oy1 < ny1 ? oy1 : ny1;
++  uy2 = oy2 > ny2 ? oy2 : ny2;
++  if(dialog != NULL
++#if CTK_CONF_MENUS
++     || menus.open != NULL
++#endif /* CTK_CONF_MENUS */
++     || move_ox + w->w + 2 > width || x + w->w + 2 > width
++     || oy2 >= height || ny2 >= height) {  /* on the status bar: all */
++    do_redraw_all(1, height);
++    return;
++  }
++  for(w2 = w->next; w2 != NULL; w2 = w2->next) {
++    unsigned char a1, a2, b1, b2;
++    ctk_gfx_window_extent(w2, &a1, &a2, &b1, &b2);
++    if(meets(a1, a2, b1, b2, ux1, ux2, uy1, uy2)) {
++      do_redraw_all(uy1, uy2);
++      return;
++    }
++  }
++  whole = 0;
++  if(dx != 0 || dy != 0) {
++    /* the whole window with its frame and shadow when the desktop round it
++       is the same at both places and no icon is under it */
++    whole = ctk_gfx_copy_whole(ox1, ox2, oy1, oy2, dx, dy);
++    for(wi = desktop_window.active; whole && wi != NULL; wi = wi->next) {
++      unsigned char a1, a2, b1, b2;
++      ctk_gfx_icon_extent(wi, &a1, &a2, &b1, &b2);
++      if(meets(a1, a2, b1, b2, ox1, ox2, oy1, oy2) ||
++         meets(a1, a2, b1, b2, nx1, nx2, ny1, ny2)) {
++        whole = 0;
++      }
++    }
++  }
++  if(whole) {
++    ctk_gfx_move(ox1, ox2, oy1, oy2, dx, dy);
++  } else if(dx != 0 || dy != 0) {
++    /* the inside and the title bar (not its corners, which the desktop
++       shows through) */
++    ctk_gfx_move(move_ox + 1, move_ox + 1 + w->w, move_oy + 1,
++                 move_oy + 2 + w->h, dx, dy);
++  }
++  if(dx != 0 || dy != 0) {
++    ctk_gfx_skip(nx1, nx2, ny1, ny2);
++    if(!meets(ox1, ox2, oy1, oy2, nx1, nx2, ny1, ny2)) {
++      desk_part(ox1, ox2, oy1, oy2);
++    } else {
++      /* the rows it left, then the columns it left in the rows it keeps */
++      if(oy1 < ny1) {
++        desk_part(ox1, ox2, oy1, ny1);
++      }
++      if(oy2 > ny2) {
++        desk_part(ox1, ox2, ny2, oy2);
++      }
++      s1 = oy1 > ny1 ? oy1 : ny1;
++      s2 = oy2 < ny2 ? oy2 : ny2;
++      if(ox1 < nx1) {
++        desk_part(ox1, nx1, s1, s2);
++      }
++      if(ox2 > nx2) {
++        desk_part(nx2, ox2, s1, s2);
++      }
++    }
++    ctk_gfx_skip(0, 0, 0, 0);
++  }
++  if(whole && !move_done) {
++    return;                             /* the frame came along */
++  }
++  move_done = 0;
++  if(dx != 0 || dy != 0) {
++    ctk_gfx_skip(x + 1, x + 1 + w->w, y + 1, y + 2);   /* the bar was copied */
++  }
++  ctk_gfx_window_frame(w, mode == CTK_MODE_WINDOWMOVE ? 0 : CTK_FOCUS_WINDOW,
++                       dx != 0 || dy != 0);
++  ctk_gfx_skip(0, 0, 0, 0);
++}
++/*-----------------------------------------------------------------------------------*/
++/* Alci: a window moved by a program (ctk_window_move only sets x and y);
++   the one in front is copied */
++void
++ctk_window_moveto(struct ctk_window *w, unsigned char x, unsigned char y)
++{
++  /* kept on the screen, as the arrow keys keep it */
++  if(x > width - w->w - 2) {
++    x = width - w->w - 2;
++  }
++  if(y > height - w->h - 4) {         /* and off the status bar */
++    y = height - w->h - 4;
++  }
++  if(w != windows || (redraw & REDRAW_ALL)) {
++    w->x = x;
++    w->y = y;
++    redraw |= REDRAW_ALL;
++    return;
++  }
++  if(!(redraw & REDRAW_MOVE)) {
++    move_ox = w->x;
++    move_oy = w->y;
++  }
++  w->x = x;
++  w->y = y;
++  redraw |= REDRAW_MOVE;
++}
++/*-----------------------------------------------------------------------------------*/
+ /**
+  * Redraw the entire desktop.
+  *
+@@ -1233,7 +1403,8 @@
+     } else if(w == (struct ctk_widget *)&windows->titlebutton) {
+ #if CTK_CONF_WINDOWMOVE
+       mode = CTK_MODE_WINDOWMOVE;
+-      return REDRAW_ALL;
++      ctk_gfx_window_frame(windows, 0, 0); /* Alci: the frame says it moves */
++      return 0;
+ #endif /* CTK_CONF_WINDOWMOVE */
+     } else {
+       ek_post(w->window->owner, ctk_signal_widget_activate, w);
+@@ -1404,6 +1575,7 @@
+   case CH_ENTER:
+     return activate_menu();
+ 
++  case CH_ESC:
+   case CTK_CONF_MENU_KEY:
+     lastmenu = menus.open;
+     menus.open = NULL;
+@@ -1824,6 +1996,8 @@
+     redraw = 0;
+ 
+     window = windows;
++    move_ox = window->x;
++    move_oy = window->y;
+ 
+ #if CTK_CONF_MOUSE_SUPPORT
+ 
+@@ -1846,8 +2020,6 @@
+       if(window->y > 0) {
+ 	--window->y;
+       }
+-
+-      redraw = REDRAW_ALL;
+     }		  
+     
+     /* Check if the mouse has been clicked, and stop moving the window
+@@ -1855,7 +2027,6 @@
+     if(mouse_button_changed &&
+        mouse_button == 0) {
+       mode = CTK_MODE_NORMAL;
+-      redraw = REDRAW_ALL;      
+     }
+ #endif /* CTK_CONF_MOUSE_SUPPORT */
+     
+@@ -1871,38 +2042,40 @@
+ 	if(window->x + window->w + 1 >= width) {
+ 	  --window->x;
+ 	}
+-	redraw = REDRAW_ALL;
+ 	break;
+       case CH_CURS_LEFT:
+ 	if(window->x > 0) {
+ 	  --window->x;
+ 	}
+-	redraw = REDRAW_ALL;
+ 	break;
+       case CH_CURS_DOWN:
+ 	++window->y;
+ 	if(window->y + window->h + 2 >= height) {
+ 	  --window->y;
+ 	}
+-	redraw = REDRAW_ALL;
+ 	break;
+       case CH_CURS_UP:
+ 	if(window->y > 0) {
+ 	  --window->y;
+ 	}
+-	redraw = REDRAW_ALL;
+ 	break;
+       default:
+ 	mode = CTK_MODE_NORMAL;
+-	redraw = REDRAW_ALL;
+ 	break;
+       }
+     }
++    if(window->x != move_ox || window->y != move_oy ||
++       mode == CTK_MODE_NORMAL) {       /* moved, or the frame back as in front */
++      redraw |= REDRAW_MOVE;
++      move_done = mode == CTK_MODE_NORMAL;
++    }
+ #endif /* CTK_CONF_WINDOWMOVE */
+   }
+ 
+   if(redraw & REDRAW_ALL) {
+     do_redraw_all(1, height);
++  } else if(redraw & REDRAW_MOVE) {
++    do_move();
+   } else if(redraw & (REDRAW_OPEN | REDRAW_ROWS)) {
+     if(dialog != NULL
+ #if CTK_CONF_MENUS

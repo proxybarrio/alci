@@ -995,8 +995,9 @@ refuse an Alci program before any decoding. Options:
 
 ## GUI benchmark, task D2 (MartyPC, 2026-11-27)
 
-Contiki CTK (Alci `ab4a4484f` plus the `ctk -G` and `ctk -q N` modes of
-this change), Nano-X (ghaerr/microwindows `3b20527`) and Gem-elks
+Contiki CTK (Alci `ab4a4484f` plus the `ctk -G` and `ctk -q N` modes;
+its rows measured again with the window move by copy, see "CTK window
+move by copy" below), Nano-X (ghaerr/microwindows `3b20527`) and Gem-elks
 (parabyte/gem-elks `c5fd7d1`), measured with `alci/tests/guibench` on
 MartyPC `elks_xt` (IBM XT, 8088 at 4.77 MHz, 640 KB, GLaBIOS) booting a
 720K floppy with the benchmark programs, with CGA and with EGA. Kernel
@@ -1018,8 +1019,8 @@ LZSA1; GEM's resource files are not packed):
 
 | | Plain | Packed |
 |---|---|---|
-| CTK `ctk` (CGA; icons and font inside) | 48,976 | 38,077 |
-| CTK `ctk-ega` | 54,384 | 39,164 |
+| CTK `ctk` (CGA; icons and font inside) | 51,440 | 39,871 |
+| CTK `ctk-ega` | 57,424 | 41,284 |
 | Nano-X server `nano-X` (CGA) | 75,184 | 43,369 |
 | Nano-X server (EGA/VGA) | 74,016 | 42,558 |
 | Nano-X client (nxcalc) | 21,424 | 15,850 |
@@ -1033,7 +1034,7 @@ largest free block, and the desktop's own segments from `meminfo`:
 
 | | CGA free | EGA free | Desktop |
 |---|---|---|---|
-| CTK | 248K, block 64K | 240K | code 42,896 + data 35,328 (CGA) |
+| CTK | 246K, block 64K | 237K | code 44,960 + data 35,328 (CGA) |
 | Nano-X (server, no client) | 235K, block 64K | 237K | code 56,624 + data 35,328; a client about 23K more |
 | GEM (server + gemdesk) | 21K, largest block 4K | 21K, block 4K | about 304K by difference |
 
@@ -1045,7 +1046,7 @@ screen (`vwatch`):
 
 | | CGA | EGA |
 |---|---|---|
-| CTK (`ctk -q 5`) | 4.20 s | 5.54 s |
+| CTK (`ctk -q 5`) | 4.39 s | 4.50 s |
 | Nano-X (server, root window) | 6.55 s | 6.23 s |
 | GEM (server and gemdesk) | 17.58 s | 14.28 s |
 
@@ -1055,21 +1056,61 @@ window (rows given); "move" moves the window by 1/8 of the screen width.
 
 | CGA 640x200 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 400 | 770 | 360 | 1245 | 40 | 325 (14) | 20 | 297 |
+| CTK | 242 | 530 | 160 | 177 | 65 | 642 (14) | 20 | 390 |
 | Nano-X | 817 | 2230 | 47 | 842 | 450 | 4222 (10) | 60 | - |
 | GEM | 3400 | 4717 | 2485 | 4430 | 3067 | 19330 (7) | 882 | - |
 
 | EGA 640x350 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 1012 | 2070 | 935 | 2960 | 57 | 617 (14) | 22 | 727 |
+| CTK | 577 | 1380 | 410 | 465 | 100 | 1230 (14) | 20 | 990 |
 | Nano-X | 860 | 2097 | 50 | 1000 | 422 | 6677 (17) | 55 | - |
 | GEM | 5290 | 1980 | 1850 | 3140 | 4780 | 57640 (13) | 2150 | - |
 
 "screen": CTK draws its whole desktop, Nano-X its root window, GEM the
-desktop below the menu bar (`form_dial` FMD_FINISH). CTK moves a window
-by drawing the whole screen again; Nano-X copies it. GEM on CGA in one
+desktop below the menu bar (`form_dial` FMD_FINISH). CTK and Nano-X
+move a window by copying it in video memory. GEM on CGA in one
 round, twice, gave screen 7790 and 2840, open 3360 and 7920: single
 rounds of GEM vary by up to a factor of two.
+
+### CTK window move by copy
+
+`patches/ctk-window-move.patch` (applied by `make fetch`) and
+`ctk_gfx_move` in `ctk-gfx.c`: a window in front with no other window,
+menu or dialog near it is moved as Nano-X moves one. Its inside and
+title bar are copied in video memory, the desktop it leaves (and the
+icons there) is drawn, then the sides and bottom of its frame. When the
+desktop round the window is the same at both places (no icon or icon
+column line under it, and on EGA/VGA a move that keeps it in the same
+shading band) the frame and shadow are copied too and nothing else is
+drawn. CTK's `ctk_window_move` only sets x and y; `ctk_window_moveto`
+moves a window and copies it, and the title-bar move (mouse or keys) goes
+the same way. The desktop is filled a pixel row at a time across the
+cells (EGA/VGA: a block for each shading band) instead of cell by cell.
+
+The same patch makes Escape close a menu, as F1 does. The benchmark
+pressed Escape after opening the menu, so in the first measurement of
+this table (`f2c94844a`) the menu stayed open in two rounds of four: a
+move then drew the whole screen, the menu was drawn with the screen,
+and in those rounds the text of the window was not drawn at all (CTK
+draws no window while a menu is open). The CTK rows above are from the corrected
+benchmark. Its move, before and after the copy (ms, 4 rounds; the move
+is 10 columns right and one row down, onto the icon column, so the frame
+is drawn):
+
+| | CGA | EGA |
+|---|---|---|
+| CTK, whole screen drawn (old) | 1077 | 2515 |
+| CTK, window copied | 177 | 465 |
+| Nano-X | 842 | 1000 |
+
+Parts, measured on their own on CGA / EGA (one call each): copying the
+58x15-cell window 47 / 78 ms; drawing the frame 93 / 500 ms, about a
+third of it the title bar (now copied); 48 desktop cells 24 ms on CGA,
+on EGA 245 ms a pixel row at a time and 9 ms as blocks. Moves of 3
+columns (half of them also a row up or down) away from the icons: 117 ms
+on average on CGA, where the frame is always copied; 290 ms on EGA, where
+the moves up and down cross a shading band and draw the frame. Checked on screen in QEMU (CGA, CGA4, EGA, VGA, MCGA,
+AT&T) and 86Box (Hercules, Tandy).
 
 Not measured yet: start from a 1.44M floppy and the hard disk, start of
 the packed programs, the 86Box PC1512 and AT, and the response to a key

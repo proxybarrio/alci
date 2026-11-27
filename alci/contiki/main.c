@@ -27,6 +27,9 @@
 #include "ctk-mouse.h"
 #include "mouse.h"
 
+/* the window moved, copied if it is in front (patches/ctk-window-move.patch) */
+void ctk_window_moveto(struct ctk_window *w, unsigned char x, unsigned char y);
+
 void ctk_cga_exit(void);
 void calc_init(char *arg);
 void about_init(char *arg);
@@ -595,9 +598,8 @@ main(int argc, char **argv)
       bl[1].w = w;
 
       t = clock_time();               /* the window moved */
-      bw.x += ctk_draw_width() / 8;
-      bw.y += ctk_draw_height() / 16;
-      ctk_desktop_redraw(NULL);
+      ctk_window_moveto(&bw, bw.x + ctk_draw_width() / 8,
+                        bw.y + ctk_draw_height() / 16);
       settle();
       tm += clock_time() - t;
 

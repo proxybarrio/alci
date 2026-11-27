@@ -442,6 +442,10 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   and shadow for its 0.68 pixels; `desk` finds it by its BIOS. Checked on
   86Box's T1200; the real machine is part of C2. D2 measured 2026-11-27
   (see D2).
+  Window move by copy (2026-11-27, patches/ctk-window-move.patch): a
+  window in front is copied in video memory as Nano-X does; the D2 move
+  takes 0.18 s on CGA and 0.47 s on EGA (was 1.1 s and 2.5 s; Nano-X 0.84
+  s and 1.0 s). Escape closes a menu.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

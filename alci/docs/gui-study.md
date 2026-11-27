@@ -17,32 +17,34 @@ is grey dithered to white), Gem-elks with a folder window.*
 
 | CGA, 8088 4.77 MHz | Contiki CTK | Nano-X | Gem-elks |
 |---|---|---|---|
-| Disk, plain / packed | 48 / 37 KB | 73 / 42 KB (server) | 292 / 226 KB |
-| Memory of the desktop | 76 KB | 90 KB (server) + 23 KB per client | about 300 KB |
+| Disk, plain / packed | 50 / 39 KB | 73 / 42 KB (server) | 292 / 226 KB |
+| Memory of the desktop | 78 KB | 90 KB (server) + 23 KB per client | about 300 KB |
 | Left for a program | about 270 KB | about 255 KB | about 40 KB, largest block 4 KB |
-| Start from the 720K floppy | 4.2 s | 6.6 s (server only) | 17.6 s |
-| Window opened | 0.77 s | 2.2 s | 4.7 s |
-| Window moved | 1.2 s | 0.84 s | 4.4 s |
-| A line of text | 0.04 s | 0.45 s | 3.1 s |
-| A window of text | 0.33 s (14 rows) | 4.2 s (10 rows) | 19.3 s (7 rows) |
+| Start from the 720K floppy | 4.4 s | 6.6 s (server only) | 17.6 s |
+| Window opened | 0.53 s | 2.2 s | 4.7 s |
+| Window moved | 0.18 s | 0.84 s | 4.4 s |
+| A line of text | 0.07 s | 0.45 s | 3.1 s |
+| A window of text | 0.64 s (14 rows) | 4.2 s (10 rows) | 19.3 s (7 rows) |
 | One character | 0.02 s | 0.06 s | 0.9 s |
 
 ## Contiki CTK
 
-The smallest and the quickest at drawing text, by ten times over Nano-X
-and seventy over GEM: its windows are cells of the 8x8 font, and a label
+The smallest and the quickest at drawing text, by seven to nine times
+over Nano-X and fifty over GEM: its windows are cells of the 8x8 font, and a label
 is drawn as whole bytes. It is one process: the desktop, its programs
 (editor, shell, file manager, calculator) and the drawing all live in it,
 so a program for it is built in, and only one desktop runs at a time.
-Moving a window draws the whole screen again (1.2 s on CGA, 3.0 s on
-EGA), the slowest of its operations; Nano-X moves by copying.
+It moves a window as Nano-X does, by copying it in video memory and
+drawing only the desktop it uncovers: 0.18 s on CGA and 0.47 s on EGA,
+against 0.84 s and 1.0 s for Nano-X (before, it drew the whole screen
+again: 1.1 s and 2.5 s).
 
 ## Nano-X
 
 A server with a window manager inside, and clients over a local socket;
 each client is a separate program of about 20 KB, so programs can be
-added without touching the server. Opening and drawing text are slower than
-CTK (with its fixed 6x13 font), moving is quicker, and
+added without touching the server. Opening, moving and drawing text are slower
+than CTK (with its fixed 6x13 font), and
 closing is the quickest of the three (the server only paints the
 background back). Its demos are drawn for 640x480: on CGA nxcalc does not
 fit; and the CGA driver needed a missing `<stddef.h>` to build.

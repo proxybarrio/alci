@@ -206,6 +206,12 @@ outw(unsigned short port, unsigned short v)
 }
 #endif
 
+/* cells not to write (ctk_gfx_skip): a window just moved while the icons
+   round it are drawn again, or its title bar, copied with it, while the
+   frame is drawn; x1 .. x2 - 1, y1 .. y2 - 1, empty most of the time */
+static unsigned char skx1, skx2, sky1, sky2;
+#define SKIP(cx, cy) ((cx) >= skx1 && (cx) < skx2 && (cy) >= sky1 && (cy) < sky2)
+
 #if defined(GFX_CGA) || defined(GFX_CGA4) || defined(GFX_ATT) || defined(GFX_TANDY)
 #define VRAM ((unsigned char __far *)0xB8000000UL)
 #elif defined(GFX_HERC)
@@ -231,6 +237,9 @@ static void
 blit_bytes(unsigned char cx, unsigned char cy, const unsigned char *b)
 {
   unsigned char __far *p;
+  if(SKIP(cx, cy)) {
+    return;
+  }
   if(cx >= SW || cy >= SH) {
     return;
   }
@@ -358,6 +367,9 @@ write4(unsigned char cx, unsigned char cy)
 {
   unsigned char r;
   unsigned char __far *p;
+  if(SKIP(cx, cy)) {
+    return;
+  }
   if(cx >= SW || cy >= SH) {
     return;
   }
@@ -466,6 +478,9 @@ write4(unsigned char cx, unsigned char cy)
   /* four banks of 8K, pixel row Y in bank Y & 3, line Y >> 2 of 160 bytes */
   unsigned short __far *p = (unsigned short __far *)(VRAM + (unsigned short)cy * 320 + cx * 4);
   const unsigned short *s = (const unsigned short *)cb4;
+  if(SKIP(cx, cy)) {
+    return;
+  }
   if(cx >= SW || cy >= SH) {
     return;
   }
@@ -589,6 +604,9 @@ write4(unsigned char cx, unsigned char cy)
      each */
   unsigned short off = (unsigned short)cy * (CH * 80) + cx;
   const unsigned char *src = cb4;
+  if(SKIP(cx, cy)) {
+    return;
+  }
   if(cx >= SW || cy >= SH) {
     return;
   }
@@ -651,6 +669,62 @@ vrow(unsigned short off, const unsigned char *q, unsigned short n)
   outw(0x3ce, 1);
   outb(0x3c5, 0x0f);
 }
+/* rows pixel rows from offset off, each step bytes after the one before,
+   as vrow draws one: for a block of the desktop */
+static void vset_rows(unsigned short off, unsigned char v, unsigned short n,
+                      unsigned short rows, unsigned short step);
+static void
+vrows(unsigned short off, const unsigned char *q, unsigned short n,
+      unsigned short rows, unsigned short step)
+{
+  unsigned char k, e = 0, sr = 0, done;
+  for(k = 0; k < 4; ++k) {
+    if(q[k] == 0 || q[k] == 0xff) {
+      e |= 1 << k;
+      if(q[k]) {
+        sr |= 1 << k;
+      }
+    }
+  }
+  outw(0x3ce, (unsigned short)sr << 8);
+  outw(0x3ce, ((unsigned short)e << 8) | 1);
+  done = e;
+  if(e == 0x0f) {
+    vset_rows(off, 0, n, rows, step);
+  }
+  for(k = 0; k < 4; ++k) {
+    if(!(done & (1 << k))) {
+      unsigned char j, m = 1 << k;
+      for(j = k + 1; j < 4; ++j) {
+        if(!(done & (1 << j)) && q[j] == q[k]) {
+          m |= 1 << j;
+        }
+      }
+      outb(0x3c5, m | e);
+      vset_rows(off, q[k], n, rows, step);
+      done |= m;
+      e = 0;
+    }
+  }
+  outw(0x3ce, 1);
+  outb(0x3c5, 0x0f);
+}
+static void
+vset_rows(unsigned short off, unsigned char v, unsigned short n,
+          unsigned short rows, unsigned short step)
+{
+  if(rows == 0) {
+    return;
+  }
+  step -= n;
+  __asm__ volatile ("push %%es\n\tpush %%ax\n\tmov $0xa000,%%ax\n\t"
+                    "mov %%ax,%%es\n\tpop %%ax\n\tcld\n"
+                    "1:\tmov %%bx,%%cx\n\trep stosb\n\tadd %%si,%%di\n\t"
+                    "dec %%dx\n\tjnz 1b\n\tpop %%es"
+                    : "+D" (off), "+d" (rows)
+                    : "a" ((unsigned short)v), "b" (n), "S" (step)
+                    : "cx", "memory", "cc");
+}
 static void
 vset(unsigned short off, unsigned char v, unsigned short n)
 {
@@ -668,6 +742,9 @@ static void
 blit(unsigned char cx, unsigned char cy)
 {
   unsigned char r, c;
+  if(SKIP(cx, cy)) {
+    return;
+  }
   if(cx >= SW || cy >= SH) {
     return;
   }
@@ -2129,6 +2206,9 @@ title_row(unsigned char x0, unsigned char x1)
 {
   unsigned char i, k, have = 0;
   for(i = x0; i <= x1; ++i) {
+    if(SKIP(i, gy)) {
+      continue;                         /* copied with the window */
+    }
     k = title_kind(i);
     if(k) {
       if(!(have & k)) {
@@ -2823,6 +2903,269 @@ ctk_gfx_scroll(unsigned char x1, unsigned char x2, unsigned char y1,
 #if defined(GFX_EGA) || defined(GFX_VGA)
   outw(0x3ce, 0x0005);                  /* write mode 0 */
 #endif
+}
+
+/* A window moved as Nano-X moves one: the cells of its inside copied in
+   video memory, then only what changes drawn (ctk.c, REDRAW_MOVE). */
+static void
+vmove_back(unsigned short dst, unsigned short src, unsigned short n)
+{
+  /* the same copy from the last byte down, for a move to the right on the
+     same pixel row */
+  dst += n - 1;
+  src += n - 1;
+  __asm__ volatile ("push %%ds\n\tpush %%es\n\tmov %%ax,%%ds\n\tmov %%ax,%%es\n\t"
+                    "std\n\trep movsb\n\tcld\n\tpop %%es\n\tpop %%ds"
+                    : "+S" (src), "+D" (dst), "+c" (n)
+                    : "a" ((unsigned short)((unsigned long)VRAM >> 16))
+                    : "memory", "cc");
+}
+/* cell columns x1 .. x2 - 1, rows y1 .. y2 - 1, copied dx columns right
+   and dy rows down */
+void
+ctk_gfx_move(unsigned char x1, unsigned char x2, unsigned char y1,
+             unsigned char y2, signed char dx, signed char dy)
+{
+  unsigned short Y, top = (unsigned short)y1 * CH, bottom = (unsigned short)y2 * CH;
+  unsigned short len = (unsigned short)(x2 - x1) * GSTEP;
+  unsigned short so = (unsigned short)x1 * GSTEP;
+  unsigned short dso = (unsigned short)(x1 + dx) * GSTEP;
+  signed short d = (signed short)dy * CH;
+  PTR_OFF();
+  if(x2 <= x1 || y2 <= y1) {
+    return;
+  }
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  outw(0x3ce, 0x0105);                  /* write mode 1: the four planes through the latches */
+#endif
+  if(dy > 0) {                          /* down: from the bottom row up */
+    for(Y = bottom; Y-- > top; ) {
+      vmove(ptr_row(Y + d) + dso, ptr_row(Y) + so, len);
+    }
+  } else if(dy < 0) {
+    for(Y = top; Y < bottom; ++Y) {
+      vmove(ptr_row(Y + d) + dso, ptr_row(Y) + so, len);
+    }
+  } else {
+    for(Y = top; Y < bottom; ++Y) {
+      if(dx > 0) {
+        vmove_back(ptr_row(Y) + dso, ptr_row(Y) + so, len);
+      } else {
+        vmove(ptr_row(Y) + dso, ptr_row(Y) + so, len);
+      }
+    }
+  }
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  outw(0x3ce, 0x0005);                  /* write mode 0 */
+#endif
+}
+/* the desktop drawn in cell columns x1 .. x2 - 1, rows y1 .. y2 - 1: a
+   fill a pixel row where the desktop is one value across (as
+   ctk_draw_clear does for whole rows), then the icon column line */
+void
+ctk_gfx_desk_rect(unsigned char x1, unsigned char x2, unsigned char y1,
+                  unsigned char y2)
+{
+  unsigned char cx;
+  PTR_OFF();
+  if(y2 > SH - 1) {
+    y2 = SH - 1;                        /* not the status bar */
+  }
+  if(x2 > SW) {
+    x2 = SW;
+  }
+  if(x1 >= x2 || y1 >= y2) {
+    return;
+  }
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  {
+    /* the white rows, the checker (two passes, every other row) and the
+       grey rows: each a block */
+    unsigned short ya = (unsigned short)y1 * CH, y9 = (unsigned short)y2 * CH;
+    unsigned short b2 = DESK_B(2), b4 = DESK_B(4), e, n = x2 - x1;
+    e = y9 < b2 ? y9 : b2;
+    if(ya < e) {
+      vrows(ya * 80 + x1, dpat[0], n, e - ya, 80);
+    }
+    ya = ya > b2 ? ya : b2;
+    e = y9 < b4 ? y9 : b4;
+    if(ya < e) {
+      vrows(ya * 80 + x1, dpat[2 + (ya & 1)], n, (e - ya + 1) / 2, 160);
+      if(ya + 1 < e) {
+        vrows((ya + 1) * 80 + x1, dpat[2 + ((ya + 1) & 1)], n, (e - ya) / 2, 160);
+      }
+    }
+    ya = ya > b4 ? ya : b4;
+    if(ya < y9) {
+      vrows(ya * 80 + x1, dpat[1], n, y9 - ya, 80);
+    }
+  }
+#elif defined(MONO) || defined(GFX_CGA4) || defined(GFX_TANDY) || \
+    defined(GFX_MCGA)
+  {
+    unsigned short y, y9 = (unsigned short)y2 * CH;
+    for(y = (unsigned short)y1 * CH; y < y9; ++y) {
+      unsigned short off = ptr_row(y) + (unsigned short)x1 * GSTEP;
+      unsigned char line = y == (SH - 1) * CH - 1;
+#if defined(MONO)
+      unsigned short n = x2 - x1;
+      unsigned char v = line ? 0xff : wall[y & 7];
+#if (defined(GFX_CGA) && !defined(GFX_LCD)) || (!defined(GFX_CGA) && !defined(GFX_HERC))
+      v = ~v;
+#endif
+      unsigned short w = v | ((unsigned short)v << 8);
+#elif defined(GFX_MCGA)
+      unsigned short n = (unsigned short)(x2 - x1) * 8;
+      unsigned char v = desk(0, y);     /* (the line comes from desk) */
+      unsigned short w = v | ((unsigned short)v << 8);
+      (void)line;
+#else
+      unsigned short n = (unsigned short)(x2 - x1) * GSTEP;
+#if defined(GFX_TANDY4)
+      unsigned short w = line ? 0x00ff : 0;
+#elif defined(GFX_TANDY)
+      unsigned short w = line ? C_ETCH0 * 0x1111 : 0x7777;
+#else
+      unsigned short w = line ? 0x5555 : 0;
+#endif
+#endif
+      /* bytes: the low byte of w, then the high one, again and again (an odd
+         count ends on a low byte) */
+      __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\t"
+                        "shr $1,%%cx\n\trep stosw\n\tadc %%cx,%%cx\n\trep stosb\n\tpop %%es"
+                        : "+D" (off), "+c" (n)
+                        : "a" (w), "d" ((unsigned short)((unsigned long)VRAM >> 16))
+                        : "memory", "cc");
+    }
+  }
+#endif
+#if defined(MONO) || defined(GFX_CGA4) || defined(GFX_TANDY) || \
+    defined(GFX_MCGA) || defined(GFX_EGA) || defined(GFX_VGA)
+  {
+    if(SEP_X / 8 >= x1 && SEP_X / 8 < x2) {
+      for(; y1 < y2; ++y1) {
+        desk_cell(SEP_X / 8, y1);
+      }
+    }
+    return;
+  }
+#endif
+  for(; y1 < y2; ++y1) {
+    for(cx = x1; cx < x2; ++cx) {
+      desk_cell(cx, y1);
+    }
+  }
+}
+/* the cells a window's frame and body cover: columns x1 .. x2 - 1, rows
+   y1 .. y2 - 1 (the row above the title too when the title bar reaches into
+   it) */
+void
+ctk_gfx_window_extent(struct ctk_window *w, unsigned char *x1,
+                      unsigned char *x2, unsigned char *y1, unsigned char *y2)
+{
+  unsigned char y = w->y + 1;
+  unsigned short e;
+  *x1 = w->x;
+  e = (unsigned short)w->x + w->w + 2;
+  *x2 = e > SW ? SW : e;
+#if CGA_BAR == 2
+  *y1 = y >= 2 ? y - 1 : y;
+#else
+  *y1 = y;
+#endif
+  e = (unsigned short)y + w->h + 2;
+  *y2 = e > SH ? SH : e;
+}
+
+/* 1 when cells x1 .. x2 - 1, y1 .. y2 - 1 (a window and the desktop round
+   its frame) can be copied dx columns right and dy rows down as they are:
+   the desktop under them the same there, no icon column line, away from
+   the menu bar and the status bar. The frame then needs no drawing. */
+unsigned char
+ctk_gfx_copy_whole(unsigned char x1, unsigned char x2, unsigned char y1,
+                   unsigned char y2, signed char dx, signed char dy)
+{
+  unsigned short Y, Y9;
+  signed short d = (signed short)dy * CH;
+  unsigned char s0 = SEP_X / 8, s1 = (SEP_X + 1) / 8;
+  if(y1 < 2 || y2 > SH - 2 || y1 + dy < 2 || y2 + dy > SH - 2) {
+    return 0;
+  }
+  if(!desk_nosep &&
+     ((s0 >= x1 && s0 < x2) || (s1 >= x1 && s1 < x2) ||
+      (s0 >= x1 + dx && s0 < x2 + dx) || (s1 >= x1 + dx && s1 < x2 + dx))) {
+    return 0;
+  }
+  Y9 = (unsigned short)y2 * CH;
+  for(Y = (unsigned short)y1 * CH; Y < Y9 && d != 0; ++Y) {
+#if defined(MONO)
+    if(wall[Y & 7] != wall[(Y + d) & 7]) {
+      return 0;
+    }
+#elif defined(GFX_MCGA)
+    if(mdesk[Y] != mdesk[Y + d]) {
+      return 0;
+    }
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+    if(DESKQ(Y) != DESKQ(Y + d)) {
+      return 0;
+    }
+#elif defined(GFX_CGA4) || defined(GFX_TANDY)
+    (void)Y;                            /* one colour */
+#else
+    {
+      unsigned char X;
+      for(X = 0; X < 8; ++X) {
+        if(desk(X, Y) != desk(X, Y + d)) {
+          return 0;
+        }
+      }
+    }
+#endif
+  }
+  return 1;
+}
+
+/* cells x1 .. x2 - 1, y1 .. y2 - 1 left alone by what is drawn next, until
+   called again with an empty rectangle: icons drawn around a window just
+   moved, without drawing over it */
+void
+ctk_gfx_skip(unsigned char x1, unsigned char x2, unsigned char y1,
+             unsigned char y2)
+{
+  skx1 = x1;
+  skx2 = x2;
+  sky1 = y1;
+  sky2 = y2;
+}
+/* the cells a desktop icon may take: the picture and the title under it,
+   which may run to the screen's edge */
+void
+ctk_gfx_icon_extent(struct ctk_widget *w, unsigned char *x1,
+                    unsigned char *x2, unsigned char *y1, unsigned char *y2)
+{
+  unsigned char xpos = w->window->x + 1 + w->x, ypos = w->window->y + 2 + w->y;
+  *x1 = xpos > 3 ? xpos - 3 : 0;
+  *x2 = SW;
+  *y1 = ypos;
+  *y2 = ypos + GFX_ICON_RH + 1;
+}
+/* only the frame of a window: title row, sides, bottom and shadow. With
+   above set, the row over the title, where the bar's top may take the
+   last pixel rows, gets the desktop first (for a window just moved there:
+   nothing else may be in that row) */
+void
+ctk_gfx_window_frame(struct ctk_window *w, unsigned char focus,
+                     unsigned char above)
+{
+  unsigned char x1, x2, y1, y2;
+  PTR_OFF();
+  ctk_gfx_window_extent(w, &x1, &x2, &y1, &y2);
+  if(above && y1 <= w->y) {
+    ctk_gfx_desk_rect(x1, x2, y1, y1 + 1);
+  }
+  draw_windowborders(w->x, w->y + 1, w->w, w->h, 0, SH, focus,
+                     w->title, w->titlelen);
 }
 
 void

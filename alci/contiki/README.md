@@ -242,6 +242,19 @@ in the queue (patches/ctk-redraw-queue.patch): two lines of the editor
 for every key, which is why a letter is quicker here than in earlier
 measurements.
 
+A window in front is moved as Nano-X moves one (patches/ctk-window-move.patch,
+`ctk_gfx_move`): its inside and title bar are copied in video memory, the
+desktop it leaves and the icons there are drawn, then the rest of its
+frame; when the desktop round it is the same at both places (no icon or
+icon column line under it, the same shading band on EGA/VGA) the frame
+and shadow are copied too. With another window, a menu or a dialog near
+it, CTK draws the rows again as before. On the XT a move takes 0.18 s
+on CGA and 0.47 s on EGA (the D2 benchmark: 10 columns onto the icon
+column), against 1.1 s and 2.5 s when the whole screen was drawn again
+and 0.84 s and 1.0 s for Nano-X; a few columns away from the icons, 0.12 s
+on CGA. Programs move a window with `ctk_window_moveto(w, x, y)`
+(Contiki's `ctk_window_move` only sets x and y).
+
 The same `cat` on ELKS's text console takes 3.5 s (much of it is loading
 `cat` from the floppy). Before these changes a letter took 380 to 630 ms
 and the `cat` 7 to 8 s. The shell's prompt comes 4 to 9 s after its window
@@ -332,9 +345,12 @@ and quits. Results against Nano-X and Gem-elks: `alci/docs/gui-study.md`.
 The desktop shows four icons (Files, Editor, Shell, Calculator); About is
 in the F1 menu with them.
 
-Keys (desktop): F1 opens the menu (arrows and Enter to choose), Tab and F5 move
-between widgets, F3 switches window, Enter presses a button, Ctrl-Q goes
-back to the text console; with a text not saved in the editor or a
+Keys (desktop): F1 opens the menu (arrows and Enter to choose, Escape or
+F1 closes it), Tab and F5 move between widgets, F3 switches window, Enter
+presses a button; Enter on a window's title lets the arrows move the
+window and any other key puts it down (with the mouse: a click on the
+title, then the window follows the pointer until the next click). Ctrl-Q
+goes back to the text console; with a text not saved in the editor or a
 program in a shell it asks first (Quit, Cancel; Ctrl-Q again quits).
 
 Mouse: a Microsoft serial mouse on `/dev/ttyS0` by default;
