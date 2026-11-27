@@ -453,7 +453,7 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Alt-Space: the window menu (Move, Send to back, Close).
   Hidden copy of the windows (2026-11-27): a covered window comes back by
   copy when nothing in it changed; Alt-Tab to the Editor 0.16 s on CGA,
-  0.32 s on EGA. Not on Hercules (could use page 1) and MCGA.
+  0.32 s on EGA, 0.28 s on Hercules (in its second page). Not on MCGA.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

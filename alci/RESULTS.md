@@ -1238,13 +1238,16 @@ keep them in the video memory past the screen (EGA needs 256 KB; copied
 through the latches, four planes at once); CGA, the CGA four-colour
 modes, Tandy, AT&T and the T1200 in far memory (`fmemalloc`, at most 32
 KB a window: 14 KB for the Editor on CGA), given back when the window is
-forgotten. Hercules and MCGA keep none (no room past the screen, and a
-copy in memory would not be faster than drawing on MCGA).
+forgotten. Hercules keeps them in its second page (B800, 32 KB, mapped
+but never shown; checked at the first copy, so a card with 32 KB keeps
+none). MCGA keeps none (no room past the screen, and a copy in memory
+would not be faster than drawing on MCGA).
 
 Checked pixel by pixel against the same build without the copies (QEMU,
 CGA, EGA and VGA): Alt-Tab back and forth with the Editor and the
 calculator, typing in each window between the switches, a move with
-Alt-Space and Alt-F4; every screen the same.
+Alt-Space and Alt-F4; every screen the same. Hercules the same way on
+86Box, with the keys held as on a real keyboard.
 
 | ms (MartyPC XT) | CGA before | CGA after | EGA before | EGA after |
 |---|---|---|---|---|
@@ -1252,6 +1255,9 @@ Alt-Space and Alt-F4; every screen the same.
 | Alt-Tab Editor -> Calc (behind the Editor) | 190 | 125 | 477 | 227 |
 | D2: window opened | 140 | 140 | 232 | 237 |
 | D2: window moved | 165 | 167 | 260 | 262 |
+
+Hercules (MartyPC XT, 720x348): Alt-Tab to the Editor 820 -> 280 ms, to
+the calculator behind it 650 -> 280 ms.
 
 From the start of this work (before "less drawn again"), a quick Alt-Tab
 to the Editor went from 1140 to 155 ms on CGA and from 3420 to 315 ms on

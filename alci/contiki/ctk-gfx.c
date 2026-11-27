@@ -3679,9 +3679,14 @@ ctk_gfx_window_buttons(struct ctk_window *w)
    past the screen (copied through the latches), the other screens in
    memory outside the program (fmemalloc), two windows at most. From the
    bottom pixel row of the bar above the title down to the shadow, as a
-   redraw would leave it. Hercules and MCGA keep none. */
-#if !defined(GFX_HERC) && !defined(GFX_MCGA) && !defined(NOKEEP)
+   redraw would leave it. Hercules keeps them in its second page (B800,
+   32 KB, mapped by herc_graphics and never shown), when the card has one.
+   MCGA keeps none. */
+#if !defined(GFX_MCGA) && !defined(NOKEEP)
 #define KEEP_WINDOWS 1
+#if defined(GFX_EGA) || defined(GFX_VGA) || defined(GFX_HERC)
+#define KEEP_SPACE 1                    /* in the card's spare memory */
+#endif
 #include <malloc.h>
 struct kept {
   struct ctk_window *w;
@@ -3691,17 +3696,40 @@ struct kept {
 #if defined(GFX_EGA) || defined(GFX_VGA)
   unsigned short off;                   /* in the video memory past the screen */
 #else
+#if defined(GFX_HERC)
+  unsigned short off;                   /* in page 1 */
+#endif
   unsigned char __far *buf;
 #endif
 };
 static struct kept kept[2];
 static unsigned char kept_clock;
-#if defined(GFX_EGA) || defined(GFX_VGA)
+#if defined(KEEP_SPACE)
 static unsigned short kept_base, kept_end, kept_top;   /* the free video memory */
+#if !defined(GFX_HERC)
 static void vmove(unsigned short dst, unsigned short src, unsigned short n);
+#endif
 static void
 kept_space(void)
 {
+#if defined(GFX_HERC)
+  if(kept_base == 0) {
+    /* page 1 is memory of its own (not on a 32 KB card, where it is
+       missing or the same as page 0): two bytes no line of page 0 uses */
+    volatile unsigned char __far *p0 = (volatile unsigned char __far *)0xB0007FFFUL;
+    volatile unsigned char __far *p1 = (volatile unsigned char __far *)0xB8007FFFUL;
+    *p1 = 0x5a;
+    *p0 = 0xa5;
+    if(*p1 != 0x5a || *p0 != 0xa5) {
+      kept_base = kept_end = 1;          /* no room */
+      return;
+    }
+    *p0 = 0;
+    kept_base = 16;
+    kept_end = 0x8000;
+    kept_top = kept_base;
+  }
+#else
   if(kept_base == 0) {
     unsigned short screen = (unsigned short)SH * CH * 80;
 #if defined(GFX_EGA)
@@ -3720,6 +3748,7 @@ kept_space(void)
     kept_end = 0xffff;
     kept_top = kept_base;
   }
+#endif
 }
 #endif
 static void
@@ -3740,8 +3769,12 @@ kept_copy(struct kept *k, unsigned char out)
   outw(0x3ce, 0x0005);
 #else
   unsigned short seg = (unsigned short)((unsigned long)VRAM >> 16);
+#if defined(GFX_HERC)
+  unsigned short bseg = 0xb800, bo = k->off;
+#else
   unsigned short bseg = (unsigned short)((unsigned long)k->buf >> 16);
   unsigned short bo = (unsigned short)(unsigned long)k->buf;
+#endif
   for(Y = k->Y1; Y < k->Y2; ++Y, bo += n) {
     unsigned short scr = ptr_row(Y) + (unsigned short)k->x1 * GSTEP, cnt = n;
     if(out) {                           /* kept bytes to the screen */
@@ -3765,7 +3798,7 @@ kept_copy(struct kept *k, unsigned char out)
 static void
 kept_drop(struct kept *k)
 {
-#if !defined(GFX_EGA) && !defined(GFX_VGA)
+#if !defined(KEEP_SPACE)
   if(k->buf != NULL) {
     fmemfree(k->buf);
   }
@@ -3816,7 +3849,7 @@ ctk_gfx_keep_window(struct ctk_window *w)
   k = kept[0].w == NULL ? &kept[0] : kept[1].w == NULL ? &kept[1] :
       kept[0].lru < kept[1].lru ? &kept[0] : &kept[1];
   kept_drop(k);
-#if defined(GFX_EGA) || defined(GFX_VGA)
+#if defined(KEEP_SPACE)
   kept_space();
   if(kept_base == 1 || size > (unsigned long)(kept_end - kept_base)) {
     return;

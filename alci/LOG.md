@@ -344,3 +344,6 @@
   CGA-like screens, none on Hercules and MCGA). Same pixels as drawing it
   again. Alt-Tab to the Editor: 335 -> 155 ms on CGA, 600 -> 315 ms on
   EGA; to the calculator behind it 190 -> 125 and 477 -> 227 ms.
+- D7: Hercules keeps the window copies in its second page (B800, mapped
+  and never shown), when the card has one: Alt-Tab to the Editor 820 ->
+  280 ms, to the calculator 650 -> 280 ms. Same pixels (86Box).

@@ -386,8 +386,8 @@ which follows the mouse until the next click (CTK's own mouse handling).
 A window that another covers is copied away as it is on the screen and
 copied back when it comes to front again with nothing in it changed (two
 windows at most; in the video memory past the screen on EGA and VGA with
-256 KB, in far memory on the CGA-like screens, none on Hercules and
-MCGA), so Alt-Tab between windows does not draw them again.
+256 KB, in the second page on Hercules, in far memory on the CGA-like
+screens, none on MCGA), so Alt-Tab between windows does not draw them again.
 
 The pointer is drawn by the drawing layer with the bytes under it kept
 (black outline and white inside, the other way round on the black
