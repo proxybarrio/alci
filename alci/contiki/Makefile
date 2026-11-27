@@ -21,7 +21,10 @@ COMMON = main.c ctk.c ek.c arg.c timer.c \
 	edit.c edit-dsc.c filedlg.c term.c term-dsc.c files.c files-dsc.c
 SRCS_col = $(COMMON) ctk-gfx.c
 # icons built into the desktop
-ICONS = directory editor shell calculator
+ICONS = directory editor shell calculator about
+# VGA: its icons take 2 KB each and the program's 64 KB data segment has
+# no room for a fifth, so About shows its title only
+ICONS_vga = directory editor shell calculator
 TARGETS = cga cga4 ega vga mcga
 PROGS = desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-herc ctk-att ctk-ega2 ctk-vga2 ctk-t1200
 
@@ -30,7 +33,7 @@ all: $(PROGS)
 define target
 obj-$(1)/gfx-icons.h: icons/tools/mkgfx.py
 	mkdir -p obj-$(1)
-	python3 icons/tools/mkgfx.py $(1) $$@ $(ICONS)
+	python3 icons/tools/mkgfx.py $(1) $$@ $(or $(ICONS_$(1)),$(ICONS))
 obj-$(1)/%.o: %.c obj-$(1)/gfx-icons.h gfx.h elks/ctk-conf.h elks/ctk-arch.h mouse.h filedlg.h watch.h
 	$(CC) $(CFLAGS) -DGFX_$(shell echo $(1) | tr a-z A-Z) -I obj-$(1) -include gfx.h -c -o $$@ $$<
 $(2): $(patsubst %.c,obj-$(1)/%.o,$(SRCS_$(3)))

@@ -977,7 +977,7 @@ ctk_cga_wallpaper_find(const char *name)
 }
 
 /* x of the etched line beside the icon column, in pixels */
-#define SEP_X ((SW - CTK_ICONX_FROM_RIGHT - GFX_SEP_GAP) * 8 + 3)
+#define SEP_X ((SW - CTK_ICONX_FROM_RIGHT - (GFX_ICON_COLS - 1) * (CTK_ICONX_FROM_RIGHT + 4) - GFX_SEP_GAP) * 8 + 3)
 
 static unsigned char desk_nosep;        /* 1: leave out the icon column line */
 #if defined(GFX_MCGA)

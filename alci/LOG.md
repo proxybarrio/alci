@@ -358,3 +358,8 @@
   Alci builds is the same byte for byte apart from the version string, so
   behaviour and timings are unchanged.
 - The disk wheel fix is offered to ELKS (`alci/upstream/graphics-disk-wheel.patch`).
+
+- D7: the desktop shows About again as a fifth icon: one column on the
+  320x200 screens, two columns elsewhere (the icon line moves left of
+  both); About first in the menu. VGA shows its title only. Checked on
+  QEMU in CGA, CGA four colours, EGA, VGA and MCGA.

@@ -342,8 +342,11 @@ desktop's operations (window opened, moved, closed, text, menu) and
 prints them in text mode; `ctk -q N` draws the desktop, waits N seconds
 and quits. Results against Nano-X and Gem-elks: `alci/docs/gui-study.md`.
 
-The desktop shows four icons (Files, Editor, Shell, Calculator); About is
-in the F1 menu with them.
+The desktop shows five icons (About, Files, Editor, Shell, Calculator), the
+same programs as the F1 menu. They fill one column where it holds five (the
+320x200 screens); elsewhere About starts a second column, and the line that
+separates the icons moves left of both. VGA has no picture for About (the
+program's data segment has no room for a fifth 2 KB icon), only its title.
 
 Keys (desktop), as on Windows and Xfce where they have one: F1 or the
 Windows key opens the menu (arrows and Enter to choose, Escape or F1

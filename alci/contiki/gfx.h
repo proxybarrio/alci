@@ -128,6 +128,14 @@
 #define CTK_ICONY_FROM_BOTTOM (GFX_ICON_RH + 5)
 #define GFX_SEP_GAP 3
 #endif
+/* five icons: one column where they fit from the bottom place up to the
+   top row, else two (the second CTK_ICONX_FROM_RIGHT + 4 cells further
+   left, as ctk.c places it), the line left of both */
+#if GFX_SH - CTK_ICONY_FROM_BOTTOM >= 4 * CTK_ICONY_STEP
+#define GFX_ICON_COLS 1
+#else
+#define GFX_ICON_COLS 2
+#endif
 
 struct gfx_icon {
   unsigned short w, h;          /* pixels */

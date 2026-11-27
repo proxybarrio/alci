@@ -527,12 +527,15 @@ main(int argc, char **argv)
   set_icon(&edit_icon, "editor");
   set_icon(&term_icon, "shell");
   set_icon(&calc_icon, "calculator");
-  /* four icons fit in the column of every screen: About is in the menu */
+  set_icon(&about_icon, "about");
+  /* five icons, placed from the bottom of the column up in the reverse of
+     this order: About comes last, so where the column holds four it starts
+     a second column (CTK's arrange_icons) and is first in the menu */
+  program_handler_add(&about_dsc, "About", 1);
   program_handler_add(&files_dsc, "Files", 1);
   program_handler_add(&edit_dsc, "Editor", 1);
   program_handler_add(&term_dsc, "Shell", 1);
   program_handler_add(&calc_dsc, "Calculator", 1);
-  program_handler_add(&about_dsc, "About", 0);
 
   if(argc > 1 && strcmp(argv[1], "-b") == 0) {
     /* Benchmark: timings in ms, printed after going back to text mode. */
