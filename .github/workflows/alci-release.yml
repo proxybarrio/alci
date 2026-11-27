@@ -56,6 +56,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y texinfo libncurses-dev libelf-dev ncompress nasm xxd
+          # the desktop's icon tables are made from the PNG sets
+          sudo apt-get install -y python3-numpy python3-pil python3-scipy
 
       - name: toolchain and compressor
         if: inputs.action == 'publish'

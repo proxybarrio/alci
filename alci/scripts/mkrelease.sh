@@ -31,7 +31,7 @@ kernel() {   # kernel <config file>
   make all >> $LOG 2>&1
 }
 restore() { kernel alci/elks.config; }
-trap 'echo "failed, see $LOG"; restore' ERR
+trap 'echo "failed, see $LOG"; tail -30 $LOG; restore' ERR
 
 echo "floppy images"
 kernel alci/elks.config
