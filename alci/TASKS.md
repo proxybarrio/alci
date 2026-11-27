@@ -450,6 +450,7 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Alt-Tab with a box of the windows, Shift-Alt-Tab, Alt-Esc, Alt-F4 on an
   empty desktop and the Windows key (kernel keyboard driver and CTK); the
   desktop holds the console while on the screen.
+  Alt-Space: the window menu (Move, Send to back, Close).
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

@@ -24,6 +24,7 @@ ctk_arch_key_t ctk_arch_getkey(void);
 #define CH_ALTTAB_BACK 0x90     /* Shift-Alt-Tab: the one before */
 #define CH_ALTUP      0x91      /* Alt let go after Alt-Tab */
 #define CH_ALTESC     0x92      /* Alt-Esc: the window in front to the back */
+#define CH_ALTSPACE   0x93      /* Alt-Space: the menu of the window */
 #define CH_ENTER      '\r'
 #define CH_TAB        '\t'
 #define CH_DEL        0x08

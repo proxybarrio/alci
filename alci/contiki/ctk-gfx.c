@@ -4436,15 +4436,55 @@ draw_menu(struct ctk_menu *m)
   menubar_rows();
 }
 
-/* The window switcher of Alt-Tab, drawn as an open menu is: the titles of
-   the windows from front to back, the chosen one marked, in a box in the
-   middle of the screen. The rows it takes go to *y1 .. *y2 - 1. */
+/* A row of a box of choices, drawn as an open menu is: cells x0 ..
+   x0 + wd - 1 of row cy, the text from the second cell, marked when act,
+   the frame's top on the first row and its bottom on the last. */
+static void
+list_row(unsigned char x0, unsigned char cy, unsigned char wd,
+         const char *t, unsigned char len, unsigned char act,
+         unsigned char first, unsigned char last)
+{
+  unsigned char i;
+  for(i = 0; i < wd; ++i) {
+    unsigned char c = (i >= 1 && i - 1 < len) ? t[i - 1] : ' ';
+    if(act) {
+#if defined(MONO)
+      rows_solid(C_INK);
+#else
+      rows_bar(1);
+#endif
+    } else {
+      rows_solid(C_PAPER);
+    }
+    pix_rows();
+    if(c != ' ') {
+      pix_glyph(c, act ? C_SEL_FG : C_INK);
+    }
+    if(i == 0) {
+      pix_vline(0, 0, CH - 1, C_EDGE_A);
+    }
+    if(i == wd - 1) {
+      pix_vline(7, 0, CH - 1, C_EDGE_A);
+    }
+    if(first) {
+      pix_hline(0, 0, 7, C_EDGE_A);
+    }
+    if(last) {
+      pix_hline(CH - 1, 0, 7, C_EDGE_A);
+    }
+    blit(x0 + i, cy);
+  }
+}
+
+/* The window switcher of Alt-Tab: the titles of the windows from front to
+   back, the chosen one marked, in a box in the middle of the screen. The
+   rows it takes go to *y1 .. *y2 - 1. */
 void
 ctk_gfx_switcher(struct ctk_window *list, struct ctk_window *sel,
                  unsigned char *y1, unsigned char *y2)
 {
   struct ctk_window *w;
-  unsigned char n = 0, wd = 14, x0, y0, y, i;
+  unsigned char n = 0, wd = 14, x0, y0, y;
   for(w = list; w != NULL && n < SH - 6; w = w->next, ++n) {
     if(w->titlelen + 2 > wd) {
       wd = w->titlelen + 2;
@@ -4459,36 +4499,37 @@ ctk_gfx_switcher(struct ctk_window *list, struct ctk_window *sel,
   *y2 = y0 + n;
   PTR_OFF();
   for(w = list, y = 0; y < n; w = w->next, ++y) {
-    unsigned char act = w == sel, len = w->titlelen;
-    for(i = 0; i < wd; ++i) {
-      unsigned char c = (i >= 1 && i - 1 < len) ? w->title[i - 1] : ' ';
-      if(act) {
-#if defined(MONO)
-        rows_solid(C_INK);
-#else
-        rows_bar(1);
-#endif
-      } else {
-        rows_solid(C_PAPER);
-      }
-      pix_rows();
-      if(c != ' ') {
-        pix_glyph(c, act ? C_SEL_FG : C_INK);
-      }
-      if(i == 0) {
-        pix_vline(0, 0, CH - 1, C_EDGE_A);
-      }
-      if(i == wd - 1) {
-        pix_vline(7, 0, CH - 1, C_EDGE_A);
-      }
-      if(y == 0) {
-        pix_hline(0, 0, 7, C_EDGE_A);
-      }
-      if(y == n - 1) {
-        pix_hline(CH - 1, 0, 7, C_EDGE_A);
-      }
-      blit(x0 + i, y0 + y);
+    list_row(x0, y0 + y, wd, w->title, w->titlelen, w == sel,
+             y == 0, y == n - 1);
+  }
+}
+
+/* The menu of a window (Alt-Space): n choices under the left end of its
+   title bar, choice sel marked; its rows go to *y1 .. *y2 - 1. */
+void
+ctk_gfx_popup(unsigned char x, unsigned char y, const char * const *items,
+              unsigned char n, unsigned char sel, unsigned char *y1,
+              unsigned char *y2)
+{
+  unsigned char k, wd = 0;
+  for(k = 0; k < n; ++k) {
+    unsigned char l = strlen(items[k]) + 2;
+    if(l > wd) {
+      wd = l;
     }
+  }
+  if(x + wd > SW) {
+    x = SW - wd;
+  }
+  if(y + n > SH - 1) {
+    y = SH - 1 - n;
+  }
+  *y1 = y;
+  *y2 = y + n;
+  PTR_OFF();
+  for(k = 0; k < n; ++k) {
+    list_row(x, y + k, wd, items[k], strlen(items[k]), k == sel,
+             k == 0, k == n - 1);
   }
 }
 

@@ -420,6 +420,7 @@ poll_keys(int ms)
         /* the desktop keys of the Alci kernel, ESC ESC and a letter:
            Alt and a function key a .. j (when no console is switched),
            Alt-Tab t, Shift-Alt-Tab T, Alt let go after it r, Alt-Esc x,
+           Alt-Space s,
            the Windows key w */
         switch(b[i + 2]) {
         case 'd':                       /* Alt-F4: the window closed, or
@@ -434,6 +435,7 @@ poll_keys(int ms)
         case 'T': push(CH_ALTTAB_BACK); break;
         case 'r': push(CH_ALTUP); break;
         case 'x': push(CH_ALTESC); break;
+        case 's': push(CH_ALTSPACE); break;
         case 'w': push(CTK_CONF_MENU_KEY); break;
         }
         i += 2;

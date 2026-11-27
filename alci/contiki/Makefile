@@ -79,8 +79,8 @@ fetch:
 	sed -i 's/^#define MAX_REDRAWWIDGETS 4$$/#define MAX_REDRAWWIDGETS 16/' contiki-1.x/contiki/ctk/ctk.c
 	# a window in front moved by copying it in video memory (as Nano-X
 	# does) and drawing only the desktop it uncovers; Escape closes a menu;
-	# title and close buttons where they are drawn; Alt-Tab, Alt-Esc and
-	# Alt-F4 as on Windows and Xfce
+	# title and close buttons where they are drawn; Alt-Tab, Alt-Esc,
+	# Alt-Space and Alt-F4 as on Windows and Xfce
 	git -C contiki-1.x apply ../patches/ctk-window-move.patch
 
 clean:

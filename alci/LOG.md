@@ -316,3 +316,6 @@
   no longer switch to a text console under it. Bringing a window to front
   no longer draws the old front window whole (frame and focused widget
   only): 2.2 s down to 0.9 s on CGA, 5.1 to 2.7 s on EGA with the Editor.
+- D7: Alt-Space opens the menu of the window in front, as on Windows and
+  Xfce: Move (then the arrows, any other key puts it down), Send to back,
+  Close. The kernel sends it as `ESC ESC s`.

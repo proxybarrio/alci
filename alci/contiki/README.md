@@ -351,6 +351,8 @@ closes it). Alt-Tab shows the open windows in a box while Alt is held,
 each Tab chooses the next (Shift-Alt-Tab the one before) and the chosen
 window comes to front when Alt is let go; a quick Alt-Tab goes back to
 the window used before. Alt-Esc sends the window in front to the back.
+Alt-Space opens the menu of the window in front (Move, Send to back,
+Close; arrows and Enter, or the first letter; any other key closes it).
 Alt-F4 closes the window in front (as its close box does) and, with no
 window open, asks whether to leave the desktop. Tab and F5 move between
 widgets, F3 brings the last window to front, Enter presses a button;
@@ -362,7 +364,7 @@ box (left on the two-colour screens, right on the colour ones) closes it.
 The Alt keys need the Alci kernel. Its keyboard driver sends them as
 `ESC ESC` and a letter: Alt-F1 .. F10 `a`..`j` when no console is
 switched, Alt-Tab `t`, Shift-Alt-Tab `T`, Alt let go after Alt-Tab `r`,
-Alt-Esc `x`, the Windows key `w`. While on the screen the desktop holds
+Alt-Esc `x`, Alt-Space `s`, the Windows key `w`. While on the screen the desktop holds
 the console (`DCGET_GRAPH`, released on leaving), so Alt-F1 .. F8 do not
 switch to a text console under the picture and no console text is drawn
 over it; Ctrl-Q goes back to the text console. On the ELKS kernel the

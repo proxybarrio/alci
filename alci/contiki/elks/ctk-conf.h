@@ -17,6 +17,7 @@
 #define CTK_CONF_ALTTAB_BACK_KEY      CH_ALTTAB_BACK
 #define CTK_CONF_ALTUP_KEY            CH_ALTUP
 #define CTK_CONF_ALTESC_KEY           CH_ALTESC
+#define CTK_CONF_WINMENU_KEY          CH_ALTSPACE
 #define CTK_CONF_MENUS                1
 #define CTK_CONF_MENUWIDTH            16
 #define CTK_CONF_MAXMENUITEMS         10
