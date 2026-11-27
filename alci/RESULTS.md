@@ -1112,6 +1112,24 @@ on average on CGA, where the frame is always copied; 290 ms on EGA, where
 the moves up and down cross a shading band and draw the frame. Checked on screen in QEMU (CGA, CGA4, EGA, VGA, MCGA,
 AT&T) and 86Box (Hercules, Tandy).
 
+### CTK window switching (Alt-Tab)
+
+Desktop with Calc, Files and the Editor open (the Editor in front, 78
+columns), keys pushed by a test build, MartyPC XT, ms:
+
+| | CGA | EGA |
+|---|---|---|
+| Alt-Tab, the box of windows drawn | 200 | 490 |
+| Tab again, the next one marked | 190 | 490 |
+| Alt let go, the chosen window to front | 910 | 2670 |
+| the same before (the window that was in front drawn again whole) | 2210 | 5140 |
+| a quick Alt-Tab (box never drawn) | 1480 | 3420 |
+
+The window that leaves the front now only gets its frame and its focused
+widget drawn again; the one that comes to front is drawn whole, which is
+most of the time left (a quick Alt-Tab to the 78-column Editor). Checked
+with the keys held for real on 86Box (XT, EGA) and in QEMU (CGA).
+
 Not measured yet: start from a 1.44M floppy and the hard disk, start of
 the packed programs, the 86Box PC1512 and AT, and the response to a key
 for Nano-X (its ELKS client library has no `GrInjectKeyboardEvent`) and

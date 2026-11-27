@@ -33,6 +33,8 @@
 #endif
 
 #include <string.h>
+#include <sys/ioctl.h>
+#include <linuxmt/ntty.h>
 
 #define SW GFX_SW
 #define SH GFX_SH
@@ -2545,6 +2547,7 @@ ctk_cga_exit(void)
 #else
   set_mode(start_mode);
 #endif
+  ioctl(0, DCREL_GRAPH, 0);
 }
 
 #if defined(GFX_MCGA) || defined(GFX_VGA)
@@ -3191,6 +3194,10 @@ ctk_gfx_window_frame(struct ctk_window *w, unsigned char focus,
 void
 ctk_draw_init(void)
 {
+  /* the console held while the desktop is on the screen: no switch to
+     another console (Alt-F1 .. F8 come to the desktop) and no console
+     text drawn over the picture */
+  ioctl(0, DCGET_GRAPH, 0);
 #if defined(MONO)
   if(ctk_cga_wallpaper >= 4) {
     ctk_cga_wallpaper = 0;
@@ -4427,6 +4434,62 @@ draw_menu(struct ctk_menu *m)
   }
   gotoxy(x2, 0);
   menubar_rows();
+}
+
+/* The window switcher of Alt-Tab, drawn as an open menu is: the titles of
+   the windows from front to back, the chosen one marked, in a box in the
+   middle of the screen. The rows it takes go to *y1 .. *y2 - 1. */
+void
+ctk_gfx_switcher(struct ctk_window *list, struct ctk_window *sel,
+                 unsigned char *y1, unsigned char *y2)
+{
+  struct ctk_window *w;
+  unsigned char n = 0, wd = 14, x0, y0, y, i;
+  for(w = list; w != NULL && n < SH - 6; w = w->next, ++n) {
+    if(w->titlelen + 2 > wd) {
+      wd = w->titlelen + 2;
+    }
+  }
+  if(wd > SW - 4) {
+    wd = SW - 4;
+  }
+  x0 = (SW - wd) / 2;
+  y0 = (SH - n) / 2;
+  *y1 = y0;
+  *y2 = y0 + n;
+  PTR_OFF();
+  for(w = list, y = 0; y < n; w = w->next, ++y) {
+    unsigned char act = w == sel, len = w->titlelen;
+    for(i = 0; i < wd; ++i) {
+      unsigned char c = (i >= 1 && i - 1 < len) ? w->title[i - 1] : ' ';
+      if(act) {
+#if defined(MONO)
+        rows_solid(C_INK);
+#else
+        rows_bar(1);
+#endif
+      } else {
+        rows_solid(C_PAPER);
+      }
+      pix_rows();
+      if(c != ' ') {
+        pix_glyph(c, act ? C_SEL_FG : C_INK);
+      }
+      if(i == 0) {
+        pix_vline(0, 0, CH - 1, C_EDGE_A);
+      }
+      if(i == wd - 1) {
+        pix_vline(7, 0, CH - 1, C_EDGE_A);
+      }
+      if(y == 0) {
+        pix_hline(0, 0, 7, C_EDGE_A);
+      }
+      if(y == n - 1) {
+        pix_hline(CH - 1, 0, 7, C_EDGE_A);
+      }
+      blit(x0 + i, y0 + y);
+    }
+  }
 }
 
 void

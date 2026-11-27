@@ -345,17 +345,30 @@ and quits. Results against Nano-X and Gem-elks: `alci/docs/gui-study.md`.
 The desktop shows four icons (Files, Editor, Shell, Calculator); About is
 in the F1 menu with them.
 
-Keys (desktop): F1 opens the menu (arrows and Enter to choose, Escape or
-F1 closes it), Tab and F5 move between widgets, F3 switches window, Enter
-presses a button, Alt-F4 closes the window in front (as its close box
-does); Enter on a window's title lets the arrows move the window and any
-other key puts it down. With the mouse: a click anywhere on the title bar,
-then the window follows the pointer until the next click; a click on the
-close box (left on the two-colour screens, right on the colour ones)
-closes it. Alt-F4 needs the Alci kernel, which passes Alt and a function
-key to the program as `ESC ESC a`..`j` when it switches no console (there
-is no fourth console, or a program holds the screen); ELKS keeps Alt-F1
-to F8 for itself. Ctrl-Q goes back to the text console; with a text not saved in the editor or a
+Keys (desktop), as on Windows and Xfce where they have one: F1 or the
+Windows key opens the menu (arrows and Enter to choose, Escape or F1
+closes it). Alt-Tab shows the open windows in a box while Alt is held,
+each Tab chooses the next (Shift-Alt-Tab the one before) and the chosen
+window comes to front when Alt is let go; a quick Alt-Tab goes back to
+the window used before. Alt-Esc sends the window in front to the back.
+Alt-F4 closes the window in front (as its close box does) and, with no
+window open, asks whether to leave the desktop. Tab and F5 move between
+widgets, F3 brings the last window to front, Enter presses a button;
+Enter on a window's title lets the arrows move the window and any other
+key puts it down. With the mouse: a click anywhere on the title bar, then
+the window follows the pointer until the next click; a click on the close
+box (left on the two-colour screens, right on the colour ones) closes it.
+
+The Alt keys need the Alci kernel. Its keyboard driver sends them as
+`ESC ESC` and a letter: Alt-F1 .. F10 `a`..`j` when no console is
+switched, Alt-Tab `t`, Shift-Alt-Tab `T`, Alt let go after Alt-Tab `r`,
+Alt-Esc `x`, the Windows key `w`. While on the screen the desktop holds
+the console (`DCGET_GRAPH`, released on leaving), so Alt-F1 .. F8 do not
+switch to a text console under the picture and no console text is drawn
+over it; Ctrl-Q goes back to the text console. On the ELKS kernel the
+desktop works without these keys.
+
+Ctrl-Q goes back to the text console; with a text not saved in the editor or a
 program in a shell it asks first (Quit, Cancel; Ctrl-Q again quits).
 
 Mouse: a Microsoft serial mouse on `/dev/ttyS0` by default;

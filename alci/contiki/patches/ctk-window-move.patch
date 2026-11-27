@@ -1,6 +1,6 @@
 --- a/contiki/ctk/ctk.c
 +++ b/contiki/ctk/ctk.c
-@@ -87,6 +87,30 @@
+@@ -87,6 +87,35 @@
     front, closing one the rows it took; not the whole screen */
  #define REDRAW_OPEN         32
  #define REDRAW_ROWS         64
@@ -10,6 +10,11 @@
 +static unsigned char move_ox, move_oy;  /* where the window was */
 +static unsigned char move_done;        /* the move by the title ended: the frame drawn */
 +static unsigned char move_grab;        /* column of the title taken by the mouse */
++static struct ctk_window *switch_sel;   /* Alt-Tab: the window chosen */
++static unsigned char switch_draw, switch_shown, switch_y1, switch_y2;
++void ctk_gfx_switcher(struct ctk_window *list, struct ctk_window *sel,
++                      unsigned char *y1, unsigned char *y2);
++static void switch_end(void);
 +void ctk_gfx_move(unsigned char x1, unsigned char x2, unsigned char y1,
 +                  unsigned char y2, signed char dx, signed char dy);
 +void ctk_gfx_desk_rect(unsigned char x1, unsigned char x2, unsigned char y1,
@@ -31,7 +36,7 @@
  static struct ctk_window *redraw_prev;  /* front window before an open */
  static unsigned char redraw_y1 = 255, redraw_y2;
  
-@@ -565,6 +589,7 @@
+@@ -565,6 +594,7 @@
  		3, 1, "   ");
  #endif /* CTK_CONF_WINDOWCLOSE */  
    CTK_WIDGET_ADD(window, &window->closebutton);
@@ -39,7 +44,7 @@
  }
  /*-----------------------------------------------------------------------------------*/
  /**
-@@ -677,9 +702,7 @@
+@@ -677,9 +707,7 @@
      }
  
      /* Draw focused window */
@@ -50,7 +55,7 @@
      ctk_draw_clear_window(windows, focus, clipy1, clipy2);
      ctk_draw_window(windows, focus, clipy1, clipy2, 1);
    }
-@@ -694,6 +717,156 @@
+@@ -694,6 +722,184 @@
  #endif /* CTK_CONF_MENUS */
  }
  /*-----------------------------------------------------------------------------------*/
@@ -204,10 +209,46 @@
 +  redraw |= REDRAW_MOVE;
 +}
 +/*-----------------------------------------------------------------------------------*/
++/* Alci: the Alt-Tab switcher closed: the rows it took drawn again */
++static void
++switch_end(void)
++{
++  if(switch_sel == NULL) {
++    return;
++  }
++  switch_sel = NULL;
++  switch_draw = 0;
++  if(!switch_shown) {
++    return;                             /* never drawn: Alt went up at once */
++  }
++  switch_shown = 0;
++  if(switch_y1 < redraw_y1) {
++    redraw_y1 = switch_y1;
++  }
++  if(switch_y2 > redraw_y2) {
++    redraw_y2 = switch_y2;
++  }
++  redraw |= REDRAW_ROWS;
++}
++/* Alci: 1 when no window and no dialog is open (Alt-F4 then asks to quit) */
++unsigned char
++ctk_desktop_empty(void)
++{
++  return windows == NULL && dialog == NULL;
++}
++/*-----------------------------------------------------------------------------------*/
  /**
   * Redraw the entire desktop.
   *
-@@ -1233,7 +1406,8 @@
+@@ -757,6 +963,7 @@
+ ctk_window_isfront(struct ctk_window *w)
+ {
+   return mode == CTK_MODE_NORMAL && dialog == NULL &&
++    switch_sel == NULL &&
+ #if CTK_CONF_MENUS
+     menus.open == NULL &&
+ #endif /* CTK_CONF_MENUS */
+@@ -1233,7 +1440,8 @@
      } else if(w == (struct ctk_widget *)&windows->titlebutton) {
  #if CTK_CONF_WINDOWMOVE
        mode = CTK_MODE_WINDOWMOVE;
@@ -217,7 +258,7 @@
  #endif /* CTK_CONF_WINDOWMOVE */
      } else {
        ek_post(w->window->owner, ctk_signal_widget_activate, w);
-@@ -1404,6 +1578,7 @@
+@@ -1404,6 +1612,7 @@
    case CH_ENTER:
      return activate_menu();
  
@@ -225,7 +266,7 @@
    case CTK_CONF_MENU_KEY:
      lastmenu = menus.open;
      menus.open = NULL;
-@@ -1716,6 +1891,7 @@
+@@ -1716,6 +1925,7 @@
  			(ek_data_t)mouse_button);
  		if(mouse_clicked && widget != NULL) {
  		  select_widget(widget);
@@ -233,7 +274,7 @@
  		  redraw |= activate(widget);
  		}
  	      }
-@@ -1743,6 +1919,23 @@
+@@ -1743,6 +1953,79 @@
        }
        
        widget = window->focused;
@@ -254,10 +295,66 @@
 +	continue;
 +      }
 +#endif /* CTK_CONF_WINDOWCLOSE_KEY */
++#ifdef CTK_CONF_ALTTAB_KEY
++      if(switch_sel != NULL && c != CTK_CONF_ALTTAB_KEY &&
++	 c != CTK_CONF_ALTTAB_BACK_KEY && c != CTK_CONF_ALTUP_KEY) {
++	switch_end();                   /* another key: the switcher goes */
++      }
++      if(c == CTK_CONF_ALTTAB_KEY || c == CTK_CONF_ALTTAB_BACK_KEY) {
++	if(dialog == NULL && windows != NULL && windows->next != NULL) {
++	  struct ctk_window *last;
++#if CTK_CONF_MENUS
++	  if(menus.open != NULL) {
++	    lastmenu = menus.open;
++	    menus.open = NULL;
++	    redraw |= REDRAW_MENUPART;
++	  }
++#endif /* CTK_CONF_MENUS */
++	  for(last = windows; last->next != NULL; last = last->next);
++	  if(c == CTK_CONF_ALTTAB_KEY) {
++	    switch_sel = switch_sel == NULL ? windows->next :
++	      switch_sel->next != NULL ? switch_sel->next : windows;
++	  } else {
++	    switch_sel = switch_sel == NULL ? last :
++	      switch_sel->prev != NULL ? switch_sel->prev : last;
++	  }
++	  switch_draw = 1;              /* drawn with the redraw, unless Alt
++					   is already up again */
++	}
++	continue;
++      }
++      if(c == CTK_CONF_ALTUP_KEY) {
++	if(switch_sel != NULL) {
++	  struct ctk_window *w2;
++	  for(w2 = windows; w2 != NULL && w2 != switch_sel; w2 = w2->next);
++	  switch_end();
++	  if(w2 != NULL && w2 != windows) {
++	    ctk_window_open(w2);
++	  }
++	}
++	continue;
++      }
++      if(c == CTK_CONF_ALTESC_KEY) {
++	if(dialog == NULL && windows != NULL && windows->next != NULL) {
++	  struct ctk_window *w2 = windows, *last;
++	  for(last = windows; last->next != NULL; last = last->next);
++	  windows = w2->next;
++	  windows->prev = NULL;
++	  last->next = w2;
++	  w2->prev = last;
++	  w2->next = NULL;
++#if CTK_CONF_MENUS
++	  make_desktopmenu();
++#endif /* CTK_CONF_MENUS */
++	  redraw |= REDRAW_ALL;
++	}
++	continue;
++      }
++#endif /* CTK_CONF_ALTTAB_KEY */
  	  
        if(widget != NULL &&
  	 widget->type == CTK_WIDGET_TEXTENTRY &&
-@@ -1824,16 +2017,19 @@
+@@ -1824,16 +2107,19 @@
      redraw = 0;
  
      window = windows;
@@ -279,7 +376,7 @@
        }
  
        if(window->h + myc + ctk_draw_windowtitle_height +
-@@ -1846,8 +2042,6 @@
+@@ -1846,8 +2132,6 @@
        if(window->y > 0) {
  	--window->y;
        }
@@ -288,7 +385,7 @@
      }		  
      
      /* Check if the mouse has been clicked, and stop moving the window
-@@ -1855,7 +2049,6 @@
+@@ -1855,7 +2139,6 @@
      if(mouse_button_changed &&
         mouse_button == 0) {
        mode = CTK_MODE_NORMAL;
@@ -296,7 +393,7 @@
      }
  #endif /* CTK_CONF_MOUSE_SUPPORT */
      
-@@ -1871,38 +2064,43 @@
+@@ -1871,38 +2154,43 @@
  	if(window->x + window->w + 1 >= width) {
  	  --window->x;
  	}
@@ -345,3 +442,30 @@
    } else if(redraw & (REDRAW_OPEN | REDRAW_ROWS)) {
      if(dialog != NULL
  #if CTK_CONF_MENUS
+@@ -1924,8 +2212,10 @@
+         struct ctk_window *w2;
+         for(w2 = windows; w2 != NULL && w2 != redraw_prev; w2 = w2->next);
+         if(w2 != NULL && w2 != windows) {
+-          ctk_draw_clear_window(w2, 0, 1, height);
+-          ctk_draw_window(w2, 0, 1, height, 1);
++          ctk_gfx_window_frame(w2, 0, 0);
++          if(w2->focused != NULL) {
++            ctk_draw_widget(w2->focused, 0, 1, height);
++          }
+         }
+       }
+       if(windows != NULL) {
+@@ -1957,6 +2247,13 @@
+       ++widgetptr;
+     }
+   }    
++#ifdef CTK_CONF_ALTTAB_KEY
++  if(switch_sel != NULL && (redraw || switch_draw)) {
++    ctk_gfx_switcher(windows, switch_sel, &switch_y1, &switch_y2);
++    switch_draw = 0;
++    switch_shown = 1;
++  }
++#endif /* CTK_CONF_ALTTAB_KEY */
+   redraw = 0;
+   redraw_widgetptr = 0;
+   redraw_y1 = 255;

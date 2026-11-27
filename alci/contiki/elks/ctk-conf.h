@@ -13,6 +13,10 @@
 #define CTK_CONF_WINDOWMOVE           1
 #define CTK_CONF_WINDOWCLOSE          1
 #define CTK_CONF_WINDOWCLOSE_KEY      CH_CLOSEWIN
+#define CTK_CONF_ALTTAB_KEY           CH_ALTTAB
+#define CTK_CONF_ALTTAB_BACK_KEY      CH_ALTTAB_BACK
+#define CTK_CONF_ALTUP_KEY            CH_ALTUP
+#define CTK_CONF_ALTESC_KEY           CH_ALTESC
 #define CTK_CONF_MENUS                1
 #define CTK_CONF_MENUWIDTH            16
 #define CTK_CONF_MAXMENUITEMS         10

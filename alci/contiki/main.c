@@ -27,8 +27,10 @@
 #include "ctk-mouse.h"
 #include "mouse.h"
 
-/* the window moved, copied if it is in front (patches/ctk-window-move.patch) */
+/* the window moved, copied if it is in front; no window or dialog open
+   (patches/ctk-window-move.patch) */
 void ctk_window_moveto(struct ctk_window *w, unsigned char x, unsigned char y);
+unsigned char ctk_desktop_empty(void);
 
 void ctk_cga_exit(void);
 void calc_init(char *arg);
@@ -414,11 +416,25 @@ poll_keys(int ms)
         }
         continue;
       }
-      if(d == 0x1b && i + 2 < n && b[i + 2] >= 'a' && b[i + 2] <= 'j') {
-        /* Alt and a function key (ESC ESC a .. j, from the Alci kernel
-           when it switches no console): Alt-F4 closes the window */
-        if(b[i + 2] == 'd') {
-          push(CH_CLOSEWIN);
+      if(d == 0x1b && i + 2 < n) {
+        /* the desktop keys of the Alci kernel, ESC ESC and a letter:
+           Alt and a function key a .. j (when no console is switched),
+           Alt-Tab t, Shift-Alt-Tab T, Alt let go after it r, Alt-Esc x,
+           the Windows key w */
+        switch(b[i + 2]) {
+        case 'd':                       /* Alt-F4: the window closed, or
+                                           with none open the question */
+          if(ctk_desktop_empty()) {
+            quit_wanted = 1;
+          } else {
+            push(CH_CLOSEWIN);
+          }
+          break;
+        case 't': push(CH_ALTTAB); break;
+        case 'T': push(CH_ALTTAB_BACK); break;
+        case 'r': push(CH_ALTUP); break;
+        case 'x': push(CH_ALTESC); break;
+        case 'w': push(CTK_CONF_MENU_KEY); break;
         }
         i += 2;
         continue;

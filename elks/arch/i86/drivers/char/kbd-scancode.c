@@ -72,6 +72,7 @@ extern int kraw;
 #define SSC	0xC0	/* simple scan code*/
 
 static unsigned int ModeState = 0;
+static int alt_switch;		/* Alci: an Alt-Tab sent since Alt went down */
 static int capslock;
 static int numlock;
 static int scrlock;
@@ -260,6 +261,14 @@ static void keyboard_irq(int irq, struct pt_regs *regs)
 		break;
 	    }
 	    ModeState &= ~mode;		/* key up: clear these and other modes*/
+	    if (mode == ALT && alt_switch) {
+		/* Alci: Alt let go after Alt-Tab: the window chosen comes
+		 * to front (ESC ESC r)*/
+		alt_switch = 0;
+		Console_conin(ESC);
+		Console_conin(ESC);
+		Console_conin('r');
+	    }
         } else
 	    ModeState |= mode;		/* key down: set mode bit */
 
@@ -270,6 +279,27 @@ static void keyboard_irq(int irq, struct pt_regs *regs)
     /* no further processing on key release for non-status keys*/
     if (keyReleased)
 	return;
+
+    /* Alci: the keys of a desktop, as ESC ESC and a letter (ESC ESC a-j
+     * are Alt and a function key, below): Alt-Tab t, Shift-Alt-Tab T,
+     * Alt-Esc x, the Windows keys w*/
+    if (E0key && (code == 0x5B || code == 0x5C)) {
+	Console_conin(ESC);
+	Console_conin(ESC);
+	Console_conin('w');
+	return;
+    }
+    if ((ModeState & (CTRL|ALT)) == ALT && (code == 0x0F || code == 0x01)) {
+	Console_conin(ESC);
+	Console_conin(ESC);
+	if (code == 0x01)
+	    Console_conin('x');
+	else {
+	    Console_conin((ModeState & (LSHIFT|RSHIFT))? 'T': 't');
+	    alt_switch = 1;
+	}
+	return;
+    }
 
     switch(mode & 0xC0) {
     /* --------------Handle Function keys-------------- */

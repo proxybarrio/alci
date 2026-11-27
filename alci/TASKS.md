@@ -447,6 +447,9 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   takes 0.18 s on CGA and 0.47 s on EGA (was 1.1 s and 2.5 s; Nano-X 0.84
   s and 1.0 s). Escape closes a menu. Alt-F4 closes the window in front;
   the whole title bar moves it, the close box answers where it is drawn.
+  Alt-Tab with a box of the windows, Shift-Alt-Tab, Alt-Esc, Alt-F4 on an
+  empty desktop and the Windows key (kernel keyboard driver and CTK); the
+  desktop holds the console while on the screen.
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

@@ -20,6 +20,10 @@ ctk_arch_key_t ctk_arch_getkey(void);
 #define CH_PGDN       0x8c
 #define CH_DELFWD     0x8d      /* Delete (CH_DEL is Backspace) */
 #define CH_CLOSEWIN   0x8e      /* Alt-F4: close the window in front */
+#define CH_ALTTAB     0x8f      /* Alt-Tab: the next window in the switcher */
+#define CH_ALTTAB_BACK 0x90     /* Shift-Alt-Tab: the one before */
+#define CH_ALTUP      0x91      /* Alt let go after Alt-Tab */
+#define CH_ALTESC     0x92      /* Alt-Esc: the window in front to the back */
 #define CH_ENTER      '\r'
 #define CH_TAB        '\t'
 #define CH_DEL        0x08
