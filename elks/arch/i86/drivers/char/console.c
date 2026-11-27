@@ -374,7 +374,7 @@ static int Console_ioctl(struct tty *tty, int cmd, char *arg)
             }
 #endif
             glock = C;
-            spin_graph = 1;     /* the disk wheel would write into the picture */
+            spin_graph = 1;     /* disk wheel would write into graphics screen */
             return 0;
         }
         return -EBUSY;

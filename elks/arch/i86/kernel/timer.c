@@ -21,7 +21,7 @@
 
 volatile jiff_t jiffies;
 static int spin_on;
-int spin_graph;            /* the screen is a picture: no wheel drawn in it */
+int spin_graph;         /* console held for graphics, don't draw wheel */
 static int delaytick;
 
 #ifdef CONFIG_CPU_USAGE
