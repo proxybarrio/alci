@@ -319,3 +319,10 @@
 - D7: Alt-Space opens the menu of the window in front, as on Windows and
   Xfce: Move (then the arrows, any other key puts it down), Send to back,
   Close. The kernel sends it as `ESC ESC s`.
+- D7: less drawn again. A window brought to front that nothing covered
+  and that missed no change gets only its frame and focused widget; CTK
+  notes the windows whose widgets changed while they could not be drawn
+  and draws those whole. The Alt-Tab box and the window menu keep what is
+  under them and put it back. Blank ends of text rows are filled as rows.
+  On the XT: a window opened 530 -> 205 ms on CGA (1380 -> 930 on EGA),
+  Alt-Tab to a window behind the Editor 910 -> 240 ms (2670 -> 1280).

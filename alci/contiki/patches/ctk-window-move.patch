@@ -1,6 +1,6 @@
 --- a/contiki/ctk/ctk.c
 +++ b/contiki/ctk/ctk.c
-@@ -87,6 +87,44 @@
+@@ -87,6 +87,53 @@
     front, closing one the rows it took; not the whole screen */
  #define REDRAW_OPEN         32
  #define REDRAW_ROWS         64
@@ -21,6 +21,15 @@
 +static const char * const wmenu_items[WMENU_N] = {"Move", "Send to back", "Close  Alt-F4"};
 +static unsigned char wmenu_on, wmenu_sel, wmenu_draw, wmenu_shown, wmenu_y1, wmenu_y2;
 +static void wmenu_end(void);
++unsigned char ctk_gfx_unsave(void);
++void ctk_gfx_unsave_drop(void);
++/* windows whose widgets changed while they could not be drawn (behind,
++   under a menu, during a move): drawn whole when they come to front */
++static struct ctk_window *stale[4];
++static unsigned char stale_all, open_uncovered;
++static void stale_mark(struct ctk_window *w);
++static unsigned char stale_is(struct ctk_window *w);
++static void stale_clear(struct ctk_window *w);
 +void ctk_gfx_popup(unsigned char x, unsigned char y, const char * const *items,
 +                   unsigned char n, unsigned char sel, unsigned char *y1,
 +                   unsigned char *y2);
@@ -45,7 +54,36 @@
  static struct ctk_window *redraw_prev;  /* front window before an open */
  static unsigned char redraw_y1 = 255, redraw_y2;
  
-@@ -565,6 +603,7 @@
+@@ -429,6 +476,20 @@
+   
+   /* Check if already open. */
+   for(w2 = windows; w2 != w && w2 != NULL; w2 = w2->next);
++  open_uncovered = 0;
++  if(w2 != NULL) {
++    /* Alci: open already; nothing in front of it over it? */
++    unsigned char a1, a2, b1, b2, c1, c2, d1, d2;
++    ctk_gfx_window_extent(w, &a1, &a2, &b1, &b2);
++    open_uncovered = 1;
++    for(w2 = windows; w2 != w; w2 = w2->next) {
++      ctk_gfx_window_extent(w2, &c1, &c2, &d1, &d2);
++      if(a1 < c2 && c1 < a2 && b1 < d2 && d1 < b2) {
++        open_uncovered = 0;
++      }
++    }
++    w2 = w;
++  }
+   if(w2 == NULL) {
+    /* Not open, so we add it at the head of the list of open
+        windows. */
+@@ -484,6 +545,7 @@
+   if(w == NULL) {
+     return;
+   }
++  stale_clear(w);                       /* Alci */
+   
+   /* Check if the window to be closed is the first window on the
+      list. */
+@@ -565,6 +627,7 @@
  		3, 1, "   ");
  #endif /* CTK_CONF_WINDOWCLOSE */  
    CTK_WIDGET_ADD(window, &window->closebutton);
@@ -53,7 +91,7 @@
  }
  /*-----------------------------------------------------------------------------------*/
  /**
-@@ -677,9 +716,7 @@
+@@ -677,9 +740,7 @@
      }
  
      /* Draw focused window */
@@ -64,7 +102,7 @@
      ctk_draw_clear_window(windows, focus, clipy1, clipy2);
      ctk_draw_window(windows, focus, clipy1, clipy2, 1);
    }
-@@ -694,6 +731,224 @@
+@@ -694,6 +755,276 @@
  #endif /* CTK_CONF_MENUS */
  }
  /*-----------------------------------------------------------------------------------*/
@@ -179,7 +217,7 @@
 +    }
 +    ctk_gfx_skip(0, 0, 0, 0);
 +  }
-+  if(whole && !move_done) {
++  if(whole && !move_done && !stale_is(w)) {
 +    return;                             /* the frame came along */
 +  }
 +  move_done = 0;
@@ -189,6 +227,12 @@
 +  ctk_gfx_window_frame(w, mode == CTK_MODE_WINDOWMOVE ? 0 : CTK_FOCUS_WINDOW,
 +                       dx != 0 || dy != 0);
 +  ctk_gfx_skip(0, 0, 0, 0);
++  if(mode != CTK_MODE_WINDOWMOVE && stale_is(w)) {
++    /* changes it missed while it moved */
++    ctk_draw_clear_window(w, CTK_FOCUS_WINDOW, 1, height);
++    ctk_draw_window(w, CTK_FOCUS_WINDOW, 1, height, 1);
++    stale_clear(w);
++  }
 +}
 +/*-----------------------------------------------------------------------------------*/
 +/* Alci: a window moved by a program (ctk_window_move only sets x and y);
@@ -231,6 +275,9 @@
 +    return;                             /* never drawn: Alt went up at once */
 +  }
 +  switch_shown = 0;
++  if(ctk_gfx_unsave()) {
++    return;                             /* what was under it is back */
++  }
 +  if(switch_y1 < redraw_y1) {
 +    redraw_y1 = switch_y1;
 +  }
@@ -258,6 +305,9 @@
 +    return;
 +  }
 +  wmenu_shown = 0;
++  if(ctk_gfx_unsave()) {
++    return;
++  }
 +  if(wmenu_y1 < redraw_y1) {
 +    redraw_y1 = wmenu_y1;
 +  }
@@ -285,11 +335,65 @@
 +#endif /* CTK_CONF_MENUS */
 +  redraw |= REDRAW_ALL;
 +}
++/* Alci: the windows that missed changes while they could not be drawn */
++static void
++stale_mark(struct ctk_window *w)
++{
++  unsigned char i;
++  if(w == NULL || w == &desktop_window || stale_is(w)) {
++    return;
++  }
++  for(i = 0; i < 4; ++i) {
++    if(stale[i] == NULL) {
++      stale[i] = w;
++      return;
++    }
++  }
++  stale_all = 1;                        /* too many to keep: all of them */
++}
++static unsigned char
++stale_is(struct ctk_window *w)
++{
++  unsigned char i;
++  if(stale_all) {
++    return 1;
++  }
++  for(i = 0; i < 4; ++i) {
++    if(stale[i] == w) {
++      return 1;
++    }
++  }
++  return 0;
++}
++static void
++stale_clear(struct ctk_window *w)
++{
++  unsigned char i;
++  for(i = 0; i < 4; ++i) {
++    if(stale[i] == w) {
++      stale[i] = NULL;
++    }
++  }
++}
 +/*-----------------------------------------------------------------------------------*/
  /**
   * Redraw the entire desktop.
   *
-@@ -757,6 +1012,7 @@
+@@ -731,6 +1062,13 @@
+ {
+   /* Only redraw the window if it is a dialog or if it is the foremost
+      window. */
++  if(mode != CTK_MODE_NORMAL || (w != dialog && (dialog != NULL ||
++#if CTK_CONF_MENUS
++     menus.open != NULL ||
++#endif /* CTK_CONF_MENUS */
++     windows != w))) {
++    stale_mark(w);                      /* Alci: not drawn now */
++  }
+   if(mode != CTK_MODE_NORMAL) {
+     return;
+   }
+@@ -757,6 +1095,7 @@
  ctk_window_isfront(struct ctk_window *w)
  {
    return mode == CTK_MODE_NORMAL && dialog == NULL &&
@@ -297,7 +401,27 @@
  #if CTK_CONF_MENUS
      menus.open == NULL &&
  #endif /* CTK_CONF_MENUS */
-@@ -1233,7 +1489,8 @@
+@@ -990,7 +1329,18 @@
+ void 
+ ctk_widget_redraw(struct ctk_widget *widget)
+ {
+-  if(mode != CTK_MODE_NORMAL || widget == NULL) {
++  if(widget == NULL) {
++    return;
++  }
++  if(widget->window != dialog &&
++     (mode != CTK_MODE_NORMAL || widget->window != windows || dialog != NULL
++#if CTK_CONF_MENUS
++      || menus.open != NULL
++#endif /* CTK_CONF_MENUS */
++      )) {
++    stale_mark(widget->window);         /* Alci: not drawn now */
++  }
++  if(mode != CTK_MODE_NORMAL) {
+     return;
+   }
+ 
+@@ -1233,7 +1583,8 @@
      } else if(w == (struct ctk_widget *)&windows->titlebutton) {
  #if CTK_CONF_WINDOWMOVE
        mode = CTK_MODE_WINDOWMOVE;
@@ -307,7 +431,7 @@
  #endif /* CTK_CONF_WINDOWMOVE */
      } else {
        ek_post(w->window->owner, ctk_signal_widget_activate, w);
-@@ -1404,6 +1661,7 @@
+@@ -1404,6 +1755,7 @@
    case CH_ENTER:
      return activate_menu();
  
@@ -315,7 +439,7 @@
    case CTK_CONF_MENU_KEY:
      lastmenu = menus.open;
      menus.open = NULL;
-@@ -1712,10 +1970,13 @@
+@@ -1712,10 +2064,13 @@
  	      }
  	    
  	      if(mouse_button_changed) {
@@ -329,7 +453,7 @@
  		  redraw |= activate(widget);
  		}
  	      }
-@@ -1743,6 +2004,122 @@
+@@ -1743,6 +2098,122 @@
        }
        
        widget = window->focused;
@@ -452,7 +576,7 @@
  	  
        if(widget != NULL &&
  	 widget->type == CTK_WIDGET_TEXTENTRY &&
-@@ -1824,16 +2201,19 @@
+@@ -1824,16 +2295,19 @@
      redraw = 0;
  
      window = windows;
@@ -474,7 +598,7 @@
        }
  
        if(window->h + myc + ctk_draw_windowtitle_height +
-@@ -1846,8 +2226,6 @@
+@@ -1846,8 +2320,6 @@
        if(window->y > 0) {
  	--window->y;
        }
@@ -483,7 +607,7 @@
      }		  
      
      /* Check if the mouse has been clicked, and stop moving the window
-@@ -1855,7 +2233,6 @@
+@@ -1855,7 +2327,6 @@
      if(mouse_button_changed &&
         mouse_button == 0) {
        mode = CTK_MODE_NORMAL;
@@ -491,7 +615,7 @@
      }
  #endif /* CTK_CONF_MOUSE_SUPPORT */
      
-@@ -1871,38 +2248,43 @@
+@@ -1871,38 +2342,43 @@
  	if(window->x + window->w + 1 >= width) {
  	  --window->x;
  	}
@@ -540,31 +664,61 @@
    } else if(redraw & (REDRAW_OPEN | REDRAW_ROWS)) {
      if(dialog != NULL
  #if CTK_CONF_MENUS
-@@ -1924,8 +2306,10 @@
+@@ -1924,13 +2400,32 @@
          struct ctk_window *w2;
          for(w2 = windows; w2 != NULL && w2 != redraw_prev; w2 = w2->next);
          if(w2 != NULL && w2 != windows) {
 -          ctk_draw_clear_window(w2, 0, 1, height);
 -          ctk_draw_window(w2, 0, 1, height, 1);
-+          ctk_gfx_window_frame(w2, 0, 0);
-+          if(w2->focused != NULL) {
-+            ctk_draw_widget(w2->focused, 0, 1, height);
++          if(stale_is(w2)) {
++            ctk_draw_clear_window(w2, 0, 1, height);
++            ctk_draw_window(w2, 0, 1, height, 1);
++            stale_clear(w2);
++          } else {
++            ctk_gfx_window_frame(w2, 0, 0);
++            if(w2->focused != NULL) {
++              ctk_draw_widget(w2->focused, 0, 1, height);
++            }
 +          }
          }
        }
        if(windows != NULL) {
-@@ -1957,6 +2341,21 @@
+-        ctk_draw_clear_window(windows, CTK_FOCUS_WINDOW, 1, height);
+-        ctk_draw_window(windows, CTK_FOCUS_WINDOW, 1, height, 1);
++        /* Alci: a window that nothing covered, and that missed no
++           change, is on the screen already: only its look changes */
++        if(open_uncovered && !stale_is(windows)) {
++          ctk_gfx_window_frame(windows, CTK_FOCUS_WINDOW, 0);
++          if(windows->focused != NULL) {
++            ctk_draw_widget(windows->focused,
++                            CTK_FOCUS_WINDOW | CTK_FOCUS_WIDGET, 1, height);
++          }
++        } else {
++          ctk_draw_clear_window(windows, CTK_FOCUS_WINDOW, 1, height);
++          ctk_draw_window(windows, CTK_FOCUS_WINDOW, 1, height, 1);
++        }
++        stale_clear(windows);
+       }
+     }
+ #if CTK_CONF_MENUS
+@@ -1957,6 +2452,32 @@
        ++widgetptr;
      }
    }    
 +#ifdef CTK_CONF_ALTTAB_KEY
 +  if(switch_sel != NULL && (redraw || switch_draw)) {
++    if(redraw) {
++      ctk_gfx_unsave_drop();
++    }
 +    ctk_gfx_switcher(windows, switch_sel, &switch_y1, &switch_y2);
 +    switch_draw = 0;
 +    switch_shown = 1;
 +  }
 +#ifdef CTK_CONF_WINMENU_KEY
 +  if(wmenu_on && windows != NULL && (redraw || wmenu_draw)) {
++    if(redraw) {
++      ctk_gfx_unsave_drop();
++    }
 +    ctk_gfx_popup(windows->x + 1, windows->y + 2, wmenu_items, WMENU_N,
 +                  wmenu_sel, &wmenu_y1, &wmenu_y2);
 +    wmenu_draw = 0;
@@ -572,6 +726,11 @@
 +  }
 +#endif /* CTK_CONF_WINMENU_KEY */
 +#endif /* CTK_CONF_ALTTAB_KEY */
++  if(redraw & REDRAW_ALL) {
++    stale_all = 0;                      /* everything drawn */
++    stale[0] = stale[1] = stale[2] = stale[3] = NULL;
++  }
++  open_uncovered = 0;
    redraw = 0;
    redraw_widgetptr = 0;
    redraw_y1 = 255;

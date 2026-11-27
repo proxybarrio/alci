@@ -33,6 +33,7 @@
 #endif
 
 #include <string.h>
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <linuxmt/ntty.h>
 
@@ -2474,6 +2475,10 @@ label_text(const char *s, unsigned char len)
     }
   }
 }
+static unsigned short ptr_row(unsigned short Y);
+#if defined(GFX_EGA) || defined(GFX_VGA)
+static void vrow(unsigned short off, const unsigned char *q, unsigned short n);
+#endif
 static void
 blank(unsigned char len)
 {
@@ -2481,7 +2486,41 @@ blank(unsigned char len)
     return;
   }
   text_cell(' ', C_INK);
-  while(--len) {
+  if(--len == 0) {
+    return;
+  }
+#if defined(MONO) || defined(GFX_EGA) || defined(GFX_VGA)
+  /* the cells after the first are the same: each pixel row of them is
+     one value, filled across (with nothing to leave out, ctk_gfx_skip) */
+  if(skx1 >= skx2 && cursx + len <= SW && cursy < SH) {
+    unsigned char r;
+    for(r = 0; r < CH; ++r) {
+      unsigned short off = ptr_row((unsigned short)cursy * CH + r) + cursx;
+#if defined(MONO)
+      unsigned char v = mb[r];
+      unsigned short n = len;
+#if (defined(GFX_CGA) && !defined(GFX_LCD)) || (!defined(GFX_CGA) && !defined(GFX_HERC))
+      v = ~v;
+#endif
+      __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosb\n\tpop %%es"
+                        : "+D" (off), "+c" (n)
+                        : "a" ((unsigned short)v),
+                          "d" ((unsigned short)((unsigned long)VRAM >> 16))
+                        : "memory", "cc");
+#else
+      unsigned char q[4];
+      q[0] = cb4[r];
+      q[1] = cb4[CH + r];
+      q[2] = cb4[2 * CH + r];
+      q[3] = cb4[3 * CH + r];
+      vrow(off, q, len);
+#endif
+    }
+    cursx += len;
+    return;
+  }
+#endif
+  while(len--) {
     blit_again(cursx++, cursy);
   }
 }
@@ -2722,6 +2761,104 @@ ptr_row(unsigned short Y)
   return Y * 80;
 #endif
 }
+/* What lies under a box drawn for a short time (the Alt-Tab switcher, the
+   menu of a window): kept in memory and put back when it closes, instead
+   of drawing those rows again. Dropped when anything else is drawn while
+   the box is up (ctk_gfx_unsave_drop): then the rows are drawn. */
+void ctk_gfx_pointer_off(void);
+static unsigned char *sv_buf, sv_bad, sv_x1, sv_x2, sv_y1, sv_y2;
+static void
+sv_vcopy(unsigned short off, unsigned char *b, unsigned short n, unsigned char out)
+{
+  unsigned short seg = (unsigned short)((unsigned long)VRAM >> 16);
+  if(out) {                             /* memory to the screen */
+    __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep movsb\n\tpop %%es"
+                      : "+S" (b), "+D" (off), "+c" (n)
+                      : "d" (seg)
+                      : "memory", "cc");
+  } else {                              /* the screen to memory */
+    __asm__ volatile ("push %%ds\n\tpush %%es\n\tmov %%ds,%%ax\n\tmov %%ax,%%es\n\t"
+                      "mov %%dx,%%ds\n\tcld\n\trep movsb\n\tpop %%es\n\tpop %%ds"
+                      : "+S" (off), "+D" (b), "+c" (n)
+                      : "d" (seg)
+                      : "ax", "memory", "cc");
+  }
+}
+static void
+sv_copy(unsigned char out)
+{
+  unsigned short Y, Y9 = (unsigned short)sv_y2 * CH;
+  unsigned short n = (unsigned short)(sv_x2 - sv_x1) * GSTEP;
+  unsigned char *b = sv_buf;
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  unsigned char p;
+  outw(0x3ce, 0x0001);                  /* no set/reset */
+  outw(0x3ce, 0x0003);                  /* no function */
+  outw(0x3ce, 0x0005);                  /* write mode 0 */
+  outw(0x3ce, 0xff08);                  /* all bits */
+  for(p = 0; p < 4; ++p) {
+    if(out) {
+      outw(0x3c4, ((unsigned short)(1 << p) << 8) | 2);   /* map mask */
+    } else {
+      outw(0x3ce, ((unsigned short)p << 8) | 4);          /* read map */
+    }
+#endif
+    for(Y = (unsigned short)sv_y1 * CH; Y < Y9; ++Y) {
+      sv_vcopy(ptr_row(Y) + (unsigned short)sv_x1 * GSTEP, b, n, out);
+      b += n;
+    }
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  }
+  outw(0x3c4, 0x0f02);
+  outw(0x3ce, 0x0004);
+#endif
+}
+static void
+sv_save(unsigned char x1, unsigned char x2, unsigned char y1, unsigned char y2)
+{
+  unsigned long size = (unsigned long)(x2 - x1) * GSTEP * CH * (y2 - y1);
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  size *= 4;
+#endif
+  if(sv_buf != NULL || sv_bad || size > 8192) {
+    return;
+  }
+  sv_buf = malloc((unsigned short)size);
+  if(sv_buf == NULL) {
+    return;
+  }
+  sv_x1 = x1;
+  sv_x2 = x2;
+  sv_y1 = y1;
+  sv_y2 = y2;
+  sv_copy(0);
+}
+/* the box closed: 1 when what was under it is back, 0 when its rows must
+   be drawn */
+unsigned char
+ctk_gfx_unsave(void)
+{
+  unsigned char ok = sv_buf != NULL && !sv_bad;
+  if(ok) {
+    if(ptr_on) {
+      ctk_gfx_pointer_off();
+    }
+    sv_copy(1);
+  }
+  free(sv_buf);
+  sv_buf = NULL;
+  sv_bad = 0;
+  return ok;
+}
+/* something else was drawn while the box was up */
+void
+ctk_gfx_unsave_drop(void)
+{
+  free(sv_buf);
+  sv_buf = NULL;
+  sv_bad = 1;
+}
+
 static void
 ptr_get(unsigned short off, unsigned char *b)
 {
@@ -4498,6 +4635,7 @@ ctk_gfx_switcher(struct ctk_window *list, struct ctk_window *sel,
   *y1 = y0;
   *y2 = y0 + n;
   PTR_OFF();
+  sv_save(x0, x0 + wd, y0, y0 + n);
   for(w = list, y = 0; y < n; w = w->next, ++y) {
     list_row(x0, y0 + y, wd, w->title, w->titlelen, w == sel,
              y == 0, y == n - 1);
@@ -4527,6 +4665,7 @@ ctk_gfx_popup(unsigned char x, unsigned char y, const char * const *items,
   *y1 = y;
   *y2 = y + n;
   PTR_OFF();
+  sv_save(x, x + wd, y, y + n);
   for(k = 0; k < n; ++k) {
     list_row(x, y + k, wd, items[k], strlen(items[k]), k == sel,
              k == 0, k == n - 1);

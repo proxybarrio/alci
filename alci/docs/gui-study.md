@@ -21,7 +21,7 @@ is grey dithered to white), Gem-elks with a folder window.*
 | Memory of the desktop | 78 KB | 90 KB (server) + 23 KB per client | about 300 KB |
 | Left for a program | about 270 KB | about 255 KB | about 40 KB, largest block 4 KB |
 | Start from the 720K floppy | 4.4 s | 6.6 s (server only) | 17.6 s |
-| Window opened | 0.53 s | 2.2 s | 4.7 s |
+| Window opened | 0.21 s | 2.2 s | 4.7 s |
 | Window moved | 0.18 s | 0.84 s | 4.4 s |
 | A line of text | 0.07 s | 0.45 s | 3.1 s |
 | A window of text | 0.64 s (14 rows) | 4.2 s (10 rows) | 19.3 s (7 rows) |

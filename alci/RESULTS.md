@@ -1056,13 +1056,13 @@ window (rows given); "move" moves the window by 1/8 of the screen width.
 
 | CGA 640x200 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 242 | 530 | 160 | 177 | 65 | 642 (14) | 20 | 390 |
+| CTK | 227 | 205 | 150 | 177 | 65 | 642 (14) | 22 | 377 |
 | Nano-X | 817 | 2230 | 47 | 842 | 450 | 4222 (10) | 60 | - |
 | GEM | 3400 | 4717 | 2485 | 4430 | 3067 | 19330 (7) | 882 | - |
 
 | EGA 640x350 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 577 | 1380 | 410 | 465 | 100 | 1230 (14) | 20 | 990 |
+| CTK | 560 | 930 | 397 | 465 | 97 | 1230 (14) | 22 | 972 |
 | Nano-X | 860 | 2097 | 50 | 1000 | 422 | 6677 (17) | 55 | - |
 | GEM | 5290 | 1980 | 1850 | 3140 | 4780 | 57640 (13) | 2150 | - |
 
@@ -1129,6 +1129,38 @@ The window that leaves the front now only gets its frame and its focused
 widget drawn again; the one that comes to front is drawn whole, which is
 most of the time left (a quick Alt-Tab to the 78-column Editor). Checked
 with the keys held for real on 86Box (XT, EGA) and in QEMU (CGA).
+
+### CTK: less drawn again (2026-11-27)
+
+Three changes, none of which leaves out anything that changed on the
+screen:
+
+- A window brought to front that no window in front of it covered, and
+  that missed no change while it was behind, is on the screen already:
+  only its frame and its focused widget are drawn (the frame and focused
+  widget of the window that leaves the front too). CTK now notes the
+  windows whose widgets changed while they could not be drawn (behind,
+  under a menu or dialog, during a move); those are drawn whole when they
+  come to front or the move ends.
+- What lies under the Alt-Tab box and the window menu is kept in memory
+  (up to 8 KB, taken while the box is up) and put back when it closes; if
+  anything else was drawn meanwhile the rows are drawn again as before.
+- The blank end of a text row (labels, editor and shell lines) is filled a
+  pixel row at a time across the cells instead of cell by cell (two-colour
+  screens, EGA, VGA).
+
+MartyPC XT, ms (D2 table above already with these):
+
+| | CGA before | CGA after | EGA before | EGA after |
+|---|---|---|---|---|
+| D2: window opened (empty labels) | 530 | 205 | 1380 | 930 |
+| Alt-Tab to a window behind the Editor | 910 | 240 | 2670 | 1280 |
+| quick Alt-Tab to the Editor (78 columns) | 1480 | 1140 | 3420 | 2870 |
+| Calc to front, nothing over it | 170 | 120 | 830 | 550 |
+
+Checked on screen in QEMU (all modes, the move test; Alt-Space; two small
+windows, one changed while behind) and 86Box (EGA, Alt-Tab with the keys
+held).
 
 Not measured yet: start from a 1.44M floppy and the hard disk, start of
 the packed programs, the 86Box PC1512 and AT, and the response to a key
