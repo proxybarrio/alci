@@ -1223,11 +1223,19 @@ static char gstr[48];                   /* "/// title", cut to the room there is
 static unsigned short ggloss0, ggloss1; /* light line on the bar */
 static unsigned short gbox0, gbox1;     /* close box */
 
+#if defined(GFX_EGA) || defined(GFX_VGA)
+/* plain cells of the title bar, composed once for each window drawn
+   (title_cell); set_geom forgets them */
+static unsigned char bar_keep[2][4 * CH], bar_ok;
+#endif
 static void
 set_geom(unsigned char x, unsigned char y, unsigned char w, unsigned char h,
          unsigned char active, const char *title, unsigned char titlelen)
 {
   gx = x; gxr = x + w + 1; gy = y; gyb = y + h + 1;
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  bar_ok = 0;
+#endif
   gabove = (CGA_BAR == 2 && y >= 2) ? 1 : 0;
   gL = x * 8 + FX;
   gR = gxr * 8 + FX;
@@ -1466,7 +1474,7 @@ RSPAN(unsigned short Y0, unsigned short a, unsigned short b)
    along the cell do not change from row to row, so they are worked out
    once a cell. */
 static void
-wcell(unsigned char cx, unsigned char cy)
+wcell_make(unsigned char cx, unsigned char cy)
 {
   unsigned char r;
   unsigned short X0 = cx * 8, Y0 = cy * CH;
@@ -1574,7 +1582,7 @@ bar_cell(unsigned short X0)
 /* Four colours: the window cell in the bit planes, filled by masks as on
    two colours */
 static void
-wcell(unsigned char cx, unsigned char cy)
+wcell_make(unsigned char cx, unsigned char cy)
 {
   unsigned char r, p1, p0;
   unsigned short X0 = cx * 8, Y0 = cy * CH;
@@ -1669,7 +1677,7 @@ wcell(unsigned char cx, unsigned char cy)
 #elif defined(GFX_TANDY)
 /* 16 colours, the colour style of wpx() with masks: four planes a row */
 static void
-wcell(unsigned char cx, unsigned char cy)
+wcell_make(unsigned char cx, unsigned char cy)
 {
   unsigned char r, q0, q1, q2, q3, edge = gactive ? C_EDGE_A : C_EDGE_I;
   unsigned short X0 = cx * 8, Y0 = cy * CH;
@@ -1776,7 +1784,7 @@ fillm(unsigned char *row, unsigned char m, unsigned char col)
    with its corners cut, the graded bar with its light line and the close
    box */
 static void
-wcell(unsigned char cx, unsigned char cy)
+wcell_make(unsigned char cx, unsigned char cy)
 {
   unsigned char r, edge = gactive ? C_EDGE_A : C_EDGE_I;
   unsigned short X0 = cx * 8, Y0 = cy * CH;
@@ -1876,7 +1884,7 @@ wcell(unsigned char cx, unsigned char cy)
    planes: the desktop, the shadow in two steps, the frame with its corners
    cut, the bar in two halves with its light line and the close box */
 static void
-wcell(unsigned char cx, unsigned char cy)
+wcell_make(unsigned char cx, unsigned char cy)
 {
   unsigned char r, q0, q1, q2, q3, q[4], edge = gactive ? C_EDGE_A : C_EDGE_I;
   unsigned short X0 = cx * 8, Y0 = cy * CH;
@@ -1958,7 +1966,7 @@ wcell(unsigned char cx, unsigned char cy)
 #define wcell_done() do { } while(0)
 #else
 static void
-wcell(unsigned char cx, unsigned char cy)
+wcell_make(unsigned char cx, unsigned char cy)
 {
   unsigned char r, c;
   unsigned short X = cx * 8, Y = cy * CH;
@@ -1968,6 +1976,54 @@ wcell(unsigned char cx, unsigned char cy)
     }
   }
 }
+#endif
+/* Window cells composed lately, kept with what they were composed from (the
+   cell, the window's place and size, its look, the title's length, the
+   icon column line), so that a frame drawn again, as at every Alt-Tab,
+   copies them instead of composing them pixel row by pixel row */
+#if defined(MONO) || defined(GFX_EGA) || defined(GFX_VGA)
+#if defined(MONO)
+#define WC_BUF mb
+#define WC_SIZE CH
+#define WC_N 80
+#else
+#define WC_BUF cb4
+#define WC_SIZE (4 * CH)
+#define WC_N 80
+#endif
+struct wc_entry {
+  unsigned char cx, cy, gx, gxr, gy, gyb, look, gn;
+  unsigned char data[WC_SIZE];
+};
+static struct wc_entry wc_keep[WC_N];
+static unsigned char wc_next, wc_used;
+static void
+wcell(unsigned char cx, unsigned char cy)
+{
+  unsigned char i, look = (gactive ? 1 : 0) | (gkf_close ? 2 : 0) |
+                          (desk_nosep ? 4 : 0) | (gabove << 3);
+  struct wc_entry *e = wc_keep;
+  for(i = 0; i < wc_used; ++i, ++e) {
+    if(e->cx == cx && e->cy == cy && e->gx == gx && e->gxr == gxr &&
+       e->gy == gy && e->gyb == gyb && e->look == look && e->gn == gn) {
+      memcpy(WC_BUF, e->data, WC_SIZE);
+      return;
+    }
+  }
+  wcell_make(cx, cy);
+  e = &wc_keep[wc_next];
+  e->cx = cx; e->cy = cy; e->gx = gx; e->gxr = gxr;
+  e->gy = gy; e->gyb = gyb; e->look = look; e->gn = gn;
+  memcpy(e->data, WC_BUF, WC_SIZE);
+  if(++wc_next == WC_N) {
+    wc_next = 0;
+  }
+  if(wc_used < WC_N) {
+    ++wc_used;
+  }
+}
+#else
+#define wcell(cx, cy) wcell_make(cx, cy)
 #endif
 
 /* One cell of the title row: frame, bar, then the title letters, placed
@@ -1981,6 +2037,28 @@ title_cell(unsigned char cx)
   if(cx > gx && cx < gxr) {
     bar_cell(X0);                       /* wholly inside the frame */
   } else
+#elif defined(GFX_EGA) || defined(GFX_VGA)
+  {
+    /* a cell of the bar clear of its ends, the close box and the edges of
+       the light line looks the same wherever it is: composed once a
+       window, for the cells under the title (with the line or without) */
+    unsigned short X1 = X0 + 7;
+    if(X0 > gL && X1 < gR && cx != SEP_X / 8 &&
+       !(X1 >= gbox0 - 1 && X0 <= gbox1 + 1) &&
+       ((X0 >= ggloss0 && X1 <= ggloss1) || X1 < ggloss0 || X0 > ggloss1)) {
+      unsigned char v = X0 >= ggloss0 && X1 <= ggloss1;
+      if(bar_ok & (1 << v)) {
+        memcpy(cb4, bar_keep[v], 4 * CH);
+      } else {
+        wcell(cx, gy);
+        memcpy(bar_keep[v], cb4, 4 * CH);
+        bar_ok |= 1 << v;
+      }
+    } else {
+      wcell(cx, gy);
+    }
+  }
+  if(0)
 #endif
   wcell(cx, gy);
 #if defined(MONO)
@@ -2117,6 +2195,49 @@ static unsigned char cache[2][CH][8];
 #define SAVE(k) memcpy(cache[k], pix, sizeof(pix))
 #define PUT(k, cx, cy) do { memcpy(pix, cache[k], sizeof(pix)); blit(cx, cy); } while(0)
 #endif
+/* n cells from cx of row cy, all the kept cell k: on two colours, EGA and
+   VGA each pixel row of them is one value, filled across (planes of one
+   colour in a single write on EGA and VGA); elsewhere cell by cell */
+static unsigned short ptr_row(unsigned short Y);
+#if defined(GFX_EGA) || defined(GFX_VGA)
+static void vrow(unsigned short off, const unsigned char *q, unsigned short n);
+#endif
+static void
+put_run(unsigned char k, unsigned char cx, unsigned char cy, unsigned char n)
+{
+#if defined(MONO) || defined(GFX_EGA) || defined(GFX_VGA)
+  if(n > 1 && skx1 >= skx2 && cx + n <= SW && cy < SH) {
+    unsigned char r;
+    for(r = 0; r < CH; ++r) {
+      unsigned short off = ptr_row((unsigned short)cy * CH + r) + cx;
+#if defined(MONO)
+      unsigned char v = cache[k][r];
+      unsigned short cnt = n;
+#if (defined(GFX_CGA) && !defined(GFX_LCD)) || (!defined(GFX_CGA) && !defined(GFX_HERC))
+      v = ~v;
+#endif
+      __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n\trep stosb\n\tpop %%es"
+                        : "+D" (off), "+c" (cnt)
+                        : "a" ((unsigned short)v),
+                          "d" ((unsigned short)((unsigned long)VRAM >> 16))
+                        : "memory", "cc");
+#else
+      unsigned char q[4];
+      q[0] = cache[k][r];
+      q[1] = cache[k][CH + r];
+      q[2] = cache[k][2 * CH + r];
+      q[3] = cache[k][3 * CH + r];
+      vrow(off, q, n);
+#endif
+    }
+    return;
+  }
+#endif
+  while(n--) {
+    PUT(k, cx, cy);
+    ++cx;
+  }
+}
 
 #if defined(MONO) || defined(GFX_CGA4)
 /* The part of the bar above the title row: the last gabove pixel rows of
@@ -2207,9 +2328,10 @@ top_line(void)
 static void
 title_row(unsigned char x0, unsigned char x1)
 {
-  unsigned char i, k, have = 0;
-  for(i = x0; i <= x1; ++i) {
+  unsigned char i, k, n, have = 0;
+  for(i = x0; i <= x1; ) {
     if(SKIP(i, gy)) {
+      ++i;
       continue;                         /* copied with the window */
     }
     k = title_kind(i);
@@ -2219,14 +2341,59 @@ title_row(unsigned char x0, unsigned char x1)
         SAVE(k - 1);
         have |= k;
       }
-      PUT(k - 1, i, gy);
+      for(n = 1; i + n <= x1 && !SKIP(i + n, gy) && title_kind(i + n) == k; ++n);
+      put_run(k - 1, i, gy, n);
+      i += n;
     } else {
       title_cell(i);
       BLITW(i, gy);
+      ++i;
     }
   }
 }
 
+#if !defined(MONO) && !defined(GFX_CGA4)
+/* 1 when the desktop has the same pixel rows in cell rows a and b (away
+   from the icon column line): a side cell of a window composed for one
+   serves the other */
+static unsigned char
+desk_rows_same(unsigned char a, unsigned char b)
+{
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  /* a cell row's pattern rows as a number, worked out once: the pattern of
+     its first row when it is all in one shading band (the checker repeats
+     every two rows and CH is even), its row number plus 16 if a band
+     changes inside it */
+  static unsigned char key[SH], known;
+  if(!known) {
+    unsigned char r, i;
+    for(r = 0; r < SH; ++r) {
+      unsigned short y = (unsigned short)r * CH;
+      key[r] = DESKQ(y);
+      for(i = 1; i < CH; ++i) {
+        if(DESK_BAND(y + i) != DESK_BAND(y)) {
+          key[r] = r + 16;
+        }
+      }
+    }
+    known = 1;
+  }
+  return key[a] == key[b];
+#elif defined(GFX_MCGA)
+  unsigned char i;
+  unsigned short ya = (unsigned short)a * CH, yb = (unsigned short)b * CH;
+  for(i = 0; i < CH; ++i) {
+    if(mdesk[ya + i] != mdesk[yb + i]) {
+      return 0;
+    }
+  }
+  return 1;
+#else
+  (void)a; (void)b;
+  return 1;                             /* one colour */
+#endif
+}
+#endif
 static void
 draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
                    unsigned char h, unsigned char clipy1,
@@ -2247,6 +2414,9 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
      it down, again only where the desktop under the shadow changes */
   {
     unsigned char lpix[CH][8], rpix[CH][8], key = 255;
+#if !defined(MONO) && !defined(GFX_CGA4)
+    unsigned char krow = 255;
+#endif
     for(r = y + 1; r < gyb; ++r) {
       if(r < clipy1 || r >= clipy2) {
         continue;
@@ -2258,7 +2428,14 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
         /* (cells of 14 rows meet the 8-row wallpaper at another row each
            time: key keeps the row it starts at) */
 #else
-      if(1) {
+      if(krow == 255 ||
+#if !defined(GFX_EGA) && !defined(GFX_VGA)
+         r == 1 || r == 2 || r >= SH - 3 ||
+#endif
+         gx == SEP_X / 8 || gxr == SEP_X / 8 || !desk_rows_same(r, krow)) {
+        /* (the desktop under the shadow: the same pixel rows as the cell
+           composed last, or compose again) */
+        krow = r;
 #endif
         key = (r * CH) & 7;
         wcell(gx, r);
@@ -2301,12 +2478,17 @@ draw_windowborders(unsigned char x, unsigned char y, unsigned char w,
     for(i = gx; i <= gxr; ++i) {
       unsigned short X0 = i * 8;
       if(X0 >= gL + SHX + 2 && X0 + 7 < gR && i != SEP_X / 8) {
+        unsigned char n = 1;
         if(!have) {
           wcell(i, gyb);
           SAVE(0);
           have = 1;
         }
-        PUT(0, i, gyb);
+        while(i + n <= gxr && (i + n) * 8 + 7 < gR && i + n != SEP_X / 8) {
+          ++n;
+        }
+        put_run(0, i, gyb, n);
+        i += n - 1;
       } else {
         wcell(i, gyb);
         BLITW(i, gyb);
@@ -2453,7 +2635,10 @@ static void vrows(unsigned short off, const unsigned char *q, unsigned short n,
 static unsigned char
 text_run(const char *s, unsigned char n, unsigned char fg)
 {
-  unsigned char k, r;
+#if defined(MONO)
+  unsigned char k;
+#endif
+  unsigned char r;
   unsigned short seg = (unsigned short)((unsigned long)VRAM >> 16);
   for(r = 1; r < CH; ++r) {
     if(rowbg[r] != rowbg[0]) {
@@ -2584,14 +2769,37 @@ text_run(const char *s, unsigned char n, unsigned char fg)
   return 1;
 }
 #endif
+static void blank(unsigned char len);
 static void
 text(const char *s, unsigned char len, unsigned char fg)
 {
 #if defined(MONO) || defined(GFX_EGA) || defined(GFX_VGA)
+  const char *s0 = s;
   if(skx1 >= skx2 && cursy < SH && cursx < SW && len > 1) {
     unsigned char n = 0;
     while(n < len && s[n] && cursx + n < SW) {
       ++n;
+    }
+    {
+      /* trailing spaces (the rest of an editor or shell line) are filled
+         as a blank: the same pixels, the space cell kept */
+      unsigned char t = n;
+      while(t > 0 && s[t - 1] == ' ') {
+        --t;
+      }
+      if(n - t > 1) {
+        if(t > 1 && text_run(s, t - 1, fg)) {
+          s += t - 1;
+          len -= t - 1;
+          t = 1;
+        }
+        while(t--) {
+          text_cell((unsigned char)*s++, fg);
+          --len;
+        }
+        blank(n - (s - s0));
+        return;
+      }
     }
     if(n > 1 && text_run(s, n - 1, fg)) {
       /* the last letter as before, so the cell kept (mb, cb4) is the same */
@@ -2638,6 +2846,8 @@ label_text(const char *s, unsigned char len)
 static unsigned short ptr_row(unsigned short Y);
 #if defined(GFX_EGA) || defined(GFX_VGA)
 static void vrow(unsigned short off, const unsigned char *q, unsigned short n);
+static void vrows(unsigned short off, const unsigned char *q, unsigned short n,
+                  unsigned short rows, unsigned short step);
 #endif
 static void
 blank(unsigned char len)
@@ -2645,15 +2855,27 @@ blank(unsigned char len)
   if(len == 0) {
     return;
   }
-  text_cell(' ', C_INK);
-  if(--len == 0) {
-    return;
-  }
 #if defined(MONO) || defined(GFX_EGA) || defined(GFX_VGA)
-  /* the cells after the first are the same: each pixel row of them is
-     one value, filled across (with nothing to leave out, ctk_gfx_skip) */
+  /* the cells are alike: each pixel row of them is one value, filled across
+     (with nothing to leave out, ctk_gfx_skip); on EGA and VGA a plain
+     background is one block for all the rows. The cell composed is kept
+     for whoever draws it again (blit_again). */
   if(skx1 >= skx2 && cursx + len <= SW && cursy < SH) {
     unsigned char r;
+    comp_text(' ', C_INK);
+#if defined(GFX_EGA) || defined(GFX_VGA)
+    for(r = 1; r < CH && rowbg[r] == rowbg[0]; ++r);
+    if(r == CH) {
+      unsigned char q[4];
+      q[0] = cb4[0];
+      q[1] = cb4[CH];
+      q[2] = cb4[2 * CH];
+      q[3] = cb4[3 * CH];
+      vrows(ptr_row((unsigned short)cursy * CH) + cursx, q, len, CH, 80);
+      cursx += len;
+      return;
+    }
+#endif
     for(r = 0; r < CH; ++r) {
       unsigned short off = ptr_row((unsigned short)cursy * CH + r) + cursx;
 #if defined(MONO)
@@ -2680,7 +2902,8 @@ blank(unsigned char len)
     return;
   }
 #endif
-  while(len--) {
+  text_cell(' ', C_INK);
+  while(--len) {
     blit_again(cursx++, cursy);
   }
 }
@@ -4577,9 +4800,24 @@ ctk_draw_clear_window(struct ctk_window *window, unsigned char focus,
                       unsigned char clipy1, unsigned char clipy2)
 {
   unsigned char i, h = window->y + 2 + window->h;
+  unsigned long full = 0;
+  struct ctk_widget *w;
   PTR_OFF();
+  /* rows a label fills from side to side (an editor or shell line) are
+     left alone: the label draws every cell of them right after */
+  for(w = window->inactive; w != NULL; w = w->next) {
+    if(w->type == CTK_WIDGET_LABEL && w->x == 0 && w->w >= window->w) {
+      unsigned char r;
+      for(r = w->y; r < w->y + w->h && r < 32; ++r) {
+        full |= 1UL << r;
+      }
+    }
+  }
   rows_solid(C_PAPER);
   for(i = window->y + 2; i < h; ++i) {
+    if(full & (1UL << (i - window->y - 2))) {
+      continue;
+    }
     if(i >= clipy1 && i <= clipy2) {
       gotoxy(window->x + 1, i);
       blank(window->w);

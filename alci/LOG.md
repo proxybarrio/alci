@@ -332,3 +332,9 @@
   and after in every mode. The window of 58x14 letters is drawn in 209 ms
   on CGA (was 639) and 425 ms on EGA (was 1227); a quick Alt-Tab to the
   Editor 570 ms on CGA (was 1140).
+- D7: frames and windows drawn again for less: composed frame cells kept
+  and reused (Alt-Tab draws the same frames again), side cells reused on
+  EGA/VGA/MCGA too, repeated frame cells and blanks filled as rows or
+  blocks, full-width label rows not cleared first. Same pixels in every
+  mode. Alt-Tab to the Editor: 572 -> 335 ms on CGA, 1832 -> 600 ms on
+  EGA; to the calculator behind it 1227 -> 477 ms on EGA.

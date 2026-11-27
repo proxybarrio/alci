@@ -1056,13 +1056,13 @@ window (rows given); "move" moves the window by 1/8 of the screen width.
 
 | CGA 640x200 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 230 | 207 | 150 | 180 | 30 | 210 (14) | 25 | 375 |
+| CTK | 230 | 140 | 152 | 165 | 32 | 200 (14) | 25 | 380 |
 | Nano-X | 817 | 2230 | 47 | 842 | 450 | 4222 (10) | 60 | - |
 | GEM | 3400 | 4717 | 2485 | 4430 | 3067 | 19330 (7) | 882 | - |
 
 | EGA 640x350 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 557 | 930 | 392 | 467 | 40 | 430 (14) | 20 | 970 |
+| CTK | 562 | 232 | 395 | 260 | 40 | 335 (14) | 22 | 970 |
 | Nano-X | 860 | 2097 | 50 | 1000 | 422 | 6677 (17) | 55 | - |
 | GEM | 5290 | 1980 | 1850 | 3140 | 4780 | 57640 (13) | 2150 | - |
 
@@ -1188,6 +1188,42 @@ MartyPC XT, ms:
 | D2 "full" | 642 | 210 | 1230 | 430 |
 | D2 "line" | 65 | 30 | 97 | 40 |
 | quick Alt-Tab to the Editor | 1140 | 570 | 2870 | 1830 |
+
+### CTK: frames and windows drawn again for less (2026-11-27)
+
+Measured by parts first (MartyPC XT, the 78x21 Editor on EGA): its frame
+370 ms, clearing its inside 327 ms, its lines 558 ms. One frame cell on
+EGA took 6.6 ms to compose (2 ms on CGA). Changes, each checked pixel by
+pixel against the code before (QEMU in every mode it has, 86Box for
+Hercules; the scene now has a line ending in spaces and a line of spaces):
+
+- Frame cells composed lately are kept (80 cells, with the window's place,
+  size and look, the title's length and the icon column line they were
+  composed from) and copied when the same frame is drawn again, as at
+  every Alt-Tab. Memory: 1.3 KB on CGA, 5.1 KB on EGA/VGA.
+- On EGA, VGA and MCGA the sides of a frame are composed once and copied
+  down while the desktop under the shadow repeats, as on CGA (a cell row's
+  desktop pattern worked out once); the plain cells of a title bar are
+  composed once a frame.
+- Runs of repeated frame cells (the title bar, the bottom edge) are filled
+  a pixel row at a time (on EGA/VGA the planes of one colour in a single
+  write) instead of cell by cell.
+- Rows a label fills from side to side (editor and shell lines) are not
+  cleared before the label is drawn over them.
+- A blank on a plain background is one block on EGA/VGA, and the trailing
+  spaces of a text line are drawn as a blank.
+
+| ms | CGA before | CGA after | EGA before | EGA after |
+|---|---|---|---|---|
+| Editor frame | 110 | 72 | 370 | 185 |
+| clearing the Editor | 72 | 15 | 327 | 20 |
+| Alt-Tab Calc -> Editor (78x21) | 572 | 335 | 1832 | 600 |
+| Alt-Tab Editor -> Calc (behind the Editor) | 230 | 190 | 1227 | 477 |
+| D2: window opened | 207 | 140 | 930 | 232 |
+| D2: window moved | 180 | 165 | 467 | 260 |
+
+Free memory with the desktop up: 240K on CGA (246K before the text and
+frame changes), 226K on EGA (237K).
 
 Not measured yet: start from a 1.44M floppy and the hard disk, start of
 the packed programs, the 86Box PC1512 and AT, and the response to a key
