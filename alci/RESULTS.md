@@ -1056,13 +1056,13 @@ window (rows given); "move" moves the window by 1/8 of the screen width.
 
 | CGA 640x200 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 227 | 205 | 150 | 177 | 65 | 642 (14) | 22 | 377 |
+| CTK | 230 | 207 | 150 | 180 | 30 | 210 (14) | 25 | 375 |
 | Nano-X | 817 | 2230 | 47 | 842 | 450 | 4222 (10) | 60 | - |
 | GEM | 3400 | 4717 | 2485 | 4430 | 3067 | 19330 (7) | 882 | - |
 
 | EGA 640x350 | screen | open | close | move | line | full | char | menu |
 |---|---|---|---|---|---|---|---|---|
-| CTK | 560 | 930 | 397 | 465 | 97 | 1230 (14) | 22 | 972 |
+| CTK | 557 | 930 | 392 | 467 | 40 | 430 (14) | 20 | 970 |
 | Nano-X | 860 | 2097 | 50 | 1000 | 422 | 6677 (17) | 55 | - |
 | GEM | 5290 | 1980 | 1850 | 3140 | 4780 | 57640 (13) | 2150 | - |
 
@@ -1161,6 +1161,33 @@ MartyPC XT, ms (D2 table above already with these):
 Checked on screen in QEMU (all modes, the move test; Alt-Space; two small
 windows, one changed while behind) and 86Box (EGA, Alt-Tab with the keys
 held).
+
+### CTK: text written straight to video memory (2026-11-27)
+
+A run of letters on a plain background (every row of the cell the same
+colour, which is the case for labels, the editor and the shell) no longer
+goes cell by cell through a composed buffer. On CGA one piece of assembly
+reads each letter, finds its glyph in the font and writes the eight rows
+at their places; on the other two-colour screens a loop writes each row
+through a table of row addresses; on EGA and VGA the planes where letter
+and background differ take the glyph (or its inverse) in one write for
+all of them, a pass for each group, and the other planes are filled. The
+last letter of a run still goes the old way, so the cell kept for the
+next drawing is the same. Bars, boxes and buttons are unchanged.
+
+The pixels are the same: a fixed scene (lines of different lengths, an
+empty line, the editor cursor, frame and icons) was taken before and
+after in QEMU (CGA, CGA4, EGA, VGA, MCGA, AT&T, EGA2, VGA2, T1200) and
+86Box (Hercules) and compared pixel by pixel: no difference.
+
+MartyPC XT, ms:
+
+| | CGA before | CGA after | EGA before | EGA after |
+|---|---|---|---|---|
+| the 58x14 window of text drawn again | 639 | 209 | 1227 | 425 |
+| D2 "full" | 642 | 210 | 1230 | 430 |
+| D2 "line" | 65 | 30 | 97 | 40 |
+| quick Alt-Tab to the Editor | 1140 | 570 | 2870 | 1830 |
 
 Not measured yet: start from a 1.44M floppy and the hard disk, start of
 the packed programs, the 86Box PC1512 and AT, and the response to a key

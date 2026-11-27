@@ -23,14 +23,14 @@ is grey dithered to white), Gem-elks with a folder window.*
 | Start from the 720K floppy | 4.4 s | 6.6 s (server only) | 17.6 s |
 | Window opened | 0.21 s | 2.2 s | 4.7 s |
 | Window moved | 0.18 s | 0.84 s | 4.4 s |
-| A line of text | 0.07 s | 0.45 s | 3.1 s |
-| A window of text | 0.64 s (14 rows) | 4.2 s (10 rows) | 19.3 s (7 rows) |
+| A line of text | 0.03 s | 0.45 s | 3.1 s |
+| A window of text | 0.21 s (14 rows) | 4.2 s (10 rows) | 19.3 s (7 rows) |
 | One character | 0.02 s | 0.06 s | 0.9 s |
 
 ## Contiki CTK
 
-The smallest and the quickest at drawing text, by seven to nine times
-over Nano-X and fifty over GEM: its windows are cells of the 8x8 font, and a label
+The smallest and the quickest at drawing text, by fifteen to thirty times
+over Nano-X and a hundred or more over GEM: its windows are cells of the 8x8 font, and a label
 is drawn as whole bytes. It is one process: the desktop, its programs
 (editor, shell, file manager, calculator) and the drawing all live in it,
 so a program for it is built in, and only one desktop runs at a time.

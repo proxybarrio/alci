@@ -2437,9 +2437,169 @@ text_cell(unsigned char c, unsigned char fg)
   comp_text(c, fg);
   BLITC(cursx++, cursy);
 }
+#if defined(MONO) || defined(GFX_EGA) || defined(GFX_VGA)
+/* A run of letters on one background (all rows of rowbg alike), straight
+   to video memory: on two colours each pixel row of a letter is the
+   background byte with the glyph or-ed in or cleared; on EGA and VGA the
+   planes where letter and background differ take the glyph or its
+   inverse, a write for each group of planes, the others are filled.
+   The same pixels as text_cell gives, letter by letter. */
+static const unsigned char no_glyph[CH + 1];
+static unsigned short ptr_row(unsigned short Y);
+#if defined(GFX_EGA) || defined(GFX_VGA)
+static void vrows(unsigned short off, const unsigned char *q, unsigned short n,
+                  unsigned short rows, unsigned short step);
+#endif
+static unsigned char
+text_run(const char *s, unsigned char n, unsigned char fg)
+{
+  unsigned char k, r;
+  unsigned short seg = (unsigned short)((unsigned long)VRAM >> 16);
+  for(r = 1; r < CH; ++r) {
+    if(rowbg[r] != rowbg[0]) {
+      return 0;                         /* bars and boxes: cell by cell */
+    }
+  }
+#if defined(MONO)
+  {
+    unsigned short rowoff[CH];
+    unsigned char a = -rowbg[0], orop = fg == C_INK;
+#if (defined(GFX_CGA) && !defined(GFX_LCD)) || (!defined(GFX_CGA) && !defined(GFX_HERC))
+    a = ~a;                             /* the bytes go to the screen inverted */
+    orop = !orop;
+#endif
+#if defined(GFX_CGA) && CH == 8
+    {
+      /* CGA: the eight rows of a cell at fixed places, the glyph found in
+         the font in the loop; all in one piece of assembly */
+      const unsigned char *fb = barfont ? font_bar[0] - 32 * 8 : font8x8[0];
+      unsigned short di = (unsigned short)cursy * 320 + cursx, cnt = n;
+      const char *sp = s;
+#define CGA_ROWS(op) \
+      "push %%es\n\tmov %[seg],%%es\n\tcld\n" \
+      "1:\tlodsb\n\tcmp $32,%%al\n\tjb 2f\n\tcmp $127,%%al\n\tjbe 3f\n" \
+      "2:\tmov $63,%%al\n" \
+      "3:\tmov %%al,%%bl\n\txor %%bh,%%bh\n\tshl %%bx\n\tshl %%bx\n\tshl %%bx\n\tadd %%dx,%%bx\n\t" \
+      ".irp r,0,1,2,3,4,5,6,7\n\tmov \\r(%%bx),%%al\n\t" op "\n\t" \
+      "mov %%al,%%es:((\\r & 1) * 0x2000 + (\\r >> 1) * 80)(%%di)\n\t.endr\n\t" \
+      "inc %%di\n\tloop 1b\n\tpop %%es"
+      if(orop) {
+        __asm__ volatile (CGA_ROWS("or %%ah,%%al")
+                          : "+S" (sp), "+D" (di), "+c" (cnt)
+                          : "a" ((unsigned short)a << 8), "d" (fb), [seg] "m" (seg)
+                          : "bx", "memory", "cc");
+      } else {
+        __asm__ volatile (CGA_ROWS("not %%al\n\tand %%ah,%%al")
+                          : "+S" (sp), "+D" (di), "+c" (cnt)
+                          : "a" ((unsigned short)a << 8), "d" (fb), [seg] "m" (seg)
+                          : "bx", "memory", "cc");
+      }
+#undef CGA_ROWS
+      cursx += n;
+      return 1;
+    }
+#endif
+    for(r = 0; r < CH; ++r) {
+      rowoff[r] = ptr_row((unsigned short)cursy * CH + r) + cursx;
+    }
+    for(k = 0; k < n; ++k) {
+      unsigned char c = (unsigned char)s[k];
+      const unsigned char *g = c == ' ' ? no_glyph : glyph(c);
+      const unsigned short *t = rowoff;
+      unsigned short cnt = CH, kw = k;
+      if(orop) {
+        __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n"
+                          "1:\tlodsb\n\tor %%ah,%%al\n\tmov (%%bx),%%di\n\t"
+                          "add %[k],%%di\n\tmov %%al,%%es:(%%di)\n\t"
+                          "add $2,%%bx\n\tloop 1b\n\tpop %%es"
+                          : "+S" (g), "+b" (t), "+c" (cnt)
+                          : "a" ((unsigned short)a << 8), "d" (seg), [k] "m" (kw)
+                          : "di", "memory", "cc");
+      } else {
+        __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n"
+                          "1:\tlodsb\n\tnot %%al\n\tand %%ah,%%al\n\tmov (%%bx),%%di\n\t"
+                          "add %[k],%%di\n\tmov %%al,%%es:(%%di)\n\t"
+                          "add $2,%%bx\n\tloop 1b\n\tpop %%es"
+                          : "+S" (g), "+b" (t), "+c" (cnt)
+                          : "a" ((unsigned short)a << 8), "d" (seg), [k] "m" (kw)
+                          : "di", "memory", "cc");
+      }
+    }
+  }
+#else
+  {
+    /* plane p of a cell: background bit b, letter bit f: b == f a fill;
+       b 0, f 1 the glyph; b 1, f 0 its inverse */
+    unsigned char q[4], gm = 0, nm = 0, p, bg = rowbg[0];
+    unsigned short off0 = ptr_row((unsigned short)cursy * CH) + cursx;
+    for(p = 0; p < 4; ++p) {
+      unsigned char b = (bg >> p) & 1, f = (fg >> p) & 1;
+      q[p] = b ? 0xff : 0;
+      if(!b && f) {
+        gm |= 1 << p;
+      } else if(b && !f) {
+        nm |= 1 << p;
+      }
+    }
+    if((gm | nm) != 0x0f) {
+      vrows(off0, q, n, CH, 80);        /* the planes the letters leave alone */
+    }
+    for(p = 0; p < 2; ++p) {
+      unsigned char m = p ? nm : gm;
+      if(!m) {
+        continue;
+      }
+      outb(0x3c5, m);                   /* map mask (the index stays on 2) */
+      {
+        /* each letter: its glyph found in bfont, CH rows of 80 bytes */
+        const unsigned char *fb = bfont[0];
+        const char *sp = s;
+        unsigned short di = off0, cnt = n;
+#define EGA_ROWS(op) \
+        "push %%es\n\tmov %[seg],%%es\n\tcld\n" \
+        "1:\tlodsb\n\tcmp $32,%%al\n\tjb 2f\n\tcmp $127,%%al\n\tjbe 3f\n" \
+        "2:\tmov $63,%%al\n" \
+        "3:\tsub $32,%%al\n\tmov %[ch],%%bl\n\tmul %%bl\n\tmov %%ax,%%bx\n\tadd %%dx,%%bx\n\t" \
+        ".set alci_r,0\n\t.rept %c[ch]\n\tmov alci_r(%%bx),%%al\n\t" op "\n\t" \
+        "mov %%al,%%es:(alci_r*80)(%%di)\n\t.set alci_r,alci_r+1\n\t.endr\n\t" \
+        "inc %%di\n\tdec %%cx\n\tjz 4f\n\tjmp 1b\n4:\tpop %%es"
+        if(!p) {
+          __asm__ volatile (EGA_ROWS("")
+                            : "+S" (sp), "+D" (di), "+c" (cnt)
+                            : "d" (fb), [seg] "m" (seg), [ch] "i" (CH)
+                            : "ax", "bx", "memory", "cc");
+        } else {
+          __asm__ volatile (EGA_ROWS("not %%al")
+                            : "+S" (sp), "+D" (di), "+c" (cnt)
+                            : "d" (fb), [seg] "m" (seg), [ch] "i" (CH)
+                            : "ax", "bx", "memory", "cc");
+        }
+#undef EGA_ROWS
+      }
+    }
+    outb(0x3c5, 0x0f);
+  }
+#endif
+  cursx += n;
+  return 1;
+}
+#endif
 static void
 text(const char *s, unsigned char len, unsigned char fg)
 {
+#if defined(MONO) || defined(GFX_EGA) || defined(GFX_VGA)
+  if(skx1 >= skx2 && cursy < SH && cursx < SW && len > 1) {
+    unsigned char n = 0;
+    while(n < len && s[n] && cursx + n < SW) {
+      ++n;
+    }
+    if(n > 1 && text_run(s, n - 1, fg)) {
+      /* the last letter as before, so the cell kept (mb, cb4) is the same */
+      s += n - 1;
+      len -= n - 1;
+    }
+  }
+#endif
   while(len-- && *s) {
     text_cell((unsigned char)*s++, fg);
   }

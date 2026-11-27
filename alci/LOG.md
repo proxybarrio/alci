@@ -326,3 +326,9 @@
   under them and put it back. Blank ends of text rows are filled as rows.
   On the XT: a window opened 530 -> 205 ms on CGA (1380 -> 930 on EGA),
   Alt-Tab to a window behind the Editor 910 -> 240 ms (2670 -> 1280).
+- D7: text written straight to video memory: a run of letters on a plain
+  background is drawn by one loop (assembly on CGA, EGA and VGA) instead
+  of cell by cell. Same pixels, checked by comparing screenshots before
+  and after in every mode. The window of 58x14 letters is drawn in 209 ms
+  on CGA (was 639) and 425 ms on EGA (was 1227); a quick Alt-Tab to the
+  Editor 570 ms on CGA (was 1140).
