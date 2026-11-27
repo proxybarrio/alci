@@ -4,7 +4,7 @@ Status: `TODO`, `DOING`, `DONE`, `DROPPED` (tried, not worth it),
 `HUMAN` (needs the maintainer), `BLOCKED` (waiting on something).
 The agent takes the first `TODO` from the top, except for the order
 agreed with the maintainer on 2026-11-19: F4c (done), then E7 (network
-time, time zone, summer time), then F4e (added 2026-11-21), then F4d,
+time, time zone, summer time), then F4e (added 2026-11-21), then E6b (added 2026-11-27), then F4d,
 then B1 (memory survey, block cache first: 64 KB of buffers in main
 memory, added 2026-11-22), then D2, I2 and D7 (GUI benchmark on Nano-X,
 Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
@@ -598,6 +598,16 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   Then measure ELKSWeb (graphical, CGA/EGA/VGA,
   HTTP only, GPL-2.0-or-later, see `RELATED.md`): memory, speed on an
   8088 with CGA, and what HTTPS from E5 would need to work with it.
+- [ ] E6b `TODO` ELKSWeb against the Contiki web browser (added
+  2026-11-27, after F4e2; ELKSWeb is slow on the 8088). Bring the Contiki
+  1.x web browser onto the D7 desktop (ELKS sockets, no uIP; check its
+  licence) and measure both on MartyPC (8088, CGA) and the 86Box XT, from
+  the same local HTTP server and the same set of pages (plain text, a
+  long page, links, a form, a table, a GIF): time to the first screen and
+  to the whole page, scrolling, following a link, peak memory, size on
+  disk. Features compared in a table: HTML elements shown, forms, images,
+  mouse and keyboard, screens supported, FrogFind and proxy use (E6).
+  Output in `RESULTS.md`; which browser Alci ships is decided after.
 
 - [ ] E8 `TODO` SSH client (decided 2026-11-19: wanted). ELKS has none.
   First a study, no code: existing small clients and their licences, the
