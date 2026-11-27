@@ -139,10 +139,22 @@ detect(void)
   return att() ? "att" : tandy() ? "tandy" : t1200() ? "t1200" : "cga";
 }
 
+static void
+run(const char *t, char **argv)        /* returns only if it cannot run */
+{
+  static char path[32];
+  strcpy(path, "/bin/ctk");
+  if(strcmp(t, "cga") != 0) {
+    strcat(path, "-");
+    strcat(path, t);
+  }
+  argv[0] = path;
+  execv(path, argv);
+}
+
 int
 main(int argc, char **argv)
 {
-  static char path[32];
   const char *t = getenv("DESK");
   if(t == NULL) {
     t = detect();
@@ -151,15 +163,21 @@ main(int argc, char **argv)
     write(2, "desk: an MDA has no graphics\n", 29);
     return 1;
   }
-  strcpy(path, "/bin/ctk");
-  if(strcmp(t, "cga") != 0) {
-    strcat(path, "-");
-    strcat(path, t);
+  run(t, argv);
+  /* not on this disk (the floppies hold only some builds): a build the
+     card can also show, the CGA one last on colour screens */
+  if(strcmp(t, "vga") == 0) {
+    run("ega", argv);
   }
-  argv[0] = path;
-  execv(path, argv);
-  write(2, "desk: cannot run ", 17);
-  write(2, path, strlen(path));
-  write(2, "\n", 1);
+  if(strcmp(t, "vga2") == 0) {
+    run("ega2", argv);
+  }
+  if(strcmp(t, "herc") != 0 && strcmp(t, "ega2") != 0 && strcmp(t, "vga2") != 0) {
+    run("cga", argv);
+  }
+  {
+    static const char m[] = "desk: no desktop program for this screen in /bin\n";
+    write(2, m, sizeof m - 1);
+  }
   return 1;
 }

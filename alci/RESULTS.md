@@ -1260,7 +1260,7 @@ Hercules (MartyPC XT, 720x348): Alt-Tab to the Editor 820 -> 280 ms, to
 the calculator behind it 650 -> 280 ms.
 
 From the start of this work (before "less drawn again"), a quick Alt-Tab
-to the Editor went from 1140 to 155 ms on CGA and from 3420 to 315 ms on
+to the Editor went from 1480 to 155 ms on CGA and from 3420 to 315 ms on
 EGA.
 
 Not measured yet: start from a 1.44M floppy and the hard disk, start of

@@ -363,3 +363,7 @@
   320x200 screens, two columns elsewhere (the icon line moves left of
   both); About first in the menu. VGA shows its title only. Checked on
   QEMU in CGA, CGA four colours, EGA, VGA and MCGA.
+- Release 0.2 preview prepared: `mkrelease.sh` builds the Contiki desktop
+  and puts `desk` and the screen builds on every image but the 360K, as
+  many as fit (all on the hard disk image); `desk` falls back to a build
+  the card can also show when its own is not on the disk.

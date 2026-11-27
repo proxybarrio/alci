@@ -82,6 +82,37 @@ change measured against the commit before it; details in
 - When the date is older than the system (an XT with no clock), it is
   asked at boot; no answer, and the boot goes on after 60 s.
 
+Since then (up to 2026-11-27):
+
+- **A graphical desktop.** [Contiki 1.x](https://github.com/adamdunkels/contiki-1.x)'s
+  CTK desktop, ported to Alci and redrawn: windows with title bars and
+  close boxes, menus, dialogs and icons, with a file manager, a text
+  editor, up to three shell windows, a calculator and an About box. Type
+  `desk`: it asks the video BIOS and starts the build for the screen,
+  one program per screen type (CGA two and four colours, EGA and VGA in
+  colour and monochrome, MCGA, Hercules, Tandy 1000 and PCjr, AT&T 6300,
+  Toshiba T1200 LCD), each about 40 KB on disk. Details in
+  [`alci/contiki/README.md`](alci/contiki/README.md).
+- **Mouse and keyboard as on Windows and Xfce.** Microsoft serial mouse,
+  or the pointer from the keyboard; Alt+Tab (hold Alt to see the open
+  windows), Alt+Esc, Alt+F4 (on an empty desktop it asks to leave),
+  Alt+Space for the window menu, the Windows key for the main menu.
+  Windows are moved by copying them in video memory.
+- **Fast on the 8088.** On an IBM XT at 4.77 MHz a quick Alt+Tab to the
+  full-screen editor takes 0.16 s on CGA and 0.32 s on EGA (1.48 s and
+  3.42 s with the original CTK drawing): text drawn straight into video
+  memory, less drawn again, and the windows behind kept as a hidden copy
+  (in the spare video memory of EGA, VGA and Hercules, in far memory on
+  CGA). Compared with Nano-X and GEM on the same machine
+  ([GUI benchmark](alci/RESULTS.md#gui-benchmark-task-d2-martypc-2026-11-27)),
+  CTK starts in 4.4 s from the floppy and opens a window in 0.14 s.
+- The disk activity wheel of the text screen no longer draws into a
+  graphics screen; ELKS master of 2026-11-25 merged.
+
+A demonstration video (IBM XT, colour CGA, at real speed from the floppy)
+is attached to the
+[0.2 preview release](https://github.com/proxybarrio/alci/releases).
+
 Every change is a separate commit on branch `alci`, measured on the
 cycle-accurate MartyPC emulator and checked for identical behaviour on six
 86Box machines (8088, V20, 8086, 286, 386) and QEMU. Details:

@@ -2,6 +2,9 @@
 # mkrelease.sh <output dir> <version>    e.g. mkrelease.sh /tmp/rel 0.1-preview
 # Builds the Alci release images from the current tree:
 #   floppies (360K, 720K disk 1 and 2, 1.2M, 1.44M) with alci/elks.config;
+#   the Contiki desktop (desk and one program per screen type, compressed)
+#   on every image but the 360K, as many as fit (720K disk 1: desk, CGA
+#   two and four colours; disk 2: the others);
 #   32 MB hard disk (MBR) with alci/elks.config plus CONFIG_EXEC_OS2 and
 #   Bobcat (decided 2026-11-22: OS/2 loader, +1696 resident bytes, on the
 #   hard disk image only).
@@ -39,6 +42,32 @@ cp image/fd1200-minix.img $OUT/$N-fd1200.img
 cp image/fd1440-minix.img $OUT/$N-fd1440.img
 alci/scripts/mkdisk2.sh $OUT/$N-fd720-disk1.img $OUT/$N-fd1440.img $OUT/$N-fd720-disk2.img >> $LOG
 
+echo "Contiki desktop"
+make -C alci/contiki fetch >> $LOG 2>&1
+make -C alci/contiki >> $LOG 2>&1
+CTK=$(mktemp -d)
+for f in desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-herc ctk-att ctk-ega2 ctk-vga2 ctk-t1200; do
+  cp alci/contiki/$f $CTK/
+  elks/tools/bin/elks-compress $CTK/$f >> $LOG 2>&1
+done
+desktop() {   # desktop <image> <program>...: copy while they fit, keep 8 KB free
+  local img=$1; shift
+  for f in "$@"; do
+    free=$($MFS $img stat | sed -n 's/.*blocks inuse [0-9]*, free \([0-9]*\).*/\1/p')
+    need=$(( ($(stat -c %s $CTK/$f) + 1023) / 1024 + 8 ))
+    if [ "$free" -ge "$need" ]; then
+      $MFS $img cp $CTK/$f /bin/$f > /dev/null; echo "  $(basename $img): $f"
+    else
+      echo "  $(basename $img): no room for $f"
+    fi
+  done
+}
+ALL="desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-herc ctk-t1200 ctk-tandy ctk-tandy4 ctk-att ctk-ega2 ctk-vga2"
+desktop $OUT/$N-fd720-disk1.img desk ctk ctk-cga4
+desktop $OUT/$N-fd720-disk2.img ctk-t1200 ctk-herc ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-att ctk-ega2 ctk-vga2
+desktop $OUT/$N-fd1200.img $ALL
+desktop $OUT/$N-fd1440.img $ALL
+
 echo "Bobcat"
 mkdir -p extapps
 [ -d extapps/bobcat ] || git clone -q $BOBCAT_REPO extapps/bobcat
@@ -54,6 +83,7 @@ kernel /tmp/alci-hd.config
 make -C image hd32-minix >> $LOG 2>&1
 H=image/hd32-minix.img
 $MFS $H cp extapps/bobcat/src/bobcat /bin/bobcat > /dev/null
+desktop $H $ALL
 $MFS $H cp extapps/bobcat/lynx.cfg /etc/lynx.cfg > /dev/null
 $MFS $H cat /bootopts > /tmp/alci-bootopts
 cat >> /tmp/alci-bootopts <<'EOF'
@@ -67,6 +97,7 @@ setboot $OUT/$N-hd32.img -P63,16,63 -Sm bootblocks/mbr.bin >> $LOG
 
 trap - ERR
 restore
+rm -rf $CTK
 ( cd $OUT && sha256sum *.img *.tar.gz > SHA256SUMS )
 cat $OUT/SHA256SUMS
 echo "release $N built from $(git rev-parse --short HEAD)"
