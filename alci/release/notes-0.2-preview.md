@@ -16,13 +16,13 @@
 | File | For | Desktop programs on it |
 | --- | --- | --- |
 | `alci-0.2-preview-fd360.img` | 5.25" 360K drives (PC, XT) | none (no room) |
-| `alci-0.2-preview-fd720-disk1.img` | 3.5" 720K drives (XT, Toshiba T1200, laptops) | `desk`, CGA two and four colours |
+| `alci-0.2-preview-fd720-disk1.img` | 3.5" 720K drives (XT, Toshiba T1200, laptops) | `desk`, CGA |
 | `alci-0.2-preview-fd720-disk2.img` | Second 720K disk | none (no room); the other programs of the 1.44M image, not bootable, see below |
-| `alci-0.2-preview-fd1200.img` | 5.25" 1.2M drives (AT) | `desk`, CGA two and four colours, MCGA |
-| `alci-0.2-preview-fd1440.img` | 3.5" 1.44M drives | `desk`, CGA two and four colours, EGA |
+| `alci-0.2-preview-fd1200.img` | 5.25" 1.2M drives (AT) | `desk`, CGA, EGA |
+| `alci-0.2-preview-fd1440.img` | 3.5" 1.44M drives | `desk`, CGA, EGA |
 | `alci-0.2-preview-hd32.img` | Hard disk, CF card, XT-IDE, emulators | `desk` and every screen type; also the Bobcat web browser |
 
-When the program for the screen is not on the disk, `desk` starts one the card can also show (EGA on VGA, CGA on the other colour screens); on the floppies the Toshiba T1200 runs the CGA build. All images boot the same system on 8088, 8086, V20, 286 and 386 machines. Log in as `root` (no password).
+When the program for the screen is not on the disk, `desk` starts one the card can also show (EGA on VGA, CGA on the other colour screens); on the floppies the Toshiba T1200, MCGA, Tandy and AT&T run the CGA build. The desktop programs are stored uncompressed: compressed, the first start of the desktop from the 720K floppy took 42 s instead of 6.6 s on the XT (being looked into). All images boot the same system on 8088, 8086, V20, 286 and 386 machines. Log in as `root` (no password).
 
 **720K disk 2.** With two drives: boot disk 1 in A, put disk 2 in B, then `mount -o ro /dev/fd1 /mnt` and `. /mnt/setup`. On a system installed on a hard disk: `sh /mnt/install-hd` copies its programs there. With a single drive, do not swap disks while the system runs: safe disk swapping comes in a later release.
 

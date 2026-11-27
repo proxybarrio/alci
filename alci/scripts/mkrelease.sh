@@ -2,9 +2,8 @@
 # mkrelease.sh <output dir> <version>    e.g. mkrelease.sh /tmp/rel 0.1-preview
 # Builds the Alci release images from the current tree:
 #   floppies (360K, 720K disk 1 and 2, 1.2M, 1.44M) with alci/elks.config;
-#   the Contiki desktop (desk and one program per screen type, compressed)
-#   on every image but the 360K, as many as fit (720K disk 1: desk, CGA
-#   two and four colours; disk 2: the others);
+#   the Contiki desktop (desk and one program per screen type, not
+#   compressed) on every image but the 360K, as many as fit;
 #   32 MB hard disk (MBR) with alci/elks.config plus CONFIG_EXEC_OS2 and
 #   Bobcat (decided 2026-11-22: OS/2 loader, +1696 resident bytes, on the
 #   hard disk image only).
@@ -47,9 +46,8 @@ make -C alci/contiki fetch >> $LOG 2>&1
 make -C alci/contiki >> $LOG 2>&1
 CTK=$(mktemp -d)
 for f in desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-herc ctk-att ctk-ega2 ctk-vga2 ctk-t1200; do
-  cp alci/contiki/$f $CTK/
-  elks/tools/bin/elks-compress $CTK/$f >> $LOG 2>&1
-done
+  cp alci/contiki/$f $CTK/   # not compressed: a compressed ctk took 42 s
+done                         # instead of 6.6 s to start from the 720K floppy
 desktop() {   # desktop <image> <program>...: copy while they fit, keep 8 KB free
   local img=$1; shift
   for f in "$@"; do
@@ -62,8 +60,8 @@ desktop() {   # desktop <image> <program>...: copy while they fit, keep 8 KB fre
     fi
   done
 }
-ALL="desk ctk ctk-cga4 ctk-ega ctk-vga ctk-mcga ctk-herc ctk-t1200 ctk-tandy ctk-tandy4 ctk-att ctk-ega2 ctk-vga2"
-desktop $OUT/$N-fd720-disk1.img desk ctk ctk-cga4
+ALL="desk ctk ctk-ega ctk-cga4 ctk-vga ctk-mcga ctk-herc ctk-t1200 ctk-tandy ctk-tandy4 ctk-att ctk-ega2 ctk-vga2"
+desktop $OUT/$N-fd720-disk1.img desk ctk
 desktop $OUT/$N-fd720-disk2.img ctk-t1200 ctk-herc ctk-ega ctk-vga ctk-mcga ctk-tandy ctk-tandy4 ctk-att ctk-ega2 ctk-vga2
 desktop $OUT/$N-fd1200.img $ALL
 desktop $OUT/$N-fd1440.img $ALL
