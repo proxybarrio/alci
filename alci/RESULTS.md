@@ -1225,6 +1225,38 @@ Hercules; the scene now has a line ending in spaces and a line of spaces):
 Free memory with the desktop up: 240K on CGA (246K before the text and
 frame changes), 226K on EGA (237K).
 
+### CTK: hidden copy of the windows (2026-11-27)
+
+A window that leaves the front because another comes over it is copied
+away as it is on the screen, and copied back when it comes to front
+again, if nothing in it was drawn again in the meantime and it has the
+same place, size and title (CTK forgets the copy as soon as one of its
+widgets or the window is drawn again, moved or closed). The copy stays
+while it is right, so going back and forth between two windows costs no
+new copy. Two windows at most, the least used one gives way. EGA and VGA
+keep them in the video memory past the screen (EGA needs 256 KB; copied
+through the latches, four planes at once); CGA, the CGA four-colour
+modes, Tandy, AT&T and the T1200 in far memory (`fmemalloc`, at most 32
+KB a window: 14 KB for the Editor on CGA), given back when the window is
+forgotten. Hercules and MCGA keep none (no room past the screen, and a
+copy in memory would not be faster than drawing on MCGA).
+
+Checked pixel by pixel against the same build without the copies (QEMU,
+CGA, EGA and VGA): Alt-Tab back and forth with the Editor and the
+calculator, typing in each window between the switches, a move with
+Alt-Space and Alt-F4; every screen the same.
+
+| ms (MartyPC XT) | CGA before | CGA after | EGA before | EGA after |
+|---|---|---|---|---|
+| Alt-Tab Calc -> Editor (78x21) | 335 | 155 | 600 | 315 |
+| Alt-Tab Editor -> Calc (behind the Editor) | 190 | 125 | 477 | 227 |
+| D2: window opened | 140 | 140 | 232 | 237 |
+| D2: window moved | 165 | 167 | 260 | 262 |
+
+From the start of this work (before "less drawn again"), a quick Alt-Tab
+to the Editor went from 1140 to 155 ms on CGA and from 3420 to 315 ms on
+EGA.
+
 Not measured yet: start from a 1.44M floppy and the hard disk, start of
 the packed programs, the 86Box PC1512 and AT, and the response to a key
 for Nano-X (its ELKS client library has no `GrInjectKeyboardEvent`) and

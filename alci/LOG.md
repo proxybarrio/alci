@@ -338,3 +338,9 @@
   blocks, full-width label rows not cleared first. Same pixels in every
   mode. Alt-Tab to the Editor: 572 -> 335 ms on CGA, 1832 -> 600 ms on
   EGA; to the calculator behind it 1227 -> 477 ms on EGA.
+- D7: hidden copy of the windows: a window covered by another is copied
+  away as it is on the screen and copied back when it comes to front
+  unchanged (video memory past the screen on EGA/VGA, far memory on the
+  CGA-like screens, none on Hercules and MCGA). Same pixels as drawing it
+  again. Alt-Tab to the Editor: 335 -> 155 ms on CGA, 600 -> 315 ms on
+  EGA; to the calculator behind it 190 -> 125 and 477 -> 227 ms.

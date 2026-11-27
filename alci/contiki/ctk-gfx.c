@@ -2659,6 +2659,7 @@ text_run(const char *s, unsigned char n, unsigned char fg)
          the font in the loop; all in one piece of assembly */
       const unsigned char *fb = barfont ? font_bar[0] - 32 * 8 : font8x8[0];
       unsigned short di = (unsigned short)cursy * 320 + cursx, cnt = n;
+      unsigned short aw = (unsigned short)a << 8;  /* AL is used: in and out */
       const char *sp = s;
 #define CGA_ROWS(op) \
       "push %%es\n\tmov %[seg],%%es\n\tcld\n" \
@@ -2670,13 +2671,13 @@ text_run(const char *s, unsigned char n, unsigned char fg)
       "inc %%di\n\tloop 1b\n\tpop %%es"
       if(orop) {
         __asm__ volatile (CGA_ROWS("or %%ah,%%al")
-                          : "+S" (sp), "+D" (di), "+c" (cnt)
-                          : "a" ((unsigned short)a << 8), "d" (fb), [seg] "m" (seg)
+                          : "+S" (sp), "+D" (di), "+c" (cnt), "+a" (aw)
+                          : "d" (fb), [seg] "m" (seg)
                           : "bx", "memory", "cc");
       } else {
         __asm__ volatile (CGA_ROWS("not %%al\n\tand %%ah,%%al")
-                          : "+S" (sp), "+D" (di), "+c" (cnt)
-                          : "a" ((unsigned short)a << 8), "d" (fb), [seg] "m" (seg)
+                          : "+S" (sp), "+D" (di), "+c" (cnt), "+a" (aw)
+                          : "d" (fb), [seg] "m" (seg)
                           : "bx", "memory", "cc");
       }
 #undef CGA_ROWS
@@ -2691,22 +2692,22 @@ text_run(const char *s, unsigned char n, unsigned char fg)
       unsigned char c = (unsigned char)s[k];
       const unsigned char *g = c == ' ' ? no_glyph : glyph(c);
       const unsigned short *t = rowoff;
-      unsigned short cnt = CH, kw = k;
+      unsigned short cnt = CH, kw = k, aw = (unsigned short)a << 8;
       if(orop) {
         __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n"
                           "1:\tlodsb\n\tor %%ah,%%al\n\tmov (%%bx),%%di\n\t"
                           "add %[k],%%di\n\tmov %%al,%%es:(%%di)\n\t"
                           "add $2,%%bx\n\tloop 1b\n\tpop %%es"
-                          : "+S" (g), "+b" (t), "+c" (cnt)
-                          : "a" ((unsigned short)a << 8), "d" (seg), [k] "m" (kw)
+                          : "+S" (g), "+b" (t), "+c" (cnt), "+a" (aw)
+                          : "d" (seg), [k] "m" (kw)
                           : "di", "memory", "cc");
       } else {
         __asm__ volatile ("push %%es\n\tmov %%dx,%%es\n\tcld\n"
                           "1:\tlodsb\n\tnot %%al\n\tand %%ah,%%al\n\tmov (%%bx),%%di\n\t"
                           "add %[k],%%di\n\tmov %%al,%%es:(%%di)\n\t"
                           "add $2,%%bx\n\tloop 1b\n\tpop %%es"
-                          : "+S" (g), "+b" (t), "+c" (cnt)
-                          : "a" ((unsigned short)a << 8), "d" (seg), [k] "m" (kw)
+                          : "+S" (g), "+b" (t), "+c" (cnt), "+a" (aw)
+                          : "d" (seg), [k] "m" (kw)
                           : "di", "memory", "cc");
       }
     }
@@ -3669,6 +3670,217 @@ ctk_gfx_window_buttons(struct ctk_window *w)
   w->titlebutton.w = rest;
 }
 
+/* A window put away as it is on the screen when it leaves the front, and
+   put back when it comes to front again unchanged (same place, size and
+   title; ctk.c knows whether its widgets changed meanwhile): a copy
+   instead of drawing it again. The copy stays while nothing in the window
+   is drawn again (ctk.c forgets it then), so going back and forth costs
+   no new copy. EGA and VGA keep it in the video memory
+   past the screen (copied through the latches), the other screens in
+   memory outside the program (fmemalloc), two windows at most. From the
+   bottom pixel row of the bar above the title down to the shadow, as a
+   redraw would leave it. Hercules and MCGA keep none. */
+#if !defined(GFX_HERC) && !defined(GFX_MCGA) && !defined(NOKEEP)
+#define KEEP_WINDOWS 1
+#include <malloc.h>
+struct kept {
+  struct ctk_window *w;
+  const char *title;
+  unsigned char x, y, ww, h, tl, x1, x2, lru;
+  unsigned short Y1, Y2;
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  unsigned short off;                   /* in the video memory past the screen */
+#else
+  unsigned char __far *buf;
+#endif
+};
+static struct kept kept[2];
+static unsigned char kept_clock;
+#if defined(GFX_EGA) || defined(GFX_VGA)
+static unsigned short kept_base, kept_end, kept_top;   /* the free video memory */
+static void vmove(unsigned short dst, unsigned short src, unsigned short n);
+static void
+kept_space(void)
+{
+  if(kept_base == 0) {
+    unsigned short screen = (unsigned short)SH * CH * 80;
+#if defined(GFX_EGA)
+    unsigned short bx = 0x10;
+    /* the EGA's memory: 3 is 256 KB, 64 KB a plane */
+    __asm__ volatile ("push %%bp\n\tint $0x10\n\tpop %%bp"
+                      : "+b" (bx)
+                      : "a" (0x1200)
+                      : "cx", "dx", "si", "di", "memory", "cc");
+    if((bx & 0xff) != 3) {
+      kept_base = kept_end = 1;          /* no room */
+      return;
+    }
+#endif
+    kept_base = (screen + 15) & ~15;
+    kept_end = 0xffff;
+    kept_top = kept_base;
+  }
+}
+#endif
+static void
+kept_copy(struct kept *k, unsigned char out)
+{
+  unsigned short Y, n = (unsigned short)(k->x2 - k->x1) * GSTEP;
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  unsigned short o = k->off;
+  outw(0x3ce, 0x0105);                  /* write mode 1: the latches */
+  for(Y = k->Y1; Y < k->Y2; ++Y, o += n) {
+    unsigned short scr = ptr_row(Y) + k->x1;
+    if(out) {
+      vmove(scr, o, n);
+    } else {
+      vmove(o, scr, n);
+    }
+  }
+  outw(0x3ce, 0x0005);
+#else
+  unsigned short seg = (unsigned short)((unsigned long)VRAM >> 16);
+  unsigned short bseg = (unsigned short)((unsigned long)k->buf >> 16);
+  unsigned short bo = (unsigned short)(unsigned long)k->buf;
+  for(Y = k->Y1; Y < k->Y2; ++Y, bo += n) {
+    unsigned short scr = ptr_row(Y) + (unsigned short)k->x1 * GSTEP, cnt = n;
+    if(out) {                           /* kept bytes to the screen */
+      unsigned short si = bo;
+      __asm__ volatile ("push %%ds\n\tpush %%es\n\tmov %%ax,%%es\n\tmov %%dx,%%ds\n\t"
+                        "cld\n\trep movsb\n\tpop %%es\n\tpop %%ds"
+                        : "+S" (si), "+D" (scr), "+c" (cnt)
+                        : "a" (seg), "d" (bseg)
+                        : "memory", "cc");
+    } else {
+      unsigned short di = bo;
+      __asm__ volatile ("push %%ds\n\tpush %%es\n\tmov %%dx,%%es\n\tmov %%ax,%%ds\n\t"
+                        "cld\n\trep movsb\n\tpop %%es\n\tpop %%ds"
+                        : "+S" (scr), "+D" (di), "+c" (cnt)
+                        : "a" (seg), "d" (bseg)
+                        : "memory", "cc");
+    }
+  }
+#endif
+}
+static void
+kept_drop(struct kept *k)
+{
+#if !defined(GFX_EGA) && !defined(GFX_VGA)
+  if(k->buf != NULL) {
+    fmemfree(k->buf);
+  }
+  k->buf = NULL;
+#endif
+  k->w = NULL;
+}
+/* the window w is gone, moved or changed: its copy too */
+void
+ctk_gfx_forget_window(struct ctk_window *w)
+{
+  unsigned char i;
+  for(i = 0; i < 2; ++i) {
+    if(kept[i].w == w) {
+      kept_drop(&kept[i]);
+    }
+  }
+}
+/* w, in front and drawn whole, leaves the front: keep what it shows */
+void
+ctk_gfx_keep_window(struct ctk_window *w)
+{
+  unsigned char x1, x2, y1, y2, i;
+  unsigned short Y1, Y2, n;
+  unsigned long size;
+  struct kept *k;
+  for(i = 0; i < 2; ++i) {
+    k = &kept[i];
+    if(k->w == w && k->x == w->x && k->y == w->y && k->ww == w->w &&
+       k->h == w->h && k->title == w->title && k->tl == w->titlelen) {
+      k->lru = ++kept_clock;            /* the copy still shows it */
+      return;
+    }
+  }
+  ctk_gfx_forget_window(w);
+  ctk_gfx_window_extent(w, &x1, &x2, &y1, &y2);
+  Y1 = (unsigned short)(w->y + 1) * CH;
+  if(w->y + 1 >= 2 && CGA_BAR == 2) {
+    Y1 -= 1;                            /* the bar's line in the row above */
+  }
+  Y2 = (unsigned short)y2 * CH;
+  if(Y2 > (unsigned short)(SH - 1) * CH) {
+    return;                             /* (kept clear of the status bar) */
+  }
+  n = (unsigned short)(x2 - x1) * GSTEP;
+  size = (unsigned long)n * (Y2 - Y1);
+  /* the slot used longest ago */
+  k = kept[0].w == NULL ? &kept[0] : kept[1].w == NULL ? &kept[1] :
+      kept[0].lru < kept[1].lru ? &kept[0] : &kept[1];
+  kept_drop(k);
+#if defined(GFX_EGA) || defined(GFX_VGA)
+  kept_space();
+  if(kept_base == 1 || size > (unsigned long)(kept_end - kept_base)) {
+    return;
+  }
+  if(size > (unsigned long)(kept_end - kept_top)) {
+    for(i = 0; i < 2; ++i) {             /* start the space again */
+      kept_drop(&kept[i]);
+    }
+    kept_top = kept_base;
+  }
+  k->off = kept_top;
+  kept_top += (unsigned short)size;
+#else
+  if(size > 32768UL) {
+    return;
+  }
+  k->buf = fmemalloc(size);
+  if(k->buf == NULL) {
+    return;
+  }
+#endif
+  (void)i;
+  k->w = w;
+  k->title = w->title;
+  k->tl = w->titlelen;
+  k->x = w->x;
+  k->y = w->y;
+  k->ww = w->w;
+  k->h = w->h;
+  k->x1 = x1;
+  k->x2 = x2;
+  k->Y1 = Y1;
+  k->Y2 = Y2;
+  k->lru = ++kept_clock;
+  PTR_OFF();
+  kept_copy(k, 0);
+}
+/* w comes to front: 1 when its copy is back on the screen */
+unsigned char
+ctk_gfx_restore_window(struct ctk_window *w)
+{
+  unsigned char i;
+  for(i = 0; i < 2; ++i) {
+    struct kept *k = &kept[i];
+    if(k->w == w) {
+      if(k->x != w->x || k->y != w->y || k->ww != w->w || k->h != w->h ||
+         k->title != w->title || k->tl != w->titlelen) {
+        kept_drop(k);
+        return 0;
+      }
+      PTR_OFF();
+      kept_copy(k, 1);
+      k->lru = ++kept_clock;            /* still right until it changes */
+      return 1;
+    }
+  }
+  return 0;
+}
+#else
+void ctk_gfx_forget_window(struct ctk_window *w) { (void)w; }
+void ctk_gfx_keep_window(struct ctk_window *w) { (void)w; }
+unsigned char ctk_gfx_restore_window(struct ctk_window *w) { (void)w; return 0; }
+#endif
+
 /* cells x1 .. x2 - 1, y1 .. y2 - 1 left alone by what is drawn next, until
    called again with an empty rectangle: icons drawn around a window just
    moved, without drawing over it */
@@ -4188,9 +4400,23 @@ cap(unsigned char cx, unsigned char cy, unsigned char right,
   /* in planes, a row at a time: paper, the fill inside, the frame column,
      the lines at top and bottom with the corners cut, the focus ring */
   {
+    /* the few caps there are (left or right, look) composed once and kept */
+    static struct {
+      unsigned char right, t, b, e, ring, used;
+      unsigned char data[4 * CH];
+    } keep[6];
+    static unsigned char next;
     unsigned char in = right ? 0xe0 : 0x07, fb = 0x80 >> f;
     unsigned char hl = right ? 0xf0 : 0x0f, rb = 0x80 >> (right ? f + 2 : f - 2);
     (void)c;
+    for(r = 0; r < 6; ++r) {
+      if(keep[r].used && keep[r].right == right && keep[r].t == fill_t &&
+         keep[r].b == fill_b && keep[r].e == edge && keep[r].ring == ring) {
+        memcpy(cb4, keep[r].data, 4 * CH);
+        write4(cx, cy);
+        return;
+      }
+    }
     for(r = 0; r < CH; ++r) {
       unsigned char q0 = 0, q1 = 0, q2 = 0, q3 = 0;
       FILL16(0xff, C_PAPER);
@@ -4203,6 +4429,12 @@ cap(unsigned char cx, unsigned char cy, unsigned char right,
         FILL16(rb, C_RING);
       }
       P0[r] = q0; P1[r] = q1; P2[r] = q2; P3[r] = q3;
+    }
+    keep[next].right = right; keep[next].t = fill_t; keep[next].b = fill_b;
+    keep[next].e = edge; keep[next].ring = ring; keep[next].used = 1;
+    memcpy(keep[next].data, cb4, 4 * CH);
+    if(++next == 6) {
+      next = 0;
     }
     write4(cx, cy);
     return;

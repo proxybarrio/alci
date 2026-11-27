@@ -383,6 +383,12 @@ changes nothing on the screen. The left button opens icons, presses
 buttons, opens the menus from the bar, closes a window from its box and
 brings a window to the front; a click on a title starts moving the window,
 which follows the mouse until the next click (CTK's own mouse handling).
+A window that another covers is copied away as it is on the screen and
+copied back when it comes to front again with nothing in it changed (two
+windows at most; in the video memory past the screen on EGA and VGA with
+256 KB, in far memory on the CGA-like screens, none on Hercules and
+MCGA), so Alt-Tab between windows does not draw them again.
+
 The pointer is drawn by the drawing layer with the bytes under it kept
 (black outline and white inside, the other way round on the black
 desktops of CGA four colours, Tandy 640x200 and Hercules); every drawing
