@@ -535,6 +535,93 @@ main(int argc, char **argv)
     printf("ctk ms: rows %lu status %lu\n", t[6] - t[5], t[7] - t[6]);
     return 0;
   }
+  if(argc > 1 && strcmp(argv[1], "-G") == 0) {
+    /* D2 GUI benchmark (alci/tests/guibench): the operations of nxbench
+       and gembench, ms averaged over GN rounds, printed in text mode */
+#define GN 4
+    static struct ctk_window bw;
+    static struct ctk_label bl[24];
+    static char btext[80];
+    static const char line[] =
+      "The quick brown fox jumps over the lazy dog 0123456789 ABCDE";
+    clock_time_t t, ts = 0, to = 0, tc = 0, tm = 0, tl = 0, tf = 0, tk = 0,
+                 tn = 0;
+    unsigned char k, i, w, h;
+    w = ctk_draw_width() * 3 / 4 - 2;
+    h = ctk_draw_height() * 2 / 3 - 2;
+    if(h > 24) h = 24;
+    for(i = 0; i < w && i < sizeof(btext) - 1; ++i)
+      btext[i] = line[i % (sizeof(line) - 1)];
+    settle();
+    for(k = 0; k < GN; ++k) {
+      t = clock_time();               /* the whole desktop */
+      ctk_desktop_redraw(NULL);
+      settle();
+      ts += clock_time() - t;
+
+      ctk_window_new(&bw, w, h, "Bench");
+      for(i = 0; i < h; ++i) {
+        bl[i].type = CTK_WIDGET_LABEL;
+        bl[i].x = 0; bl[i].y = i; bl[i].w = w; bl[i].h = 1;
+        bl[i].text = (char *)"";
+        CTK_WIDGET_ADD(&bw, &bl[i]);
+      }
+      bw.x = ctk_draw_width() / 16;
+      bw.y = ctk_draw_height() / 8;
+      t = clock_time();
+      ctk_window_open(&bw);
+      settle();
+      to += clock_time() - t;
+
+      t = clock_time();               /* a line of text */
+      bl[0].text = btext;
+      CTK_WIDGET_REDRAW(&bl[0]);
+      settle();
+      tl += clock_time() - t;
+
+      t = clock_time();               /* the window full of text */
+      for(i = 0; i < h; ++i)
+        bl[i].text = btext;
+      ctk_window_redraw(&bw);
+      settle();
+      tf += clock_time() - t;
+
+      t = clock_time();               /* one character */
+      bl[1].text = (char *)"a";
+      bl[1].w = 1;
+      CTK_WIDGET_REDRAW(&bl[1]);
+      settle();
+      tk += clock_time() - t;
+      bl[1].w = w;
+
+      t = clock_time();               /* the window moved */
+      bw.x += ctk_draw_width() / 8;
+      bw.y += ctk_draw_height() / 16;
+      ctk_desktop_redraw(NULL);
+      settle();
+      tm += clock_time() - t;
+
+      t = clock_time();               /* the menu opened */
+      push(CTK_CONF_MENU_KEY);
+      settle();
+      tn += clock_time() - t;
+      push(CH_ESC);
+      settle();
+
+      t = clock_time();
+      ctk_window_close(&bw);
+      settle();
+      tc += clock_time() - t;
+    }
+    ctk_cga_exit();
+    tcsetattr(0, TCSANOW, &saved);
+    printf("guibench ctk %ux%u: screen %lu open %lu close %lu move %lu\n",
+           ctk_draw_width(), ctk_draw_height(), ts / GN, to / GN, tc / GN,
+           tm / GN);
+    printf("guibench ctk: line %lu full %lu (%u rows) char %lu menu %lu\n",
+           tl / GN, tf / GN, h, tk / GN, tn / GN);
+    return 0;
+  }
   if(argc > 1 && strncmp(argv[1], "-B", 2) == 0) {
     /* Benchmark of the editor and the shell (a text file named, or
        /bin/long.txt): ms, printed after going back to text mode. -Be
@@ -621,6 +708,8 @@ main(int argc, char **argv)
   }
   if(argc > 1 && strcmp(argv[1], "-q") == 0) {
     while(ek_run()) ;                   /* draw the desktop, then quit */
+    if(argc > 2)                        /* -q N: after N seconds (D2) */
+      sleep(atoi(argv[2]));
     quit();
   }
 

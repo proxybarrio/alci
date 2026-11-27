@@ -1,0 +1,12 @@
+#!/bin/sh
+# Nano-X start: the time from "start" until the screen stops changing
+# ("ready", from vwatch); a client keeps the server up meanwhile
+vwatch ${VSEG:-b800} 3 >/tmp/q &
+W=$!
+stamp start >/tmp/s
+rm -f /tmp/nxsock
+MOUSE_PORT=none nano-X >/dev/null 2>&1 &
+wait $W
+nxbench -q >/dev/null
+wait
+cat /tmp/q >>/tmp/s

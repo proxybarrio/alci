@@ -1,0 +1,6 @@
+#!/bin/sh
+# the start time (ready minus start, ms), the results of the operations
+# and the memory left with the desktop idle
+cat /tmp/s
+cat /tmp/r
+cat /tmp/m

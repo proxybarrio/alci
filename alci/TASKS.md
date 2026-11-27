@@ -300,6 +300,13 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   6. Screenshots of the same screens on each machine, for the look.
   Output: a table in `RESULTS.md` and the screenshots in
   `alci/docs/gui-study.md`, for the maintainer's choice of base.
+  Progress (2026-11-27): `alci/tests/guibench` written and run on MartyPC
+  (XT 8088, 720K floppy) with CGA and EGA for CTK, Nano-X and Gem-elks:
+  disk, memory, start, the operations; table in `RESULTS.md`, summary in
+  `alci/docs/gui-study.md`. Gem-elks needs a font fix to start on CGA and
+  leaves 21K free on a 640 KB machine. Still to do: start from 1.44M and
+  hard disk, packed programs, 86Box PC1512 and AT, key response for
+  Nano-X and GEM; D6 (PC/GEOS) if feasible.
 - [ ] D6 `TODO` PC/GEOS on Alci as a separate program: feasibility study,
   no code (decided 2026-11-21; after D1, before I2). Licence rules in
   `STRATEGY.md` (Apache 2.0, separate program, no GPL code linked).
@@ -433,7 +440,8 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   T1200 LCD (2026-11-26): `ctk-t1200`, the CGA build with the bits as they
   are (a pixel set is dark on the panel), the T1200 icons and a pointer
   and shadow for its 0.68 pixels; `desk` finds it by its BIOS. Checked on
-  86Box's T1200; the real machine is part of C2. Next: the D2 benchmark.
+  86Box's T1200; the real machine is part of C2. D2 measured 2026-11-27
+  (see D2).
   Before closing D7, ask which screen modes are still missing and get icons
   and theme for them: Tandy 1000 / PCjr (320x200 16 colours, 640x200 4
   colours), MCGA 320x200 256 colours, Super VGA (800x600 and 1024x768, for

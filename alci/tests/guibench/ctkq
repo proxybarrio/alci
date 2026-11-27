@@ -1,0 +1,9 @@
+#!/bin/sh
+# Contiki CTK start: the time from "start" until the screen stops
+# changing ("ready", from vwatch)
+vwatch ${VSEG:-b800} 3 >/tmp/q &
+W=$!
+stamp start >/tmp/s
+ctk -q 5
+wait $W
+cat /tmp/q >>/tmp/s

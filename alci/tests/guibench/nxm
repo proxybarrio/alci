@@ -1,0 +1,9 @@
+#!/bin/sh
+# Nano-X memory: what a program could still get with the server up and
+# idle (no client), in /tmp/m
+rm -f /tmp/nxsock
+MOUSE_PORT=none nano-X >/dev/null 2>&1 &
+echo $! >/tmp/nx.pid
+memlater 15 /tmp/nx.pid >/tmp/m
+wait
+textmode

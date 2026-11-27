@@ -993,6 +993,89 @@ refuse an Alci program before any decoding. Options:
    not know. Protects only kernels built after it.
 3. Both: 1 for the kernels that exist, 2 so ELKS knows the field.
 
+## GUI benchmark, task D2 (MartyPC, 2026-11-27)
+
+Contiki CTK (Alci `ab4a4484f` plus the `ctk -G` and `ctk -q N` modes of
+this change), Nano-X (ghaerr/microwindows `3b20527`) and Gem-elks
+(parabyte/gem-elks `c5fd7d1`), measured with `alci/tests/guibench` on
+MartyPC `elks_xt` (IBM XT, 8088 at 4.77 MHz, 640 KB, GLaBIOS) booting a
+720K floppy with the benchmark programs, with CGA and with EGA. Kernel
+and base disk: the Alci 720K image of `ab4a4484f`, with only the tools
+the scripts need left in `/bin`. Summary and screens in
+`alci/docs/gui-study.md`.
+
+Builds: CTK with the Alci Makefile; Nano-X with `nxbuild.sh` (its
+`Makefile.elks` flags, VGA/EGA planar or CGA driver, fonts compiled in);
+Gem-elks with `gembuild.py` (its `Makefile.elks` flags, medium model).
+Gem-elks as published does not start on CGA (no INT 10h AX=1130h for its
+font); the CGA numbers are from a build with
+`gem-elks-cga-font.patch` and without the Amstrad mouse driver (the
+patch alone passes the 128 KB code limit by 32 bytes). EGA numbers are
+from Gem-elks as published.
+
+Disk space, everything the desktop needs (plain, and with `elks-pack.py`
+LZSA1; GEM's resource files are not packed):
+
+| | Plain | Packed |
+|---|---|---|
+| CTK `ctk` (CGA; icons and font inside) | 48,976 | 38,077 |
+| CTK `ctk-ega` | 54,384 | 39,164 |
+| Nano-X server `nano-X` (CGA) | 75,184 | 43,369 |
+| Nano-X server (EGA/VGA) | 74,016 | 42,558 |
+| Nano-X client (nxcalc) | 21,424 | 15,850 |
+| GEM `gem` + `gemdesk` | 157,160 + 92,904 | 113,377 + 68,790 |
+| GEM `/lib/gemsys` (rsc, icn, inf) + `gem.conf` | 48,526 + 542 | same |
+| GEM total | 299,132 | 231,235 |
+
+Memory (`memlater` with the desktop up and idle, run from a script whose
+shell holds 22 KB; with nothing running it finds 347 KB): free and
+largest free block, and the desktop's own segments from `meminfo`:
+
+| | CGA free | EGA free | Desktop |
+|---|---|---|---|
+| CTK | 248K, block 64K | 240K | code 42,896 + data 35,328 (CGA) |
+| Nano-X (server, no client) | 235K, block 64K | 237K | code 56,624 + data 35,328; a client about 23K more |
+| GEM (server + gemdesk) | 21K, largest block 4K | 21K, block 4K | about 304K by difference |
+
+With GEM up no program can be started (`kill` from the script failed);
+the benchmark client and `memlater` are started before GEM.
+
+Start time from the 720K floppy, `stamp` to the last change of the
+screen (`vwatch`):
+
+| | CGA | EGA |
+|---|---|---|
+| CTK (`ctk -q 5`) | 4.20 s | 5.54 s |
+| Nano-X (server, root window) | 6.55 s | 6.23 s |
+| GEM (server and gemdesk) | 17.58 s | 14.28 s |
+
+Operations in ms, 4 rounds averaged (GEM on EGA: 1 round). Window 3/4 of
+the screen wide and 2/3 tall; a line is 60 characters; "full" fills the
+window (rows given); "move" moves the window by 1/8 of the screen width.
+
+| CGA 640x200 | screen | open | close | move | line | full | char | menu |
+|---|---|---|---|---|---|---|---|---|
+| CTK | 400 | 770 | 360 | 1245 | 40 | 325 (14) | 20 | 297 |
+| Nano-X | 817 | 2230 | 47 | 842 | 450 | 4222 (10) | 60 | - |
+| GEM | 3400 | 4717 | 2485 | 4430 | 3067 | 19330 (7) | 882 | - |
+
+| EGA 640x350 | screen | open | close | move | line | full | char | menu |
+|---|---|---|---|---|---|---|---|---|
+| CTK | 1012 | 2070 | 935 | 2960 | 57 | 617 (14) | 22 | 727 |
+| Nano-X | 860 | 2097 | 50 | 1000 | 422 | 6677 (17) | 55 | - |
+| GEM | 5290 | 1980 | 1850 | 3140 | 4780 | 57640 (13) | 2150 | - |
+
+"screen": CTK draws its whole desktop, Nano-X its root window, GEM the
+desktop below the menu bar (`form_dial` FMD_FINISH). CTK moves a window
+by drawing the whole screen again; Nano-X copies it. GEM on CGA in one
+round, twice, gave screen 7790 and 2840, open 3360 and 7920: single
+rounds of GEM vary by up to a factor of two.
+
+Not measured yet: start from a 1.44M floppy and the hard disk, start of
+the packed programs, the 86Box PC1512 and AT, and the response to a key
+for Nano-X (its ELKS client library has no `GrInjectKeyboardEvent`) and
+GEM.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

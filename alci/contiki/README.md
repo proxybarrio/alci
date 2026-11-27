@@ -324,7 +324,10 @@ Copy the programs to `/bin` on an Alci or ELKS system and run `desk` (or
 one of the programs) from the text console. `DESK=cga|cga4|ega|vga|mcga|tandy|tandy4|herc|att|ega2|vga2|t1200 desk`
 chooses by hand. `ctk -d` starts with the calculator open, `ctk -e [file]`
 with the editor, `ctk -t` with a shell, `ctk -f [directory]` with the file
-manager.
+manager. For the D2 benchmark (`alci/tests/guibench`): `ctk -G` times the
+desktop's operations (window opened, moved, closed, text, menu) and
+prints them in text mode; `ctk -q N` draws the desktop, waits N seconds
+and quits. Results against Nano-X and Gem-elks: `alci/docs/gui-study.md`.
 
 The desktop shows four icons (Files, Editor, Shell, Calculator); About is
 in the F1 menu with them.
@@ -418,4 +421,6 @@ column follow the icon size (see the Makefile).
 
 1. Timings of the tall two-colour builds and of the Tandy build on an
    8088; the T1200 build on the real machine.
-2. The D2 benchmark against Nano-X and Gem-elks.
+2. The rest of the D2 benchmark (1.44M floppy and hard disk, packed
+   programs, 86Box PC1512 and AT); first results against Nano-X and
+   Gem-elks in `alci/docs/gui-study.md`.

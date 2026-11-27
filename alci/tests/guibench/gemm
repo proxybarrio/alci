@@ -1,0 +1,15 @@
+#!/bin/sh
+# GEM memory: what a program could still get with the desktop up and
+# idle, in /tmp/m. memlater is started first (no memory is left to
+# start a program once GEM is up) and stops GEM when done. Run it right
+# after a boot.
+rm -f /tmp/gem.aes
+memlater 40 /tmp/gem.pid >/tmp/m &
+W=$!
+MOUSE_PROTOCOL=none gem >/dev/null 2>&1 </dev/tty1 &
+echo $! >/tmp/gem.pid
+wait $W
+textmode </dev/tty1
+stty sane
+clear
+cat /tmp/m

@@ -1,0 +1,3 @@
+#!/bin/sh
+# Contiki CTK operations: results in /tmp/r
+ctk -G >/tmp/r 2>&1

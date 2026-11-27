@@ -281,3 +281,11 @@
   pointer and shadow for its pixel shape; `desk` recognises the T1200
   BIOS. Checked on 86Box (desktop, file manager with the mouse, editor,
   shell, calculator): a letter 23 ms, a page 0.30 s on its 8086.
+- D2: GUI benchmark (`alci/tests/guibench`): clients for Nano-X
+  (`nxbench`) and GEM (`gembench`), `ctk -G` for CTK, helpers for start
+  time (`stamp`, `vwatch`) and free memory (`memlater`); Nano-X and
+  Gem-elks built outside their trees. Measured on MartyPC with CGA and
+  EGA: CTK starts in 4.2 s, opens a window in 0.77 s and draws a line in
+  40 ms on CGA; Nano-X 6.6 s, 2.2 s, 0.45 s; Gem-elks 17.6 s, 4.7 s,
+  3.1 s, and leaves 21K free. Gem-elks needs a font fix for CGA, at the
+  128 KB code limit. Results in `RESULTS.md`, `alci/docs/gui-study.md`.

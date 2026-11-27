@@ -1,0 +1,8 @@
+#!/bin/sh
+# Nano-X operations: results in /tmp/r (the server leaves when its last
+# client does)
+rm -f /tmp/nxsock
+MOUSE_PORT=none nano-X >/dev/null 2>&1 &
+vwatch ${VSEG:-b800} 2 >/dev/null
+nxbench >/tmp/r 2>&1
+wait

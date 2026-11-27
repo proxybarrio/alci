@@ -1,0 +1,18 @@
+#!/bin/sh
+# GEM start: the time from "start" until the screen stops changing
+# ("ready", from vwatch). The server does not stop on SIGTERM (it
+# spins), so it is killed and the text mode set again; its socket is
+# left behind and removed before a start. A job in the background reads
+# /dev/null, so GEM gets the console as its input.
+vwatch ${VSEG:-b800} 3 >/tmp/q &
+W=$!
+stamp start >/tmp/s
+rm -f /tmp/gem.aes
+MOUSE_PROTOCOL=none gem >/dev/null 2>&1 </dev/tty1 &
+G=$!
+wait $W
+kill -9 $G
+textmode
+stty sane
+clear
+cat /tmp/q >>/tmp/s

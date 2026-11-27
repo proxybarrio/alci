@@ -1,0 +1,13 @@
+--- a/src/vdi/drivers/gem_pcvideo.c
++++ b/src/vdi/drivers/gem_pcvideo.c
+@@ -100,6 +100,10 @@
+ 		other = 0;
+ 	}
+ 
++	/* a CGA or MDA machine has no INT 10h AX=1130h: the 8x8 font of
++	   every PC BIOS is at F000:FA6E */
++	if (!address && *rows == 8U)
++		address = 0xF000FA6EUL;
+ 	if (!address) {
+ 		errno = ENODEV;
+ 		return 0;

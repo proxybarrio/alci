@@ -1,0 +1,6 @@
+#!/bin/sh
+# Contiki CTK memory: what a program could still get with the desktop
+# up and idle, in /tmp/m
+memlater 15 >/tmp/m &
+ctk -q 25
+wait

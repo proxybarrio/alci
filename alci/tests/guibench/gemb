@@ -1,0 +1,17 @@
+#!/bin/sh
+# GEM operations: results in /tmp/r. On a 640 KB 8088 nothing can be
+# started once GEM is up (no memory left to fork), so the client
+# (gembench -w) is started first and waits for the screen to settle;
+# it stops the server when done, by the pid in /tmp/gem.pid. Run it
+# right after a boot: GEM did not start a second time after being
+# killed. GEM's input is the console (a job in the background reads
+# /dev/null).
+rm -f /tmp/gem.aes
+gembench -w >/tmp/r 2>&1 &
+B=$!
+MOUSE_PROTOCOL=none gem >/dev/null 2>/tmp/ge </dev/tty1 &
+echo $! >/tmp/gem.pid
+wait $B
+textmode </dev/tty1
+stty sane
+clear

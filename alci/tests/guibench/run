@@ -1,0 +1,9 @@
+#!/bin/sh
+# run NAME: the start (NAMEq), the operations (NAMEb), the memory (NAMEm),
+# then the report; NAME is ctk or nx. GEM does not start a second time in
+# the same boot after being stopped by force: boot once for each of
+# gemq, gemb and gemm, then run report.
+${1}q
+${1}b
+${1}m
+report
