@@ -82,6 +82,16 @@ behaviour your patch touches (keep lines under 60 characters: the ELKS
 tty input line is 80). Real hardware (a T1200) is needed only for patches that touch the
 BIOS, the floppy controller or the boot sector, and before a release.
 
+Upstream merges: `alci/scripts/upstream-merge.py` merges ELKS master,
+resolves a conflicted block to upstream's text only when both sides are
+the same code apart from comments and blanks (never a whole file), aborts
+on any other conflict, and refuses to commit if a line Alci added is
+missing afterwards (`--check-only <merge>` checks an existing merge).
+Then `alci/scripts/build-compare.sh <previous alci commit>` builds both
+and compares the kernel and every file of `target/`: identical files
+(apart from the version string and build times) mean unchanged behaviour
+and timings; any other difference needs the checks V1 to V5.
+
 Every timing you record (`RESULTS.md`, reports, commit messages) names
 both versions: the upstream ELKS commit and the Alci commit, measured with
 the same configuration, toolchain and emulator commit (MartyPC or 86Box). Add new results as a new dated

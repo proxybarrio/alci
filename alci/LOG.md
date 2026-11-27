@@ -380,3 +380,11 @@
   720K floppy on the 8088 3% to 8% faster compressed, starts from the
   text cache 0.12 s slower. No change to the kernel or the programs.
   Next: F4e2b.
+- Upstream merges: `upstream-merge.py` resolves only the conflicted blocks
+  that differ in comments, never whole files, and refuses a merge that
+  loses an Alci line (checked on the merges since `5209a99`: all clean;
+  a resolution that took upstream's whole `console.c` and `timer.c` is
+  caught). `build-compare.sh` compares the built kernel and programs with
+  the previous commit. Rule in `ACCEPTANCE.md`.
+- D7: the other Contiki applications planned after the web browser.
+- E6b added: ELKSWeb against the Contiki web browser.

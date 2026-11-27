@@ -22,6 +22,7 @@ learn from them and avoid duplicating them.
 | RetroCampus BBS | ChatGPT for the Commodore 64 through a Wi-Fi modem and a BBS that relays requests | Another example of the "modem plus relay" pattern. |
 | [ept](https://github.com/sammothxc/ept) (2026) | Package tool for ELKS: downloads programs over plain HTTP from a repository, checks size and MD5 of each file, upgrades; packages have no dependencies; a download-only build is about 8.5 KB | Close to F5 and the 720K set: with a network, programs of disk 2 can be fetched instead of swapping floppies. Planned for inclusion in ELKS, so it may arrive through the upstream merge: check before building anything similar. |
 | [Gem-elks](https://github.com/parabyte/Gem-elks) (2026) | The GEM desktop (sources released under the GPL by Caldera) ported to stock ELKS: a user-space AES/VDI process talks to the desktop client over pipes, programs start one at a time, BIOS 8x8 fonts, ELKS timer instead of GEM's own; tested on an Amstrad PC1640 | The nearest existing desktop to Alci's interface (phase 4). To compare with PC/GEOS and Nano-X in D1/D2 before choosing the base for D4. |
+| [ELKS-cmdr](https://github.com/l00nix/ELKS-cmdr) (2026) | Two-panel file manager in the style of Norton Commander for ELKS: 8086, 80x25 ANSI terminal, keyboard only, copy and move between panels with confirmation; installable with ept; carries its own copy of the ELKS terminal input code (`tty.c`, `unikey.c`, `runes.c`) until that becomes a library | Ideas for the D7 file manager and for a text-mode file manager on Alci; the terminal key handling (Escape timeouts, more function-key sequences) is relevant to the shell window of D7. |
 | [elks-w16](https://github.com/astrobleem/elks-w16) (2026) | Loader for Windows 3.0 (Win16, NE format) programs on ELKS, with USER and GDI translated to Nano-X calls; one task at a time; needs patches to ELKS and Microwindows; tried on emulated Tandy and PCjr | A way to give the desktop existing programs later; heavy in memory. Not before D2 and D4. |
 | [ELKSWeb](https://github.com/l00nix/ELKSWeb) (2026) | Graphical web browser for ELKS, drawing directly on CGA, EGA and VGA; HTTP only; version 0.5 of 2026-11-18, early beta; installable with ept | Changes E6: measure it before porting a text browser; HTTPS would come from E5. |
 | [picomem-elks](https://github.com/l00nix/picomem-elks) (2026) | Configuration tools for the PicoMEM card on ELKS (network IRQ, fast boot), with backup and rollback; kept outside the ELKS tree | Useful with E0b on real hardware (PicoMEM on an XT). |
@@ -46,6 +47,7 @@ learn from them and avoid duplicating them.
 | UnoDOS | MPL 2.0 | Phase 7 only (frozen): how one image boots on legacy BIOS and UEFI. |
 | ept | MIT (checked 2026-11-21) | Compatible. Prefer the version included in ELKS, if it is merged upstream, to a copy of our own. |
 | Gem-elks | GPLv2 (checked 2026-11-21) | Compatible: code may be adapted with its notices kept. |
+| ELKS-cmdr | GPL-2.0-or-later (checked 2026-11-27) | Compatible: code may be adapted with its notices kept. |
 | elks-w16 | MIT (checked 2026-11-21) | Compatible: code may be adapted with its notice kept. |
 | ELKSWeb | GPL-2.0-or-later (checked 2026-11-21); font data public domain; one test fixture GPL-3.0 | Compatible, except the GPL-3.0 test fixture, which must not be copied into GPLv2 code. |
 | picomem-elks | GPL-2.0-or-later (checked 2026-11-21) | Compatible; used as it is, outside the ELKS tree. |
@@ -74,6 +76,18 @@ reads and writes back the 8042 output port hangs the keyboard;
 MFM, SMC Ultra and PEGA drivers derived from Linux 2.x, tested on an
 Amstrad PC1640, are now in the ELKS tree and in Alci (`mfmhd.c`,
 `ultra.c`, `direct-amstrad.c`; upstream since August 2026).
+Added 2026-11-27: Nano-X is moving to one `NXMODE=` variable (for example
+`640x480` or `320x200x4`) to choose a non-default resolution and depth on
+every platform, with `EGAMODE` to be removed before ELKS 0.9.3; new Nano-X
+screen drivers for the Amstrad PC1512 (640x200, 16 colours) and the
+Plantronics ColorPlus are in emulator tests. Nano-X and a graphical
+browser have run as separate processes on an experimental 16-bit
+protected mode kernel on a 386SX, the ELKS route out of the 640 KB limit
+for larger applications. On Tandy 1000 and PCjr, the video memory taken
+from main RAM is kept from the kernel with the `mem=` line of `/bootopts`
+(already in Alci). The ELKS terminal-input code is to be copied by
+applications for now; whether it becomes part of libc or a separate
+library is still open.
 
 Study of os8088's distribution and what Alci takes from it: `docs/os8088-study.md` (2026-11-19).
 

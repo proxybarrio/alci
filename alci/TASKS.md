@@ -465,6 +465,14 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   bottom 8 text rows (640x64, 5 KB raw or about 3 KB as 302 tiles plus map,
   copied like the desktop pattern, loaded from a theme file and skipped on
   small machines); a background computed by formula only on 386 and VGA.
+  Applications (added 2026-11-27): bring the other Contiki 1.x
+  applications onto the desktop too, each through ELKS files and sockets
+  (no uIP), each checked on CGA first and timed on the 8088: the web
+  browser first (E6b compares it with ELKSWeb), then e-mail (SMTP/POP),
+  FTP client, IRC, telnet, the VNC viewer, the web server, and the small
+  tools (process list, memory, network settings, screen saver). For each:
+  licence checked, size, memory with the desktop, what works and what
+  does not.
 - [ ] D3 `TODO` Design the kernel loader for discardable code segments:
   document first, then a prototype.
 - [ ] D4 `TODO` Alci desktop: improve the base chosen after D2, I2 and D7
