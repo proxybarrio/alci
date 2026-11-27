@@ -367,3 +367,16 @@
   and puts `desk` and the screen builds on every image but the 360K, as
   many as fit (all on the hard disk image); `desk` falls back to a build
   the card can also show when its own is not on the disk.
+
+## 2026-11-27
+
+- Upstream ELKS merged up to `8563663` (6 commits: VGA hardware
+  initialisation for graphics programs on the protected mode kernel, and
+  the disk wheel fix offered from Alci). The real mode kernel and the
+  720K target files are the same as before apart from the version string,
+  the build time in `ktcp` and a commented line in `/bootopts`.
+- F4e2 split in three. F4e2a done: ELKSWeb 0.6 built with `buildext.sh`,
+  measured plain and compressed: 98 -> 73 KB on disk, first start from a
+  720K floppy on the 8088 3% to 8% faster compressed, starts from the
+  text cache 0.12 s slower. No change to the kernel or the programs.
+  Next: F4e2b.

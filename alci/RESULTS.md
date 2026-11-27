@@ -1268,6 +1268,55 @@ the packed programs, the 86Box PC1512 and AT, and the response to a key
 for Nano-X (its ELKS client library has no `GrInjectKeyboardEvent`) and
 GEM.
 
+## Upstream merge up to `8563663` (2026-11-27)
+
+Six upstream commits: full VGA hardware initialisation for graphics
+programs on the protected mode kernel (`vga-hwinit`, selector for the ROM
+font), a rewritten `runningPM`, and the disk wheel fix offered from Alci
+(`7ecbce5`), which conflicted with Alci's copy in comments only (upstream
+comments taken). The real mode kernel and every file of the Alci 720K
+target are identical to the build of `426a7a7`, apart from the version
+string in the kernel, the build time inside `ktcp` and one commented line
+added to `/bootopts`. Behaviour, timings and resident memory therefore
+unchanged; no check run beyond the comparison of the built files.
+
+## ELKSWeb compressed and plain, task F4e2a (2026-11-27)
+
+ELKSWeb 0.6 (l00nix/ELKSWeb `bdd71c1`, GPL-2.0-or-later) built with
+`buildext.sh elksweb` on Alci `9889e1a` (upstream ELKS `8563663`). It is a
+medium-model program: 58608 bytes of text, 20112 of far text, 14688 of
+data, 38896 of bss, 1576 bytes of relocations. Compressed with
+`elks-pack.py` (LZSA1, in-place decoding by the kernel).
+
+| | plain | LZSA1 |
+| --- | --- | --- |
+| text / far text / data on disk | 58608 / 20112 / 14688 | 43599 / 16112 / 8132 |
+| file | 100248 bytes, 98 KB blocks | 74683 bytes, 73 KB blocks (-25%) |
+| file gzip -9 (transfer size of a gzipped package) | 62893 | 66624 |
+| memory taken while it runs | same in both forms (the decoded program) | same |
+
+Start time on MartyPC `elks-bench` `e1c5187` (IBM XT, 8088 at 4.77 MHz),
+booting the `bench.sh` 720K image with `/bin/elksweb` added (plain: 3
+blocks left on the disk; LZSA1: 28), command `elksweb --version`, which
+loads the whole program and exits. Without and with the floppy rotation
+model (`ELKS_FDROT=9`):
+
+| run | plain | LZSA1 | plain, rotation | LZSA1, rotation |
+| --- | --- | --- | --- | --- |
+| first start (from the disk) | 8.261 s | 7.976 s (-3.4%) | 10.269 s | 9.456 s (-7.9%) |
+| second start, at once | 0.549 s | 0.637 s | 0.754 s | 0.692 s |
+| third start, after `ls /` | 0.302 s | 0.419 s | 0.302 s | 0.423 s |
+
+The first start is faster compressed (25 fewer blocks read from the
+floppy). Starts from the text cache take about 0.12 s more compressed (the
+cause is not measured yet). For transfer over a
+slow link, a gzipped plain file is the smallest (63 KB), but the ELKS
+side would need a gzip decoder; files sent as they are favour LZSA1
+(75 KB instead of 98 KB). Not measured yet (F4e2b): start from a 1.44M
+floppy and from the hard disk on the 86Box XT and AT, and peak memory
+while a page is loaded. No change to the kernel, libc or the programs
+of the disks; vetoes not applicable (measurement only).
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
@@ -1279,6 +1328,7 @@ PicoMEM patch.
 
 | Date | Emulator | from -> to | what changed for us | timings |
 | --- | --- | --- | --- | --- |
+| 2026-11-27 | both | none | MartyPC `main` has nothing new after `05c0d08`. 86Box upstream `7de8cec`: about 500 commits since 2026-11-18, not merged (no `alci` branch yet, A6); relevant: FDC keeps its 16-byte FIFO for non-DMA transfers, pacing fixed after a CPU block size change; the rest mostly video cards (QVision, Rage 128), sound and translations | - |
 | 2026-11-24 | both | none | MartyPC `main` has nothing new after `05c0d08`. 86Box upstream `141ae59`: 332 commits after `proxybarrio/86box` master `48b41fd`, not merged (no `alci` branch yet, A6); relevant: FDC drive select gated by motor on (`2ae9966`, IBM compatibles), automation and debugger can lock the user's controls (`15487532`), an 808x core swap reverted the same week; the rest mostly 386+ protected mode and dynarec | - |
 | 2026-11-20 | both | none | MartyPC `main` has nothing new after `05c0d08`; 86Box upstream has one commit after `proxybarrio/86box` master `48b41fd` (`f24f956`, UMC 866x parallel port ECP), not merged | - |
 | 2026-11-19 | 86Box | `960d6b7` -> `d4f9a04` | `proxybarrio/86box` has no `alci` branch yet (A6), so `setup.sh` built upstream master plus the PicoMEM patch; needs `libarchive-dev` | functional tests only, no timings compared |

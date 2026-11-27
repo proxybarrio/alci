@@ -906,6 +906,15 @@ Rules for the floppy set (decided 2026-11-19):
   reads the file as a script and prints lines of garbage before giving
   up (exit status 2). Proposal for the maintainer, in `RESULTS.md`: a
   header marker that every ELKS kernel refuses before decoding.
+  F4e2 split 2026-11-27 into F4e2a (ELKSWeb: sizes, transfer, start from
+  a 720K floppy on the 8088), F4e2b (ELKSWeb from a 1.44M floppy and the
+  hard disk on the 86Box XT and AT, peak memory with a page loaded) and
+  F4e2c (Gem-elks, the same measurements); next: F4e2b.
+  F4e2a done 2026-11-27: ELKSWeb 0.6 is 100248 bytes plain, 74683 with
+  LZSA1 (98 -> 73 KB blocks); first start from a 720K floppy on MartyPC
+  8.26 -> 7.98 s (10.27 -> 9.46 s with the rotation model); starts from
+  the text cache about 0.12 s slower compressed; gzipped, the plain file
+  is the smallest to transfer (63 KB). Details in `RESULTS.md`.
 - [ ] I1 `TODO` ELKSWeb in Alci (after F4e; see `RELATED.md`). Built
   outside the tree with `buildext.sh`, compressed or not as F4e decides,
   on the 1.44M set and the hard disk install (not the 720K disk 1).
