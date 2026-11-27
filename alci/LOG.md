@@ -353,3 +353,8 @@
   character and then a space into the picture, a few wrong pixels at the
   right end of the desktop's menu bar when the desktop started while the
   disk was still being read.
+- Merged upstream ELKS `3332410` (6 commits: protected mode selectors for
+  video memory, `kernel_ds` written as `KERNEL_DS`). The real mode kernel
+  Alci builds is the same byte for byte apart from the version string, so
+  behaviour and timings are unchanged.
+- The disk wheel fix is offered to ELKS (`alci/upstream/graphics-disk-wheel.patch`).
