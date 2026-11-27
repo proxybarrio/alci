@@ -367,7 +367,7 @@ switched, Alt-Tab `t`, Shift-Alt-Tab `T`, Alt let go after Alt-Tab `r`,
 Alt-Esc `x`, Alt-Space `s`, the Windows key `w`. While on the screen the desktop holds
 the console (`DCGET_GRAPH`, released on leaving), so Alt-F1 .. F8 do not
 switch to a text console under the picture and no console text is drawn
-over it; Ctrl-Q goes back to the text console. On the ELKS kernel the
+over it (nor the disk wheel of the top right corner); Ctrl-Q goes back to the text console. On the ELKS kernel the
 desktop works without these keys.
 
 Ctrl-Q goes back to the text console; with a text not saved in the editor or a

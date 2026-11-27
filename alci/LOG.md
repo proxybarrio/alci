@@ -347,3 +347,9 @@
 - D7: Hercules keeps the window copies in its second page (B800, mapped
   and never shown), when the card has one: Alt-Tab to the Editor 820 ->
   280 ms, to the calculator 650 -> 280 ms. Same pixels (86Box).
+- Kernel: the disk wheel (the character the BIOS disk driver turns in the
+  top right corner while it reads) is no longer drawn while a program
+  holds the console for graphics (`DCGET_GRAPH`). On CGA it wrote a
+  character and then a space into the picture, a few wrong pixels at the
+  right end of the desktop's menu bar when the desktop started while the
+  disk was still being read.
