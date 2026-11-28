@@ -400,4 +400,6 @@
   is kept as a copy in spare memory (-46% for ten starts of a test program
   with 15 KB of data on the XT), and the decoder has a one-segment variant
   for layouts within 64 KB (8% less decoding time). Suite 34/34 on QEMU,
-  86Box XT, T1200 and AT; damaged programs still rejected.
+  86Box XT, T1200 and AT; damaged programs still rejected. Reverted the
+  same day: about 0.1 s per restart of a large program, not perceptible,
+  for 1 KB of resident kernel. Measurements kept in `RESULTS.md`.

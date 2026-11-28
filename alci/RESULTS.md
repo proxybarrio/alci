@@ -1317,7 +1317,13 @@ floppy and from the hard disk on the 86Box XT and AT, and peak memory
 while a page is loaded. No change to the kernel, libc or the programs
 of the disks; vetoes not applicable (measurement only).
 
-## LZSA1: one-segment decoding and data copies, task F4f (2026-11-28)
+## LZSA1: one-segment decoding and data copies, task F4f (2026-11-28, dropped)
+
+Tried and taken out again (commit `c13e9bdc9`, reverted by the next):
+about 0.1 s saved per restart of a program with 10 to 15 KB of data on
+the XT, nothing on first starts from the floppy and on ordinary programs,
+for about 1 KB more kernel. Not worth it. The measurements:
+
 
 Two changes to the start of LZSA1-compressed programs (`CONFIG_EXEC_LZSA`
 with `CONFIG_EXEC_TEXT_CACHE`):

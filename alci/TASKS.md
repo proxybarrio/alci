@@ -929,12 +929,13 @@ Rules for the floppy set (decided 2026-11-19):
   8.26 -> 7.98 s (10.27 -> 9.46 s with the rotation model); starts from
   the text cache about 0.12 s slower compressed; gzipped, the plain file
   is the smallest to transfer (63 KB). Details in `RESULTS.md`.
-- [x] F4f `DONE` LZSA1 starts (2026-11-28): one-segment decoder for
+- [x] F4f `DROPPED` LZSA1 starts (2026-11-28): one-segment decoder for
   layouts within 64 KB and copies of the decoded data kept in spare
   memory, so a program started again copies its data instead of decoding
   it (the 0.12 s of F4e2a). XT: ten starts of a 48 KB test program -46%;
   decoder alone -8% of decoding time; first starts unchanged. Details in
-  `RESULTS.md`. Next: measure ELKSWeb again (F4e2b).
+  `RESULTS.md`. Dropped the same day (reverted): about 0.1 s per restart
+  of a large program, not perceptible, for 1 KB of resident kernel.
 - [ ] I1 `TODO` ELKSWeb in Alci (after F4e; see `RELATED.md`). Built
   outside the tree with `buildext.sh`, compressed or not as F4e decides,
   on the 1.44M set and the hard disk install (not the 720K disk 1).

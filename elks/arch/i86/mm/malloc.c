@@ -227,22 +227,6 @@ segment_s * seg_alloc (segext_t size, word_t type)
     return seg;
 }
 
-#ifdef CONFIG_EXEC_TEXT_CACHE
-// Allocate from free memory only, never giving back kept segments (ALCI):
-// for the data copies of the text cache, which must not push out others
-
-segment_s * seg_alloc_spare (segext_t size, word_t type)
-{
-    segment_s * seg = seg_free_get1 (size, type);
-
-    if (seg && !seg_pm_attach(seg, type)) {
-        seg_free(seg);
-        seg = 0;
-    }
-    return seg;
-}
-#endif
-
 #ifdef CONFIG_286_PMODE
 // Allocate any size segment (>= 1M ok) from XMS only
 // Primarily used for ramdisk support, not for general use

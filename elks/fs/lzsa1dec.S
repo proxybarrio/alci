@@ -46,12 +46,12 @@
 #define ARG3	8
 
 // fail unless the CX bytes about to be written end at or before dst_len
-.macro CHECKLEN bad
+.macro CHECKLEN
 	mov	%di,%ax
 	add	%cx,%ax
-	jc	\bad
+	jc	damaged
 	cmp	%bx,%ax
-	ja	\bad
+	ja	damaged
 .endm
 
 	.arch	i8086, nojumps
@@ -59,180 +59,6 @@
 	.text
 
 	.global	lzsa1_decompress
-
-// the decoding loop, once for two segments (s = 2) and once for one (s = 1)
-.macro DECODE s, one
-decode_token\s:
-	xchg	%cx,%ax			// clear AH (CX = 0 after a rep)
-	lodsb				// token O|LLL|MMMM
-	mov	%ax,%dx			// keep it in DL for MMMM
-
-	and	$0x70,%al		// literal length (LLL)
-	jz	check_offset_size\s
-	cmp	$0x70,%al
-	jne	got_literals\s
-
-	lodsb				// extra length byte
-	add	$7,%al
-	jc	long_literals\s
-	xchg	%cx,%ax			// 7 to 255 literals
-	CHECKLEN damaged\s
-	rep
-	movsb
-	jmp	check_offset_size\s
-
-long_literals\s:
-	je	big_literals\s
-mid_literals\s:
-	lodsb				// 256 + one more byte
-	inc	%ah
-	xchg	%cx,%ax
-	CHECKLEN damaged\s
-	shr	$1,%cx
-	rep
-	movsw
-	adc	$0,%cx
-	rep
-	movsb
-	jmp	check_offset_size\s
-
-big_literals\s:
-	lodsw				// 16-bit length
-	xchg	%cx,%ax
-	CHECKLEN damaged\s
-	shr	$1,%cx
-	rep
-	movsw
-	adc	$0,%cx
-	rep
-	movsb
-	jmp	check_offset_size\s
-
-got_literals\s:
-	mov	$4,%cl			// 1 to 6 literals: LLL >> 4
-	shr	%cl,%al
-	xchg	%cx,%ax
-	rep
-	movsb
-
-check_offset_size\s:
-	test	%dl,%dl			// O bit: 16-bit offset
-	js	get_long_offset\s
-	mov	$0xff,%ah
-	lodsb
-
-get_match_length\s:
-	xchg	%dx,%ax			// DX = offset (negative), AX = token
-	and	$0x0f,%al		// MMMM
-	cmp	$0x0f,%al
-	jne	got_matchlen_short\s
-
-	lodsb
-	add	$0x12,%al		// MIN_MATCH_SIZE + MATCH_RUN_LEN
-	jnc	do_long_copy\s
-	jne	mid_matchlen\s
-
-	lodsw				// 16-bit length, 0 = end of data
-	xchg	%cx,%ax
-	jcxz	done_decompressing\s
-	jmp	copy_len_preset\s
-
-get_long_offset\s:
-	lodsw
-	jmp	get_match_length\s
-
-got_matchlen_short\s:
-	add	$3,%al			// MIN_MATCH_SIZE
-	xchg	%cx,%ax
-.if \one == 0
-	mov	%ds,%bp			// save DS
-	mov	%es,%ax
-	mov	%ax,%ds
-.endif
-	xchg	%ax,%si			// save SI
-	mov	%di,%si
-	add	%dx,%si			// back reference in the output
-	rep
-	movsb
-	xchg	%ax,%si
-.if \one == 0
-	mov	%bp,%ds
-.endif
-	cmp	%bx,%di			// output past dst_len: damaged\s block
-	ja	damaged\s
-	jmp	decode_token\s
-
-damaged\s:
-	xor	%di,%di			// returns 0
-done_decompressing\s:
-	mov	%di,%ax			// bytes written (output started at 0)
-	pop	%ds
-	pop	%es
-	pop	%di
-	pop	%si
-	pop	%bp
-	ret
-
-mid_matchlen\s:
-	lodsb
-	inc	%ah			// 256 + one more byte
-do_long_copy\s:
-	xchg	%cx,%ax
-copy_len_preset\s:
-	CHECKLEN damaged\s
-.if \one == 0
-	push	%ds
-	mov	%es,%bp
-	mov	%bp,%ds
-.endif
-	mov	%si,%bp			// save SI
-	mov	%di,%si
-	add	%dx,%si
-	cmp	$-2,%dx			// byte or word run?
-	jae	do_run\s
-	shr	$1,%cx
-	rep
-	movsw
-	adc	$0,%cx
-	rep
-	movsb
-	mov	%bp,%si
-.if \one == 0
-	pop	%ds
-.endif
-	jmp	decode_token\s
-
-do_run\s:
-	je	do_run_2\s
-do_run_1\s:
-	lodsb				// one byte repeated
-	mov	%al,%ah
-	shr	$1,%cx
-	rep
-	stosw
-	adc	$0,%cx
-	rep
-	stosb
-	mov	%bp,%si
-.if \one == 0
-	pop	%ds
-.endif
-	jmp	decode_token\s
-
-do_run_2\s:
-	lodsw				// one word repeated
-	shr	$1,%cx
-	rep
-	stosw
-	adc	$0,%cx
-	rep
-	stosb
-	mov	%bp,%si
-.if \one == 0
-	pop	%ds
-.endif
-	jmp	decode_token\s
-.endm
 
 lzsa1_decompress:
 	push	%bp
@@ -249,29 +75,161 @@ lzsa1_decompress:
 	cld
 	xor	%cx,%cx
 
-	DECODE 2, 0
+decode_token:
+	xchg	%cx,%ax			// clear AH (CX = 0 after a rep)
+	lodsb				// token O|LLL|MMMM
+	mov	%ax,%dx			// keep it in DL for MMMM
 
-	.global	lzsa1_decompress1
-//  unsigned int lzsa1_decompress1(seg_t seg, unsigned int src_off,
-//                                 unsigned int src_len, unsigned int dst_len)
-//
-//  The same block, read from seg:src_off and written to seg:0 (ALCI): when
-//  the whole in-place layout fits in one segment, DS = ES and a match
-//  copies from the output without switching DS, which saves four segment
-//  moves at each match (most sequences in program code are short matches).
-lzsa1_decompress1:
-	push	%bp
-	push	%si
-	push	%di
-	push	%es
-	push	%ds
-	mov	%sp,%bp
-	mov	10+ARG0(%bp),%es	// seg
-	mov	10+ARG3(%bp),%bx	// dst_len
-	mov	10+ARG1(%bp),%si	// src_off
-	push	%es
+	and	$0x70,%al		// literal length (LLL)
+	jz	check_offset_size
+	cmp	$0x70,%al
+	jne	got_literals
+
+	lodsb				// extra length byte
+	add	$7,%al
+	jc	long_literals
+	xchg	%cx,%ax			// 7 to 255 literals
+	CHECKLEN
+	rep
+	movsb
+	jmp	check_offset_size
+
+long_literals:
+	je	big_literals
+mid_literals:
+	lodsb				// 256 + one more byte
+	inc	%ah
+	xchg	%cx,%ax
+	CHECKLEN
+	shr	$1,%cx
+	rep
+	movsw
+	adc	$0,%cx
+	rep
+	movsb
+	jmp	check_offset_size
+
+big_literals:
+	lodsw				// 16-bit length
+	xchg	%cx,%ax
+	CHECKLEN
+	shr	$1,%cx
+	rep
+	movsw
+	adc	$0,%cx
+	rep
+	movsb
+	jmp	check_offset_size
+
+got_literals:
+	mov	$4,%cl			// 1 to 6 literals: LLL >> 4
+	shr	%cl,%al
+	xchg	%cx,%ax
+	rep
+	movsb
+
+check_offset_size:
+	test	%dl,%dl			// O bit: 16-bit offset
+	js	get_long_offset
+	mov	$0xff,%ah
+	lodsb
+
+get_match_length:
+	xchg	%dx,%ax			// DX = offset (negative), AX = token
+	and	$0x0f,%al		// MMMM
+	cmp	$0x0f,%al
+	jne	got_matchlen_short
+
+	lodsb
+	add	$0x12,%al		// MIN_MATCH_SIZE + MATCH_RUN_LEN
+	jnc	do_long_copy
+	jne	mid_matchlen
+
+	lodsw				// 16-bit length, 0 = end of data
+	xchg	%cx,%ax
+	jcxz	done_decompressing
+	jmp	copy_len_preset
+
+get_long_offset:
+	lodsw
+	jmp	get_match_length
+
+got_matchlen_short:
+	add	$3,%al			// MIN_MATCH_SIZE
+	xchg	%cx,%ax
+	mov	%ds,%bp			// save DS
+	mov	%es,%ax
+	mov	%ax,%ds
+	xchg	%ax,%si			// save SI
+	mov	%di,%si
+	add	%dx,%si			// back reference in the output
+	rep
+	movsb
+	xchg	%ax,%si
+	mov	%bp,%ds
+	cmp	%bx,%di			// output past dst_len: damaged block
+	ja	damaged
+	jmp	decode_token
+
+damaged:
+	xor	%di,%di			// returns 0
+done_decompressing:
+	mov	%di,%ax			// bytes written (output started at 0)
 	pop	%ds
-	xor	%di,%di
-	cld
-	xor	%cx,%cx
-	DECODE 1, 1
+	pop	%es
+	pop	%di
+	pop	%si
+	pop	%bp
+	ret
+
+mid_matchlen:
+	lodsb
+	inc	%ah			// 256 + one more byte
+do_long_copy:
+	xchg	%cx,%ax
+copy_len_preset:
+	CHECKLEN
+	push	%ds
+	mov	%es,%bp
+	mov	%bp,%ds
+	mov	%si,%bp			// save SI
+	mov	%di,%si
+	add	%dx,%si
+	cmp	$-2,%dx			// byte or word run?
+	jae	do_run
+	shr	$1,%cx
+	rep
+	movsw
+	adc	$0,%cx
+	rep
+	movsb
+	mov	%bp,%si
+	pop	%ds
+	jmp	decode_token
+
+do_run:
+	je	do_run_2
+do_run_1:
+	lodsb				// one byte repeated
+	mov	%al,%ah
+	shr	$1,%cx
+	rep
+	stosw
+	adc	$0,%cx
+	rep
+	stosb
+	mov	%bp,%si
+	pop	%ds
+	jmp	decode_token
+
+do_run_2:
+	lodsw				// one word repeated
+	shr	$1,%cx
+	rep
+	stosw
+	adc	$0,%cx
+	rep
+	stosb
+	mov	%bp,%si
+	pop	%ds
+	jmp	decode_token

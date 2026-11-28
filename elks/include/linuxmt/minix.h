@@ -86,8 +86,6 @@ struct minix_reloc {
 /* elks/fs/exodecr.c - minix binary decompressor */
 extern unsigned int lzsa1_decompress(unsigned int src_seg, unsigned int dst_seg,
     unsigned int src_len, unsigned int dst_len);
-extern unsigned int lzsa1_decompress1(unsigned int seg, unsigned int src_off,
-    unsigned int src_len, unsigned int dst_len);
 extern unsigned int decompress(char *buf, unsigned int seg, unsigned int orig_size,
     unsigned int compr_size, int safety);
 
