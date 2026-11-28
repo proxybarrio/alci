@@ -68,7 +68,7 @@ from power-on:
 | --- | --- | --- |
 | boot loader running (BIOS memory test and boot sector) | 16.3 | 15.9 |
 | kernel loaded and started | 44.6 | 24.7 |
-| `login:` | 58.8 | 38.6 |
+| `login:` | 58.8 | 38.2 |
 | first start of `sed` from the floppy | 2.19 | 1.68 |
 
 Alci's boot loader reads runs of contiguous blocks in one request and
