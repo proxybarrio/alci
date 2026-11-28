@@ -451,10 +451,6 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   empty desktop and the Windows key (kernel keyboard driver and CTK); the
   desktop holds the console while on the screen.
   Alt-Space: the window menu (Move, Send to back, Close).
-  Compressed programs: the desktop (`ctk`, 57 KB) compressed with
-  elks-compress takes 42 s to start the first time from the 720K floppy
-  on the XT (86Box), 6.6 s uncompressed; the release ships it
-  uncompressed until the kernel's decoding of large programs is fixed.
   Hidden copy of the windows (2026-11-27): a covered window comes back by
   copy when nothing in it changed; Alt-Tab to the Editor 0.16 s on CGA,
   0.32 s on EGA, 0.28 s on Hercules (in its second page). Not on MCGA.

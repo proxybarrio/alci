@@ -388,3 +388,8 @@
   the previous commit. Rule in `ACCEPTANCE.md`.
 - D7: the other Contiki applications planned after the web browser.
 - E6b added: ELKSWeb against the Contiki web browser.
+- Release script: the desktop programs are packed with elks-pack.py
+  (LZSA1, as the image build packs the other programs). The first 0.2
+  preview build used elks-compress, the ELKS packer, whose format the
+  kernel decodes slowly: 42 s instead of 6.6 s to start the desktop from
+  the 720K floppy on the XT (86Box). LZSA1-packed: 6.6 s, as unpacked.
