@@ -1492,7 +1492,7 @@ runs on T1200, AT and PC1512.
 `alci/tests/fdtrace-files.py` turns an `FDCTRACE` log into the files each
 read touched (`minixmap.py` maps the blocks of the image). 86Box IBM XT,
 720K, Alci `22b403881`, from the kernel's first read to `login:`: about
-9.1 s of floppy reads (seek and settle included). The files are already
+8.7 s of floppy reads (seek and settle included). The files are already
 in the order boot reads them (`image/Image.all`: inode table, the root
 directories, `init`, `inittab`, `rc.sys`, `sh`, `profile`, `clock`,
 `mount.cfg`, `date`, `getty`, `issue`, `bootopts`, `/linux`), and `sh`

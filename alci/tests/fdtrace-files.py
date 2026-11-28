@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# ftfiles.py <trace> <image> [t0]: floppy reads of an FDCTRACE log, as files of a MINIX image
+# fdtrace-files.py <trace> <image> [t0]: floppy reads of an FDCTRACE log, as files of a MINIX image
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__))); from minixmap import load
 owner,_=load(sys.argv[2]); t0=float(sys.argv[3]) if len(sys.argv)>3 else 0
