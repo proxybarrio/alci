@@ -67,6 +67,9 @@ measured separately on MartyPC (`alci/scripts`).
 - `86box-fdctrace.patch`: 86Box logs each floppy controller command and
   interrupt with the emulated ms to the file named by `FDCTRACE` (with the
   automation patch, whose clock it uses).
+- `fdtrace-files.py <trace> <image> [ms]`: the reads of an `FDCTRACE` log
+  (from emulated ms on) with the files of the MINIX image they touched;
+  `minixmap.py <image>` prints the image's blocks file by file.
 - `mbrguess.py <image>`: after a change to the boot sector, checks that its
   code at 1BEh-1FDh does not read as a partition table: QEMU (and BIOSes
   that guess a geometry for USB or CF media) would then use a wrong

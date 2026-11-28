@@ -208,8 +208,9 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   time 86Box reads it in one, but 86Box does not model the settling, so
   that needs a real drive. The same in the kernel's floppy reads (point
   2b, 2026-11-28): `login:` 0.4 s sooner, first starts 0 to 19% faster.
-  Next, from the trace: the head moves back and forth between cylinders
-  0-2 during boot (file placement).
+  File placement checked 2026-11-28 (`fdtrace-files.py`): the files are
+  already in boot order; 2.3 s of second reads come from the 9 KB track
+  buffer, not from the placement (see `RESULTS.md`).
 
 - [x] A5 `DONE 2026-11-19` Release network card drivers that find no card,
   as done for EDD. Driver operations are far (`struct eth_farops`); the

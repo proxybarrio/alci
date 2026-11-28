@@ -420,3 +420,7 @@
   on the same cylinder: on the 86Box XT `login:` 0.4 s sooner, `cat` of
   a file not in the cache 1.00 -> 0.81 s, program starts unchanged (their
   reads are whole cylinders already). Suites unchanged.
+- Floppy file placement at boot checked with the controller trace: the
+  files are already in boot order; 2.3 s of second reads come from the
+  one-read track buffer. Two slots in it gave nothing; a larger buffer
+  would cost 9 KB of memory. Not changed.

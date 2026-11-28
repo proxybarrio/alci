@@ -1487,6 +1487,29 @@ start at sector 1 wherever the head is. Kernel +72 bytes (far text).
 Suites identical on QEMU (fd720, hd32) and the 86Box XT; floppy suite
 runs on T1200, AT and PC1512.
 
+## Floppy reads during boot, file by file (86Box, 2026-11-28)
+
+`alci/tests/fdtrace-files.py` turns an `FDCTRACE` log into the files each
+read touched (`minixmap.py` maps the blocks of the image). 86Box IBM XT,
+720K, Alci `22b403881`, from the kernel's first read to `login:`: about
+9.1 s of floppy reads (seek and settle included). The files are already
+in the order boot reads them (`image/Image.all`: inode table, the root
+directories, `init`, `inittab`, `rc.sys`, `sh`, `profile`, `clock`,
+`mount.cfg`, `date`, `getty`, `issue`, `bootopts`, `/linux`), and `sh`
+(49 KB) loads a cylinder per request at about 470 ms (two turns plus the
+move). About 2.3 s are second reads of tracks read shortly before
+(`/etc`, `/bin`, `inittab`, `rc.sys`, `getty`, inode blocks): the track
+buffer (9 KB) holds one read, and the blocks of a track that were not
+asked for at the time are not kept. Moving files cannot avoid this,
+since the requests alternate between the inode table, a directory and a
+file. Tried and not kept:
+
+- two slots in the same 9 KB buffer (reads of up to half of it keep the
+  other half): `login:` 38.19 s, as before; one second read less, the
+  others remain (three tracks in use at once);
+- an 18 KB buffer with four slots: the kernel stopped after mounting the
+  root (not investigated: it would also take 9 KB of memory).
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
