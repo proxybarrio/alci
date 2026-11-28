@@ -24,8 +24,8 @@ endif
 
 all: $(TARGETS)
 
-minix.bin: boot_sect.o boot_minix.o
-	$(LD) $(LDFLAGS) -M -o minix.bin boot_sect.o boot_minix.o > minix.map
+minix.bin: boot_sect.o boot_minix.o boot_minix_asm.o
+	$(LD) $(LDFLAGS) -M -o minix.bin boot_sect.o boot_minix.o boot_minix_asm.o > minix.map
 	dd if=minix.bin ibs=1k conv=sync of=minix.tmp; mv minix.tmp minix.bin
 
 probe.bin: boot_sect.o boot_probe.o
@@ -43,6 +43,11 @@ boot_probe.o: boot_probe.S $(TOPDIR)/include/autoconf.h
 	rm -f boot_probe.tmp
 
 boot_minix.o: boot_minix.c $(TOPDIR)/include/autoconf.h
+
+boot_minix_asm.o: boot_minix_asm.S
+	$(CC) -E -o boot_minix_asm.tmp boot_minix_asm.S
+	$(AS) $(ASFLAGS) -o boot_minix_asm.o boot_minix_asm.tmp
+	rm -f boot_minix_asm.tmp
 
 fat.bin: boot_sect_fat.o $(TOPDIR)/include/autoconf.h
 	$(LD) $(LDFLAGS) -M -o fat.bin boot_sect_fat.o > fat.map

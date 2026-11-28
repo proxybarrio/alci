@@ -1414,6 +1414,51 @@ the same model but are not times of a real drive. Boot to prompt 21.02 /
 18.36 s there against 58.82 / 40.39 s (to `login:`) here; the 16 s of
 the IBM BIOS (memory test of 640 KB) is also absent on MartyPC's GLaBIOS.
 
+## Boot loader without head settle on the same cylinder, task A3 point 2 (86Box, 2026-11-28)
+
+Trace of 86Box's floppy controller (commands and interrupts with the
+emulated ms: `alci/tests/86box-fdctrace.patch`, enabled by `FDCTRACE=<file>`) while the 86Box
+IBM XT boots the Alci 720K image. Every BIOS read starts with a seek to
+the current cylinder, then about 40 ms pass before the read command (the
+head settle time, 25 ms in the IBM XT BIOS table): the first sector has
+passed under the head and the read of 9 sectors takes 350 ms, two turns.
+With the settle time at 0 the read starts 1 ms after the seek and takes
+197 ms.
+
+The boot loader now writes the settle time into its copy of the BIOS
+table before each read: 0 when the cylinder is the one of the previous
+read (only the head changes), 25 ms after a move or a reset (the reset
+recalibrates). 720K image, same tree, seconds from power-on, date
+answered 1 s after the question:
+
+| | before | after |
+| --- | --- | --- |
+| boot loader running | 16.06 | 15.86 |
+| kernel started | 27.49 | 24.69 |
+| `login:` | 41.39 | 38.59 |
+| `sed`, first run | 1.69 | 1.68 |
+
+Head 0 after a move still takes two turns (step 10 ms plus 40 ms). With
+the settle time at 0 there too, 86Box reads it in one turn and the
+kernel starts at 22.07 s, but 86Box does not model the head settling
+after a step, so whether a real drive reads reliably that way needs a
+real machine.
+
+Room in the 1 KB boot block: `zone_load` moved to the second sector
+(`boot_minix_asm.S`), `strcmp` in assembly and only for equality, the
+file position kept as a segment and a block count (no 32-bit
+arithmetic), `/linux` and `bootopts` in the first sector at 1DFh. The
+first layout put bytes at 1BEh-1FDh that QEMU read as a partition table
+(3 heads, 9 sectors): the `hd32` image (no MBR) stopped booting on QEMU.
+`alci/tests/mbrguess.py` checks it. Suites identical before and after:
+QEMU fd720 (34 commands), 1.44M, hd32; 86Box XT fd720. Boots: 86Box XT
+with V20, T1200, PC1512, AT, 386 (720K), XT hard disk, T1200 internal
+disk; QEMU 360K and 1.2M.
+
+Note on the timings: an Enter typed at the very moment the date question
+appears was lost in some runs (the boot then waits the 60 s timeout), so
+the date is answered 1 s after the question in these measurements.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

@@ -22,11 +22,11 @@
 static byte_t sb_block [BLOCK_SIZE];  // super block block buffer
 #define sb_data	((struct super_block *)sb_block)
 
-static char linux[] = "/linux";
+extern char linux[], bootopts[];      // boot_sect.S (ALCI)
 static int i_now;
 static int i_boot;
 static int ib_last = -1;             // inode block in i_block (ALCI)
-static unsigned loadaddr;
+static unsigned f_seg;               // segment of the next block (ALCI)
 static int ib_first;                 // inode first block
 
 static byte_t i_block [BLOCK_SIZE];  // inode block buffer
@@ -34,7 +34,7 @@ static struct inode_s * i_data;      // current inode structure
 
 static byte_t z_block [LEVEL_MAX] [BLOCK_SIZE];  // zone block buffer
 
-static file_pos f_pos;
+static unsigned f_left;              // blocks left to read (ALCI)
 
 static byte_t d_dir [BLOCK_SIZE];    // root directory buffer
 
@@ -55,7 +55,7 @@ void run_prog ();
 void zone_load (zone_nr z, unsigned off, unsigned seg);
 extern unsigned r_n;
 
-static int strcmp (const char * s, const char * d);
+int strcmp (const char * s, const char * d);
 static void load_super ();
 static void load_inode ();
 static void load_zone (int level, zone_nr * z_start, zone_nr * z_end);
@@ -92,14 +92,14 @@ void load_prog ()
 			i_boot = i_now = (*(int *)(d_dir + d)) - 1;
 			if (i_boot == -1) continue;
 			puts (linux);
-			loadaddr = LOADSEG << 4;
+			f_seg = LOADSEG;
 			load_file();
 			continue;
 		}
-		if (!strcmp ((char *)(d_dir + 2 + d), "bootopts")) {
+		if (!strcmp ((char *)(d_dir + 2 + d), bootopts)) {
 			i_now = (*(int *)(d_dir + d)) - 1;
 			if (i_now != -1) {
-				loadaddr = OPTSEG << 4;
+				f_seg = OPTSEG;
 				//puts("opts ");
 				load_file();
 			}
@@ -112,17 +112,7 @@ void load_prog ()
 
 //------------------------------------------------------------------------------
 
-static int strcmp (const char * s, const char * d)
-{
-	const char * p1 = s;
-	const char * p2 = d;
-
-	int c1, c2;
-
-	while ((c1 = *p1++) == (c2 = *p2++) && c1)
-		;
-	return c1 - c2;
-}
+// strcmp: boot_sect.S (ALCI)
 
 //------------------------------------------------------------------------------
 
@@ -173,14 +163,11 @@ static void load_zone (int level, zone_nr * z_start, zone_nr * z_end)
 {
 	for (zone_nr * z = z_start; z < z_end; z++) {
 		if (level == 0) {
-			if (i_now) {
-				long lin_addr = loadaddr + f_pos;
-				zone_load (*z, (unsigned) lin_addr, (unsigned) (lin_addr >> 4) & 0xf000);
-			} else {
-				if (!f_pos) disk_read_blk (*z, 2, d_dir /*+ f_pos*/, seg_data ());
-			}
-			f_pos += BLOCK_SIZE;
-			if (f_pos >= i_data->i_size) break;
+			// 64K-aligned segment and offset: a read stops at 64K (DMA)
+			if (!f_left) break;
+			zone_load (*z, f_seg << 4, f_seg & 0xf000);
+			f_seg += BLOCK_SIZE >> 4;
+			f_left--;
 		} else {
 			int next = level - 1;
 			disk_read_blk (*z, 2, z_block [next], seg_data ());
@@ -194,20 +181,20 @@ static void load_zone (int level, zone_nr * z_start, zone_nr * z_end)
 static void load_file ()
 {
 	load_inode ();
+	struct inode_s * ip = i_data;	// one load of i_data (ALCI)
 
-	/*
-	puts ("size=");
-	word_hex (i_data->i_size);
-	puts ("\r\n");
-	*/
-	f_pos = 0;
+	if (!i_now) {			// the root directory: its first block
+		disk_read_blk (ip->i_zone [0], 2, d_dir, seg_data ());
+		return;
+	}
+	f_left = ((unsigned long) ip->i_size + BLOCK_SIZE - 1) >> 10;
 
 	// Direct zones
-	load_zone (0, &(i_data->i_zone [ZONE_IND_L0]), &(i_data->i_zone [ZONE_IND_L1]));
+	load_zone (0, &(ip->i_zone [ZONE_IND_L0]), &(ip->i_zone [ZONE_IND_L1]));
 
 	// Indirect zones
-	if (f_pos < i_data->i_size)
-		load_zone (1, &(i_data->i_zone [ZONE_IND_L1]), &(i_data->i_zone [ZONE_IND_L2]));
+	if (f_left)
+		load_zone (1, &(ip->i_zone [ZONE_IND_L1]), &(ip->i_zone [ZONE_IND_L2]));
 	zone_load (0, 0, 0);	// read the last pending run
 
 	// Double-indirect zones

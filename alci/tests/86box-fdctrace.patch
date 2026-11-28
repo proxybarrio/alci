@@ -1,0 +1,44 @@
+diff --git a/src/automation.c b/src/automation.c
+index 66837d2..4f4f37b 100644
+--- a/src/automation.c
++++ b/src/automation.c
+@@ -183,7 +183,7 @@ static char     wait_text[REQ_MAX];
+ static uint32_t wait_addr;
+ static uint8_t  wait_bytes[256];
+ static int      wait_len;
+-static uint64_t emu_ms; /* emulated ms executed since startup */
++uint64_t emu_ms; /* emulated ms executed since startup */
+ static char     timed_extra[256]; /* more fields for the reply that ends a timed command */
+ 
+ static struct {
+diff --git a/src/floppy/fdc_common_upd765.c b/src/floppy/fdc_common_upd765.c
+index 617b920..92564de 100644
+--- a/src/floppy/fdc_common_upd765.c
++++ b/src/floppy/fdc_common_upd765.c
+@@ -39,6 +39,10 @@
+ #include <86box/plat_fallthrough.h>
+ #include <86box/plat_unused.h>
+ #include <86box/fifo.h>
++/* FDCTRACE: env var 86BOX_FDCTRACE=file logs commands and interrupts with emulated ms */
++static FILE *fdctr; static int fdctr_init;
++static FILE *fdctr_f(void){ if(!fdctr_init){ const char *e=getenv("FDCTRACE"); fdctr_init=1; if(e) fdctr=fopen(e,"w"); } return fdctr; }
++extern uint64_t emu_ms; static double fdctr_ms(void){ return (double) emu_ms; }
+ 
+ /* The drive and bitstream layers reach this controller through fdd_ctrl_t;
+    the table itself lives in fdc_common_ctrl.c. */
+@@ -445,6 +449,7 @@ fdc_int(fdc_t *fdc, int set_fintr)
+ 
+     if (set_fintr)
+         fdc->fintr = 1;
++    if (fdctr_f()) { fprintf(fdctr, "%10.2f INT cmd %02x\n", fdctr_ms(), fdc->interrupt & 0xff); fflush(fdctr); }
+     fdc_log("fdc_int(%i): fdc->fintr = %i\n", set_fintr, fdc->fintr);
+ }
+ 
+@@ -1483,6 +1488,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
+                     }
+                     if (fdc->pnum == fdc->ptot) {
+                         fdc_log("Got all params %02X\n", fdc->command);
++                        if (fdctr_f()) { fprintf(fdctr, "%10.2f CMD %02x", fdctr_ms(), fdc->command); for (int i = 0; i < fdc->ptot; i++) fprintf(fdctr, " %02x", fdc->params[i]); fprintf(fdctr, "\n"); fflush(fdctr); }
+                         for (int i = 0; i < fdc->ptot; i++)
+                             fdc_log(" [%d] %02x\n", i, fdc->params[i]);
+                         fifo_reset(fdc->fifo_p);

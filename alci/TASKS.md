@@ -197,6 +197,16 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   to 8% faster; MartyPC's rotation model is not faithful enough for it
   (see `RESULTS.md`). Before trying again: measure the real waits per
   track on 86Box with a trace of the floppy controller.
+  Point 2 done 2026-11-28, measured with a trace of 86Box's floppy
+  controller (`FDCTRACE`): the IBM XT BIOS waits the head settle time
+  (25 ms in its table, about 40 ms in all) before every read, also when
+  the head does not move, and the first sector of the track has then
+  passed: two turns per track. The boot loader now sets the settle time
+  to 0 when the read stays on the cylinder (head 1 after head 0), 25 ms
+  after a move; kernel loaded in 8.8 s instead of 11.4 s, `login:` 2.8 s
+  sooner. Head 0 after a move still takes two turns: without the settle
+  time 86Box reads it in one, but 86Box does not model the settling, so
+  that needs a real drive. Next: the same in the kernel's floppy reads.
 
 - [x] A5 `DONE 2026-11-19` Release network card drivers that find no card,
   as done for EDD. Driver operations are far (`struct eth_farops`); the

@@ -492,6 +492,18 @@ pc98_1b:
 	pop %bp
 #else
 
+#ifdef FAST_READ
+	// (ALCI) No head settle time when the head stays on its cylinder (a
+	// read from the other head): the BIOS waits it on every call, and the
+	// first sector of the track then passes under the head (a whole turn
+	// lost). After a move, the IBM XT's 25 ms.
+	mov $25,%bl
+	cmp %ch,last_cyl
+	jne 1f
+	xor %bl,%bl
+1:	mov %bl,floppy_table + 9
+	mov %ch,last_cyl
+#endif
 	mov -6(%bp),%bx
 #ifdef FAST_READ
 	mov $0x02,%ah    // BIOS read disk
@@ -508,6 +520,9 @@ pc98_1b:
 
 	xor %ah,%ah       // BIOS reset disk
 	int $0x13
+#ifdef FAST_READ
+	notb last_cyl     // (ALCI) the reset recalibrates: settle again
+#endif
 #endif
 	// PATCH: failure trace
 
@@ -574,55 +589,6 @@ dr_exit:
 
 //------------------------------------------------------------------------------
 
-#ifndef BOOT_FAT
-// void zone_load (zone_nr z, unsigned off, unsigned seg)
-// Gather contiguous file blocks into one multi-sector read: reading one
-// 1K block per call made the drive wait almost a full turn between blocks.
-// z = 0 reads the pending run.
-
-	.global zone_load
-	.global r_n
-zone_load:
-	mov r_n,%bx
-	or %bx,%bx
-	jz zl_new
-	push %ax
-	sub r_zone,%ax
-	cmp %bx,%ax
-	pop %ax
-	jne zl_flush
-	incw r_n
-	ret
-zl_flush:
-	push %ax
-	push %dx
-	push %cx
-	pushw r_seg
-	shl %bx
-	mov %bx,%dx
-	mov r_off,%cx
-	mov r_zone,%ax
-	call disk_read_blk
-	pop %cx
-	pop %dx
-	pop %ax
-zl_new:
-	mov %ax,r_zone
-	mov %dx,r_off
-	mov %cx,r_seg
-	cmp $1,%ax
-	sbb %bx,%bx
-	inc %bx
-	mov %bx,r_n
-	ret
-
-	.bss
-r_n:	.skip 2
-r_zone:	.skip 2
-r_off:	.skip 2
-r_seg:	.skip 2
-	.text
-#endif
 
 #ifndef BOOT_FAT
 // void run_prog ()
@@ -686,6 +652,48 @@ tvram_x:
 	.word 0
 #else
 	.asciz "Press key\r\n"
+#endif
+
+#ifndef BOOT_FAT
+// int strcmp (const char * s, const char * d): 0 if equal, else not 0
+// (the callers only test equality). DS = ES. Used by the payload.
+
+	.global strcmp
+strcmp:
+	push %si
+	push %di
+	xchg %ax,%si
+	mov %dx,%di
+1:	lodsb
+	scasb
+	jne 2f
+	or %al,%al
+	jnz 1b
+	cbtw			// AX = 0
+	jmp 3f
+2:	mov %si,%ax		// not 0
+3:	pop %di
+	pop %si
+	ret
+#endif
+
+#ifndef BOOT_FAT
+// Names the payload looks for, kept here where there is room (ALCI).
+// Their place is fixed: bytes 1BEh-1FDh of a disk with no MBR are read as
+// a partition table by QEMU (and by BIOSes that guess a geometry for USB or
+// CF media), and at 1DFh no entry decodes to a plausible geometry. Check it
+// again if the code above changes (alci/tests/README.md).
+	.org 0x1DF
+	.global linux
+	.global bootopts
+linux:	.asciz "/linux"
+bootopts: .asciz "bootopts"
+#endif
+
+#ifdef FAST_READ
+	.bss
+last_cyl: .skip 1	// (ALCI) cylinder of the last read
+	.text
 #endif
 
 	.global end_of_code

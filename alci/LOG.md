@@ -407,3 +407,12 @@
   head gave 0 to 8% on program starts and a 0.8 s slower boot on the
   86Box XT. MartyPC's floppy rotation model turned out too coarse for
   this (no gaps, sectors transferred faster than they turn).
+- A3 point 2: the boot loader reads head 1 with no head settle time (the
+  head stays on its cylinder): on the 86Box IBM XT the kernel loads in
+  8.8 s instead of 11.4 s, `login:` at 38.6 s instead of 41.4 s. To make
+  room in the 1 KB boot block: `zone_load` moved to the second sector, a
+  shorter `strcmp`, the file position kept as a segment and a block count.
+  Suites unchanged on QEMU (fd720, 1.44M, hd32) and the 86Box XT; boots on
+  the XT with V20, T1200, PC1512, AT and 386, XT and T1200 hard disks,
+  QEMU 360K and 1.2M. `mbrguess.py` added: the first layout made QEMU read
+  the boot code as a partition table (wrong geometry, no boot from hd32).

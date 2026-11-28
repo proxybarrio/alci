@@ -64,6 +64,13 @@ measured separately on MartyPC (`alci/scripts`).
   decoder (for example upstream ELKS built with `mkimg.sh` from its own
   configuration) on QEMU, prints each exit status and checks that the
   system is intact afterwards (task F4e).
+- `86box-fdctrace.patch`: 86Box logs each floppy controller command and
+  interrupt with the emulated ms to the file named by `FDCTRACE` (with the
+  automation patch, whose clock it uses).
+- `mbrguess.py <image>`: after a change to the boot sector, checks that its
+  code at 1BEh-1FDh does not read as a partition table: QEMU (and BIOSes
+  that guess a geometry for USB or CF media) would then use a wrong
+  geometry for the `hd32` image (seen with QEMU: 3 heads, 9 sectors).
 - `bigdisk.sh <hd32 image>`: INT 13h extensions test on QEMU (1 GB disk,
   data past cylinder 1024, written and read back across two boots).
 - `st86.py` options: `CMD_MS` emulated milliseconds to wait for each

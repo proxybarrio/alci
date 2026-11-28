@@ -58,22 +58,24 @@ Screen rows: commands typed on the emulated keyboard, time until the output
 is complete on the screen. Other rows: serial console, output discarded.
 Full tables in [`alci/RESULTS.md`](alci/RESULTS.md).
 
-Floppy boot, measured again on 2026-11-28 on the 86Box IBM XT (8088 4.77
+Floppy boot, measured on 2026-11-28 on the 86Box IBM XT (8088 4.77
 MHz, 640 KB, IBM BIOS, CGA, 720K floppy), ELKS
 [`3332410`](https://github.com/ghaerr/elks/commit/3332410) / Alci
-[`15cf295`](https://github.com/proxybarrio/alci/commit/15cf295), seconds
+(branch `alci` of 2026-11-28), seconds
 from power-on:
 
 | | ELKS | Alci |
 | --- | --- | --- |
-| boot loader running (BIOS memory test and boot sector) | 16.3 | 16.1 |
-| kernel loaded and started | 44.6 | 27.5 |
-| `login:` | 58.8 | 40.4 |
-| first start of `sed` from the floppy | 2.19 | 1.69 |
+| boot loader running (BIOS memory test and boot sector) | 16.3 | 15.9 |
+| kernel loaded and started | 44.6 | 24.7 |
+| `login:` | 58.8 | 38.6 |
+| first start of `sed` from the floppy | 2.19 | 1.68 |
 
-Alci's boot loader reads runs of contiguous blocks in one request: the
-kernel loads in 11.4 s instead of 28.3 s. Alci, on a machine with no clock,
-also asks for the date at boot (answered at once here). Earlier versions of
+Alci's boot loader reads runs of contiguous blocks in one request and
+reads the second head of a cylinder without the BIOS head settle time (the
+head does not move): the kernel loads in 8.8 s instead of 28.3 s. Alci, on
+a machine with no clock, also asks for the date at boot (answered 1 s
+after the question here). Earlier versions of
 this page gave boot times measured on MartyPC (18-22 s): MartyPC models the
 CPU and the video exactly, but its floppy drive returns sectors with no
 gaps between them and does not make the program wait for the disk to turn,
