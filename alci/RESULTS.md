@@ -1459,6 +1459,34 @@ Note on the timings: an Enter typed at the very moment the date question
 appears was lost in some runs (the boot then waits the 60 s timeout), so
 the date is answered 1 s after the question in these measurements.
 
+## Kernel floppy reads without head settle on the same cylinder, A3 point 2b (86Box, 2026-11-28)
+
+The same rule in the kernel (`bios.c`, `bios_disk_rw`): its RAM copy of
+the BIOS table gets a settle time of 0 when a floppy access stays on the
+cylinder of the previous one, the BIOS's own value otherwise and after a
+reset or an error. The trace shows the read 1 ms after the seek instead
+of 43 ms. 86Box IBM XT, 720K, same boot loader, seconds:
+
+| | before | after |
+| --- | --- | --- |
+| `/etc/rc.sys` running (from power-on) | 33.65 | 33.24 |
+| `login:` (from power-on) | 38.59 | 38.19 |
+| `sed -n 1p /etc/passwd`, first run | 2.02 | 2.02 |
+| `ls -l /bin > /dev/null` | 6.11 | 6.11 |
+| `grep root /etc/passwd`, first run | 1.98 | 1.97 |
+| `sort /etc/passwd`, first run | 1.25 | 1.25 |
+| `cat /etc/rc.sys > /dev/null`, first run | 1.00 | 0.81 |
+| `sed`, again | 0.56 | 0.56 |
+
+Small: most kernel reads are of a whole cylinder in one request (head 0
+and head 1, already without a settle in between) or follow a move. The
+trace shows where the rest goes: during boot the head goes back and
+forth between cylinders 0, 1 and 2 (inodes, directories, the files of
+`init`), each move with a step and the 25 ms settle, and track reads
+start at sector 1 wherever the head is. Kernel +72 bytes (far text).
+Suites identical on QEMU (fd720, hd32) and the 86Box XT; floppy suite
+runs on T1200, AT and PC1512.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

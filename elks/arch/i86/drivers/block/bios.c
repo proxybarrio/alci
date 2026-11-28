@@ -120,6 +120,10 @@ static int EDDPROC bios_edd_rw(unsigned cmd, unsigned num_sectors, unsigned driv
 #define SPT             4       /* DDPT offset of sectors per track*/
 static unsigned char DDPT[14];  /* our copy of diskette drive parameter table*/
 static unsigned long __far *vec1E = _MK_FP(0, 0x1E << 2);
+#define SETTLE          9       /* DDPT offset of head settle time (ms)*/
+static unsigned char settle_ms; /* (ALCI) the BIOS's own head settle time*/
+static int settle_drive = -1;   /* (ALCI) drive and cylinder of the last floppy access*/
+static unsigned settle_cyl;
 
 #ifdef CONFIG_ARCH_PC98
 /* check sector size */
@@ -148,6 +152,7 @@ void BFPROC bios_disk_reset(int drive)
 #else
     BD_AX = BIOSHD_RESET;
     BD_DX = drive;
+    settle_drive = -1;      /* (ALCI) the reset recalibrates: settle again */
 #endif
     call_bios(&bdt);
     /* ignore errors with carry set*/
@@ -219,6 +224,23 @@ notMFM1024:
             ms += 8 + (num_sectors<<1); /* 360k @360rpm = 83ms + ~20ms/sector + 3ms/tr */
         unsigned long timeout = jiffies + ms*HZ/100;
         while (!time_after(jiffies, timeout)) continue;
+    }
+#endif
+#ifndef CONFIG_ARCH_PC98
+    /* (ALCI) The BIOS waits the head settle time before every floppy access,
+     * also when the head does not move (the other head of the same cylinder),
+     * and the first sectors have then passed under the head: no settle time
+     * when the access stays on the cylinder of the previous one.
+     */
+    if (drive < 0x80) {
+        int error;
+        DDPT[SETTLE] = (drive == settle_drive && cylinder == settle_cyl)? 0: settle_ms;
+        settle_drive = drive;
+        settle_cyl = cylinder;
+        error = call_bios(&bdt);
+        if (error)
+            settle_drive = -1;
+        return error;
     }
 #endif
     return call_bios(&bdt);
@@ -540,6 +562,7 @@ void BFPROC bios_copy_ddpt(void)
                 sizeof(DDPT)/2);
         debug_bios("bioshd: DDPT vector %x:%x SPT %d\n", _FP_SEG(oldvec),
             (unsigned)oldvec, DDPT[SPT]);
+        settle_ms = DDPT[SETTLE];
         *vec1E = (unsigned long)(void __far *)DDPT;
 }
 

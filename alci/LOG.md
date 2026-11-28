@@ -416,3 +416,7 @@
   the XT with V20, T1200, PC1512, AT and 386, XT and T1200 hard disks,
   QEMU 360K and 1.2M. `mbrguess.py` added: the first layout made QEMU read
   the boot code as a partition table (wrong geometry, no boot from hd32).
+- A3 point 2b: the kernel's floppy reads also skip the head settle time
+  on the same cylinder: on the 86Box XT `login:` 0.4 s sooner, `cat` of
+  a file not in the cache 1.00 -> 0.81 s, program starts unchanged (their
+  reads are whole cylinders already). Suites unchanged.

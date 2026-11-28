@@ -206,7 +206,10 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   after a move; kernel loaded in 8.8 s instead of 11.4 s, `login:` 2.8 s
   sooner. Head 0 after a move still takes two turns: without the settle
   time 86Box reads it in one, but 86Box does not model the settling, so
-  that needs a real drive. Next: the same in the kernel's floppy reads.
+  that needs a real drive. The same in the kernel's floppy reads (point
+  2b, 2026-11-28): `login:` 0.4 s sooner, first starts 0 to 19% faster.
+  Next, from the trace: the head moves back and forth between cylinders
+  0-2 during boot (file placement).
 
 - [x] A5 `DONE 2026-11-19` Release network card drivers that find no card,
   as done for EDD. Driver operations are far (`struct eth_farops`); the
