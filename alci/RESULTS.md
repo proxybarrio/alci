@@ -1385,6 +1385,35 @@ it does not show where a real drive is after a read: the 150-190 ms waits
 for sector 1 measured there (A3) are partly the model's. The real waits
 must be measured on 86Box (or hardware) before deciding on this again.
 
+## Floppy boot on 86Box, ELKS against Alci (2026-11-28)
+
+86Box IBM XT (8088 4.77 MHz, 640 KB, IBM BIOS, CGA, 720K drive, screen
+console), fd720-minix images built from ELKS `3332410` and Alci
+`15cf295cc` with the same configuration, emulated seconds from power-on,
+times taken when the text appears on the screen (86Box automation
+`wait text`); repeated runs gave the same times to 10 ms:
+
+| | ELKS | Alci |
+| --- | --- | --- |
+| boot loader running (`/linux` shown) | 16.31 | 16.06 |
+| kernel started (`START`) | 44.63 | 27.49 |
+| root mounted | 46.68 | 29.48 |
+| `/etc/rc.sys` running | 55.07 | 36.44 |
+| date asked (Alci only, no clock; Enter typed at once) | - | 38.14 |
+| `login:` | 58.82 | 40.39 |
+| `sed -n 1p /etc/passwd`, first run (from the floppy) | 2.19 | 1.69 |
+| same, second and third run | 0.52 | 0.31 |
+
+The kernel loads in 28.3 s with the ELKS loader (one 1 KB block per BIOS
+call: the next sectors have passed under the head and the drive waits
+most of a turn) and 11.4 s with Alci's (contiguous blocks in one call).
+The MartyPC floppy tables in this file (`ELKS_FDROT=9`) give shorter
+times: MartyPC returns sectors without the gaps between them and does
+not hold the program while the disk turns, so they compare versions on
+the same model but are not times of a real drive. Boot to prompt 21.02 /
+18.36 s there against 58.82 / 40.39 s (to `login:`) here; the 16 s of
+the IBM BIOS (memory test of 640 KB) is also absent on MartyPC's GLaBIOS.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box

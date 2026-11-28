@@ -56,9 +56,29 @@ versions of either may give different results.
 86Box 7.0 with each machine's real BIOS and its own display, hard disk.
 Screen rows: commands typed on the emulated keyboard, time until the output
 is complete on the screen. Other rows: serial console, output discarded.
-On MartyPC (8088 4.77 MHz, CGA, 720K floppy) boot to the prompt with the
-floppy rotation model takes 21.02 s on ELKS and 18.36 s on Alci. Full tables in
-[`alci/RESULTS.md`](alci/RESULTS.md).
+Full tables in [`alci/RESULTS.md`](alci/RESULTS.md).
+
+Floppy boot, measured again on 2026-11-28 on the 86Box IBM XT (8088 4.77
+MHz, 640 KB, IBM BIOS, CGA, 720K floppy), ELKS
+[`3332410`](https://github.com/ghaerr/elks/commit/3332410) / Alci
+[`15cf295`](https://github.com/proxybarrio/alci/commit/15cf295), seconds
+from power-on:
+
+| | ELKS | Alci |
+| --- | --- | --- |
+| boot loader running (BIOS memory test and boot sector) | 16.3 | 16.1 |
+| kernel loaded and started | 44.6 | 27.5 |
+| `login:` | 58.8 | 40.4 |
+| first start of `sed` from the floppy | 2.19 | 1.69 |
+
+Alci's boot loader reads runs of contiguous blocks in one request: the
+kernel loads in 11.4 s instead of 28.3 s. Alci, on a machine with no clock,
+also asks for the date at boot (answered at once here). Earlier versions of
+this page gave boot times measured on MartyPC (18-22 s): MartyPC models the
+CPU and the video exactly, but its floppy drive returns sectors with no
+gaps between them and does not make the program wait for the disk to turn,
+so floppy times there are too short. Floppy times on this page now come
+from 86Box; MartyPC is used for CPU, video and memory measurements.
 
 Since then (2026-11-19, Alci up to
 [`70b577df`](https://github.com/proxybarrio/alci/commit/70b577df), each
@@ -68,17 +88,17 @@ change measured against the commit before it; details in
 - Programs on the floppies are compressed (LZSA1) and decoded by the
   kernel, and programs that exit stay in free memory until it is needed:
   the 720K system disk goes from 41 to 121 KB free, the first start of a
-  program from the floppy is faster (`sed` 4.76 -> 3.19 s on the XT) and
-  a second start is almost free (`vi` 4.75 -> 0.25 s). Cost: 1.9 KB of
-  kernel memory.
+  program from the floppy is faster (`sed` above) and a second start of a
+  program too large for the buffer cache is almost free (`vi` 4.75 -> 0.25
+  s on MartyPC's XT). Cost: 1.9 KB of kernel memory.
 - Network card drivers that find no card give their code back at boot:
   4.9 KB more free memory with no card, 3 KB with one.
 - Serial input on the XT no longer loses characters (longest wait of a
   received byte about 640 -> 380 us); `clock -w` writes a valid year to
   the AT's CMOS after 1999; programs no longer fail for lack of memory
   when several start at once on a 512K AT.
-- Floppy boot to `login:` 22.81 -> 22.21 s on the XT (the boot loader no
-  longer reads the same block twice).
+- The floppy boot loader reads contiguous blocks in one request and no
+  longer reads the same block twice (the boot table above).
 - When the date is older than the system (an XT with no clock), it is
   asked at boot; no answer, and the boot goes on after 60 s.
 
@@ -105,7 +125,8 @@ Since then (up to 2026-11-27):
   (in the spare video memory of EGA, VGA and Hercules, in far memory on
   CGA). Compared with Nano-X and GEM on the same machine
   ([GUI benchmark](alci/RESULTS.md#gui-benchmark-task-d2-martypc-2026-11-27)),
-  CTK starts in 4.4 s from the floppy and opens a window in 0.14 s.
+  CTK opens a window in 0.14 s; it starts in 6.6 s from the 720K floppy
+  (86Box XT).
 - The disk activity wheel of the text screen no longer draws into a
   graphics screen; ELKS master of 2026-11-25 merged.
 
@@ -114,7 +135,7 @@ is attached to the
 [0.2 preview release](https://github.com/proxybarrio/alci/releases).
 
 Every change is a separate commit on branch `alci`, measured on the
-cycle-accurate MartyPC emulator and checked for identical behaviour on six
+cycle-accurate MartyPC emulator (floppy times on 86Box, see above) and checked for identical behaviour on six
 86Box machines (8088, V20, 8086, 286, 386) and QEMU. Details:
 
 - [`alci/README.md`](alci/README.md): what Alci is and how the work is organised.
