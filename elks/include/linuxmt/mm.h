@@ -88,6 +88,9 @@ segment_s *text_cache_take(struct inode *);
 void text_cache_drop(struct inode *);
 void text_cache_flush(unsigned short dev);     /* kdev_t */
 int text_cache_evict(void);
+segment_s *seg_alloc_spare(segext_t, word_t);
+segment_s *data_copy_get(struct inode *, size_t);
+void data_copy_keep(struct inode *, seg_t, size_t);
 #endif
 void seg_free_pid(pid_t pid);
 

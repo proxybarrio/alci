@@ -393,3 +393,11 @@
   preview build used elks-compress, the ELKS packer, whose format the
   kernel decodes slowly: 42 s instead of 6.6 s to start the desktop from
   the 720K floppy on the XT (86Box). LZSA1-packed: 6.6 s, as unpacked.
+
+## 2026-11-28
+
+- F4f: LZSA1 programs start faster when started again: the decoded data
+  is kept as a copy in spare memory (-46% for ten starts of a test program
+  with 15 KB of data on the XT), and the decoder has a one-segment variant
+  for layouts within 64 KB (8% less decoding time). Suite 34/34 on QEMU,
+  86Box XT, T1200 and AT; damaged programs still rejected.

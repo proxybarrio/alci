@@ -70,6 +70,11 @@ static unsigned int fast_unpack(unsigned int fmt, seg_t src, seg_t dst,
     unsigned int clen, unsigned int dlen)
 {
     (void)fmt;
+    /* the whole layout in one segment: the faster decoder, no DS switch
+       at each match */
+    if (src >= dst && src - dst < 0x1000
+            && ((unsigned long)(src - dst) << 4) + clen <= 0x10000UL)
+        return lzsa1_decompress1(dst, (src - dst) << 4, clen, dlen);
     return lzsa1_decompress(src, dst, clen, dlen);
 }
 
@@ -585,6 +590,15 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
 #ifdef CONFIG_EXEC_LZSA
     if (FAST_COMPR(esuph.esh_reserved) && esuph.esh_compr_dseg) {
         segext_t src = fast_src_para((size_t)mh.dseg, esuph.esh_compr_dseg);
+#ifdef CONFIG_EXEC_TEXT_CACHE
+        segment_s *copy = data_copy_get(inode, (size_t)mh.dseg);
+        if (copy) {             /* decoded at an earlier start */
+            fmemcpyw(0, seg_data->base, 0, copy->base, ((size_t)mh.dseg + 1) >> 1);
+            filp->f_pos += bytes;
+            currentp->t_regs.ds = seg_data->base;
+            goto data_loaded;
+        }
+#endif
         currentp->t_regs.ds = seg_data->base + src;
         retval = filp->f_op->read(inode, filp, 0, bytes);
         currentp->t_regs.ds = seg_data->base;
@@ -594,6 +608,10 @@ static int FARPROC execve_aout(struct inode *inode, struct file *filp,
         if (fast_unpack(esuph.esh_reserved, seg_data->base + src, seg_data->base, bytes,
                 (size_t)mh.dseg) != (size_t)mh.dseg)
             goto error_exec5;
+#ifdef CONFIG_EXEC_TEXT_CACHE
+        data_copy_keep(inode, seg_data->base, (size_t)mh.dseg);
+  data_loaded: ;
+#endif
     } else
 #endif
     {

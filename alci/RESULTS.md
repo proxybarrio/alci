@@ -1317,6 +1317,52 @@ floppy and from the hard disk on the 86Box XT and AT, and peak memory
 while a page is loaded. No change to the kernel, libc or the programs
 of the disks; vetoes not applicable (measurement only).
 
+## LZSA1: one-segment decoding and data copies, task F4f (2026-11-28)
+
+Two changes to the start of LZSA1-compressed programs (`CONFIG_EXEC_LZSA`
+with `CONFIG_EXEC_TEXT_CACHE`):
+
+1. **One-segment decoder.** `lzsa1dec.S` holds the decoding loop twice:
+   as before, with source and output in two segments, and with both in one
+   segment, where a match copies from the output without switching DS
+   (four segment moves fewer at each match). `exec` takes the second when
+   the whole in-place layout (output, margin, compressed bytes) fits in
+   64 KB, else the first; every text, far text and data section chooses on
+   its own.
+2. **Data copies.** A program with LZSA1 data decoded it again at every
+   start, even with its text in memory. After decoding, `exec` now keeps a
+   copy of the decoded data (before relocation) in memory nobody wants
+   (`seg_alloc_spare`: free memory only, nothing pushed out; shown as free
+   by `meminfo`), and the next start of the same file copies it. Up to four
+   copies, freed first when memory is short, and with the text entries of
+   their file (written, size or time changed, unmounted).
+
+MartyPC `elks-bench`, IBM XT, floppy rotation model on, emulated seconds.
+Test program `bigp` (33 KB of code and 15 KB of initialized data, LZSA1
+22.7 KB on disk), four copies `biga` to `bigd` on the 720K bench image; the
+three kernels on the same image (only `/linux` replaced, so the files are
+at the same places):
+
+| Command | before | decoder only | both |
+| --- | --- | --- | --- |
+| `biga`, first start | 5.222 | 5.214 | 5.260 |
+| `biga` x10 | 2.587 | 2.494 | 1.400 (-46%) |
+| `bigb; bigc; bigd`, first starts | 7.314 | 7.205 | 7.297 |
+| `bigb; bigc; bigd; biga` x2, then again | 3.643, 2.109 | | 1.865, 1.115 (-47%) |
+
+The decoder alone saves about 3 cycles per byte produced (8%; estimated
+15 to 25% before measuring: the time per match is less of the total than
+assumed). Making a data copy costs about 0.04 s at the first start of a
+program with 15 KB of data. Ordinary programs of the 720K image (`grep`,
+`sed`, `sort`, `ls`, small data): within 1 to 3% either way, the same on
+first and repeated starts.
+
+Checks: strict suite 34/34 on QEMU (720K floppy at 640 and 256 KB, hard
+disk), 86Box IBM XT and Toshiba T1200 (720K floppy) and IBM AT 512 KB
+(hard disk); `lzsa1-corrupt.py` (twelve damaged copies of `grep`): every
+one rejected or exits, the system always answers. Kernel: about 1 KB more
+(`/linux` 109624 -> 110704 bytes).
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
