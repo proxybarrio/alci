@@ -403,3 +403,7 @@
   86Box XT, T1200 and AT; damaged programs still rejected. Reverted the
   same day: about 0.1 s per restart of a large program, not perceptible,
   for 1 KB of resident kernel. Measurements kept in `RESULTS.md`.
+- A3 point 3 tried and not kept: track reads from the sector under the
+  head gave 0 to 8% on program starts and a 0.8 s slower boot on the
+  86Box XT. MartyPC's floppy rotation model turned out too coarse for
+  this (no gaps, sectors transferred faster than they turn).

@@ -192,6 +192,11 @@ Gem-elks and Contiki CTK, moved forward 2026-11-21, Contiki added
   inode block; boot to `login:` 22.81 -> 22.21 s on the 8088, 18.79 ->
   18.19 s on the 8086; boots on every 86Box machine and QEMU. Needs a
   test on the real T1200 (boot block). Next: point 2, then 3.
+  Point 3 tried 2026-11-28 (reads from the sector under the head, timed
+  with the PIT): not kept, 86Box XT boot 0.8 s slower, program starts 0
+  to 8% faster; MartyPC's rotation model is not faithful enough for it
+  (see `RESULTS.md`). Before trying again: measure the real waits per
+  track on 86Box with a trace of the floppy controller.
 
 - [x] A5 `DONE 2026-11-19` Release network card drivers that find no card,
   as done for EDD. Driver operations are far (`struct eth_farops`); the

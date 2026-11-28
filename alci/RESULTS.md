@@ -1369,6 +1369,22 @@ disk), 86Box IBM XT and Toshiba T1200 (720K floppy) and IBM AT 512 KB
 one rejected or exits, the system always answers. Kernel: about 1 KB more
 (`/linux` 109624 -> 110704 bytes).
 
+## Track reads from the sector under the head, task A3 point 3 (2026-11-28, not kept)
+
+Tried: a new track read in two requests, from the sector expected under
+the head (worked out from the PIT time since the last read ended, the
+sector it ended on and 30 ms for a one-cylinder step) to the end of the
+track, then from its start. Not committed (patch kept outside the tree).
+
+86Box IBM XT (real BIOS, 720K floppy), serial-console image, emulated
+seconds: boot to prompt 45.87 -> 46.67 s (worse); first starts `sed` 2.54
+-> 2.34, `sort` 1.57 -> 1.47, `ls -l /bin` 6.09 -> 6.00, `grep` 2.10 ->
+2.10. MartyPC: no gain either. MartyPC's rotation model places sectors
+without gaps and transfers them faster than they pass under the head, so
+it does not show where a real drive is after a read: the 150-190 ms waits
+for sector 1 measured there (A3) are partly the model's. The real waits
+must be measured on 86Box (or hardware) before deciding on this again.
+
 ## Emulator updates
 
 Merges of upstream MartyPC (`dbalsom/martypc` into `elks-bench`) and 86Box
